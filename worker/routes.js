@@ -9,6 +9,10 @@ import {
   incrementViews,
   getCategories,
   getPopularSongs,
+  getSongById,
+  createSong,
+  updateSong,
+  deleteSong,
 } from './db.js';
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -143,4 +147,112 @@ export async function handleGetPopular(request, db) {
 
   const songs = await getPopularSongs(db, limit);
   return json({ songs });
+}
+
+// ─── Admin CRUD Handlers ─────────────────────────────────────
+
+/** Generate a URL-friendly slug from a string. */
+function generateSlug(text) {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
+ * GET /api/admin/song/:id
+ */
+export async function handleAdminGetSong(id, db) {
+  if (!id) return badRequest('Song ID is required');
+  const song = await getSongById(db, parseInt(id, 10));
+  if (!song) return notFound('Song not found');
+  return json(song);
+}
+
+/**
+ * POST /api/admin/songs — Create a new song.
+ */
+export async function handleAdminCreateSong(request, db) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return badRequest('Invalid JSON body');
+  }
+
+  const { title, artist, category, lyrics } = body;
+  let { slug } = body;
+
+  if (!title || !title.trim()) return badRequest('Title is required');
+  if (!lyrics || !lyrics.trim()) return badRequest('Lyrics are required');
+
+  // Auto-generate slug if not provided
+  slug = (slug && slug.trim()) ? slug.trim() : generateSlug(title);
+
+  // Check slug uniqueness
+  const existing = await getSongBySlug(db, slug);
+  if (existing) return json({ error: 'A song with this slug already exists' }, 409);
+
+  const result = await createSong(db, {
+    title: title.trim(),
+    slug,
+    artist: artist?.trim() || null,
+    category: category?.trim() || null,
+    lyrics: lyrics.trim(),
+  });
+
+  return json({ success: true, id: result.id, slug }, 201);
+}
+
+/**
+ * PUT /api/admin/song/:id — Update existing song.
+ */
+export async function handleAdminUpdateSong(id, request, db) {
+  if (!id) return badRequest('Song ID is required');
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return badRequest('Invalid JSON body');
+  }
+
+  const { title, artist, category, lyrics } = body;
+  let { slug } = body;
+
+  if (!title || !title.trim()) return badRequest('Title is required');
+  if (!lyrics || !lyrics.trim()) return badRequest('Lyrics are required');
+
+  slug = (slug && slug.trim()) ? slug.trim() : generateSlug(title);
+
+  // Check slug uniqueness (exclude current song)
+  const existing = await getSongBySlug(db, slug);
+  if (existing && existing.id !== parseInt(id, 10)) {
+    return json({ error: 'A different song with this slug already exists' }, 409);
+  }
+
+  const updated = await updateSong(db, parseInt(id, 10), {
+    title: title.trim(),
+    slug,
+    artist: artist?.trim() || null,
+    category: category?.trim() || null,
+    lyrics: lyrics.trim(),
+  });
+
+  if (!updated) return notFound('Song not found');
+  return json({ success: true, id: parseInt(id, 10), slug });
+}
+
+/**
+ * DELETE /api/admin/song/:id — Delete a song.
+ */
+export async function handleAdminDeleteSong(id, db) {
+  if (!id) return badRequest('Song ID is required');
+
+  const deleted = await deleteSong(db, parseInt(id, 10));
+  if (!deleted) return notFound('Song not found');
+  return json({ success: true });
 }

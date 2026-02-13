@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — MaraLyrics</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link">View Site</a>
+        <span class="admin-badge">Admin</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ Admin Content ═══ -->
+  <main class="container admin">
+
+    <!-- Top Bar -->
+    <div class="admin__topbar">
+      <h1 class="admin__title">Song Management</h1>
+      <button id="btnNewSong" class="btn btn--primary">
+        + New Song
+      </button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="admin__stats" id="adminStats">
+      <div class="stat-card">
+        <span class="stat-card__value" id="statTotal">—</span>
+        <span class="stat-card__label">Total Songs</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value" id="statCategories">—</span>
+        <span class="stat-card__label">Categories</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-card__value" id="statViews">—</span>
+        <span class="stat-card__label">Total Views</span>
+      </div>
+    </div>
+
+    <!-- Search / Filter -->
+    <div class="admin__toolbar">
+      <div class="search" style="max-width:360px;flex:1;">
+        <span class="search__icon">🔍</span>
+        <input type="text" id="adminSearch" class="search__input" placeholder="Filter songs..." autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- Songs Table -->
+    <div class="admin__table-wrap">
+      <table class="admin-table" id="songsTable">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Artist</th>
+            <th>Category</th>
+            <th>Views</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="songsTableBody">
+          <tr><td colspan="6" class="admin-table__empty">Loading songs...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div id="adminPagination" class="pagination" style="margin-top:var(--space-lg);"></div>
+
+  </main>
+
+  <!-- ═══ Song Modal (Create / Edit) ═══ -->
+  <div id="songModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="modalBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title" id="modalTitle">New Song</h2>
+        <button class="modal__close" id="modalClose">&times;</button>
+      </div>
+      <form id="songForm" class="modal__form">
+        <input type="hidden" id="formSongId" value="" />
+
+        <div class="form-group">
+          <label class="form-label" for="formTitle">Title <span class="required">*</span></label>
+          <input type="text" id="formTitle" class="form-input" required placeholder="Song title" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="formArtist">Artist</label>
+            <input type="text" id="formArtist" class="form-input" placeholder="Artist name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="formCategory">Category</label>
+            <input type="text" id="formCategory" class="form-input" placeholder="e.g. Traditional, Gospel" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="formSlug">Slug</label>
+          <input type="text" id="formSlug" class="form-input" placeholder="auto-generated-from-title" />
+          <span class="form-hint">Leave blank to auto-generate from title</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="formLyrics">Lyrics <span class="required">*</span></label>
+          <textarea id="formLyrics" class="form-input form-textarea" required placeholder="Enter song lyrics here...&#10;&#10;Each line on a new line.&#10;&#10;Blank line separates verses."></textarea>
+        </div>
+
+        <!-- Status message -->
+        <div id="formMessage" class="form-message" style="display:none;"></div>
+
+        <div class="modal__actions">
+          <button type="button" id="btnCancel" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="btnSubmit" class="btn btn--primary">Save Song</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ Delete Confirmation Modal ═══ -->
+  <div id="deleteModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="deleteBackdrop"></div>
+    <div class="modal__content modal__content--sm">
+      <div class="modal__header">
+        <h2 class="modal__title">Delete Song</h2>
+        <button class="modal__close" id="deleteModalClose">&times;</button>
+      </div>
+      <p class="modal__text">
+        Are you sure you want to delete <strong id="deleteSongName"></strong>? This action cannot be undone.
+      </p>
+      <div class="modal__actions">
+        <button id="btnDeleteCancel" class="btn btn--ghost">Cancel</button>
+        <button id="btnDeleteConfirm" class="btn btn--danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <p>MaraLyrics Admin Dashboard &middot; &copy; 2026</p>
+    </div>
+  </footer>
+
+  <script src="/admin.js"></script>
+</body>
+</html>

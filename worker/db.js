@@ -121,3 +121,64 @@ export async function getPopularSongs(db, limit = 10) {
     .all()
     .then((r) => r.results || []);
 }
+
+// ─── Admin CRUD Operations ─────────────────────────────────────
+
+/**
+ * Get a single song by ID (for admin editing).
+ * @param {D1Database} db
+ * @param {number} id
+ * @returns {Promise<object|null>}
+ */
+export async function getSongById(db, id) {
+  return db.prepare('SELECT * FROM songs WHERE id = ?').bind(id).first();
+}
+
+/**
+ * Create a new song.
+ * @param {D1Database} db
+ * @param {object} song - { title, slug, artist, category, lyrics }
+ * @returns {Promise<{id: number}>}
+ */
+export async function createSong(db, { title, slug, artist, category, lyrics }) {
+  const result = await db
+    .prepare(
+      `INSERT INTO songs (title, slug, artist, category, lyrics)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .bind(title, slug, artist || null, category || null, lyrics)
+    .run();
+  return { id: result.meta.last_row_id };
+}
+
+/**
+ * Update an existing song by ID.
+ * @param {D1Database} db
+ * @param {number} id
+ * @param {object} fields - { title, slug, artist, category, lyrics }
+ * @returns {Promise<boolean>}
+ */
+export async function updateSong(db, id, { title, slug, artist, category, lyrics }) {
+  const result = await db
+    .prepare(
+      `UPDATE songs SET title = ?, slug = ?, artist = ?, category = ?, lyrics = ?
+       WHERE id = ?`
+    )
+    .bind(title, slug, artist || null, category || null, lyrics, id)
+    .run();
+  return result.meta.changes > 0;
+}
+
+/**
+ * Delete a song by ID.
+ * @param {D1Database} db
+ * @param {number} id
+ * @returns {Promise<boolean>}
+ */
+export async function deleteSong(db, id) {
+  const result = await db
+    .prepare('DELETE FROM songs WHERE id = ?')
+    .bind(id)
+    .run();
+  return result.meta.changes > 0;
+}

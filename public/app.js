@@ -644,7 +644,11 @@ const SongPage = {
     if (artistEl) artistEl.querySelector('span').textContent = song.artist || 'Unknown';
     if (categoryEl) categoryEl.querySelector('span').textContent = song.category || 'Uncategorized';
     if (viewsEl) viewsEl.querySelector('span').textContent = Utils.formatViews(song.views);
-    if (lyricsEl) lyricsEl.textContent = song.lyrics; // textContent auto-escapes
+    if (lyricsEl) {
+      // Replace literal \n with actual newlines (D1 may store escaped newlines)
+      const cleanLyrics = (song.lyrics || '').replace(/\\n/g, '\n');
+      lyricsEl.textContent = cleanLyrics;
+    }
   },
 
   /** Update page title, meta tags, and JSON-LD. */

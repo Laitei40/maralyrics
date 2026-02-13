@@ -12,6 +12,10 @@ import {
   handleViewIncrement,
   handleGetCategories,
   handleGetPopular,
+  handleAdminGetSong,
+  handleAdminCreateSong,
+  handleAdminUpdateSong,
+  handleAdminDeleteSong,
 } from './routes.js';
 
 const assetManifest = JSON.parse(manifestJSON);
@@ -31,7 +35,7 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
           'Access-Control-Max-Age': '86400',
         },
@@ -71,6 +75,36 @@ export default {
       if (path.startsWith('/api/view/') && method === 'POST') {
         const slug = path.replace('/api/view/', '').trim();
         return await handleViewIncrement(slug, request, env.DB);
+      }
+
+      // ─── Admin API Routes ──────────────────────────────
+
+      // GET /api/admin/songs (reuse paginated list with higher limit)
+      if (path === '/api/admin/songs' && method === 'GET') {
+        return await handleGetSongs(request, env.DB);
+      }
+
+      // POST /api/admin/songs — Create
+      if (path === '/api/admin/songs' && method === 'POST') {
+        return await handleAdminCreateSong(request, env.DB);
+      }
+
+      // GET /api/admin/song/:id — Get by ID
+      if (path.match(/^\/api\/admin\/song\/\d+$/) && method === 'GET') {
+        const id = path.split('/').pop();
+        return await handleAdminGetSong(id, env.DB);
+      }
+
+      // PUT /api/admin/song/:id — Update
+      if (path.match(/^\/api\/admin\/song\/\d+$/) && method === 'PUT') {
+        const id = path.split('/').pop();
+        return await handleAdminUpdateSong(id, request, env.DB);
+      }
+
+      // DELETE /api/admin/song/:id — Delete
+      if (path.match(/^\/api\/admin\/song\/\d+$/) && method === 'DELETE') {
+        const id = path.split('/').pop();
+        return await handleAdminDeleteSong(id, env.DB);
       }
 
       // ─── Static Files / SPA Routing ────────────────────
