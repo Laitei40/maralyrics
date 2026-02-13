@@ -4,7 +4,9 @@
 
 'use strict';
 
-const ADMIN_API = '/api/admin';
+const WORKER_ORIGIN = 'https://maralyrics.teiteipara.workers.dev';
+const API_ORIGIN = window.location.hostname.endsWith('pages.dev') ? WORKER_ORIGIN : '';
+const ADMIN_API = `${API_ORIGIN}/api/admin`;
 
 // State
 let currentPage = 1;
@@ -144,7 +146,7 @@ async function updateStats(data) {
   document.getElementById('statTotal').textContent = data.total || allSongs.length;
 
   try {
-    const catData = await apiGet('../api/categories');
+    const catData = await apiGet(`${API_ORIGIN}/api/categories`);
     document.getElementById('statCategories').textContent = catData.categories?.length || 0;
   } catch { /* ignore */ }
 

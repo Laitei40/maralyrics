@@ -6,8 +6,10 @@
 'use strict';
 
 // ─── Configuration ─────────────────────────────────────────────
+const WORKER_ORIGIN = 'https://maralyrics.teiteipara.workers.dev';
+const API_ORIGIN = window.location.hostname.endsWith('pages.dev') ? WORKER_ORIGIN : '';
 const CONFIG = {
-  API_BASE: '/api',
+  API_BASE: `${API_ORIGIN}/api`,
   CACHE_PREFIX: 'ml_',
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 hours
   SEARCH_DEBOUNCE: 300,
