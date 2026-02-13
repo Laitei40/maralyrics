@@ -109,9 +109,9 @@ export default {
 
       // ─── Static Files / SPA Routing ────────────────────
 
-      // Song page (clean URLs): /song/some-slug → serve song.html
+      // Song page (clean URLs): /song/some-slug → serve song/index.html
       if (path.startsWith('/song/')) {
-        return await serveAsset(request, env, ctx, '/song.html');
+        return await serveAsset(request, env, ctx, '/song/index.html');
       }
 
       // Try to serve the static asset directly
