@@ -1,18 +1,18 @@
-// ╔══════════════════════════════════════════════════════════════╗
-// ║        MaraLyrics — Admin Dashboard Logic                   ║
-// ╚══════════════════════════════════════════════════════════════╝
+// ┌───────────────────────────────────────────────┐
+// │        MaraLyrics — Admin Dashboard Logic     │
+// └───────────────────────────────────────────────┘
 
 'use strict';
 
 const ADMIN_API = '/api/admin';
 
-// ─── State ─────────────────────────────────────────────────────
+// State
 let currentPage = 1;
 let totalPages = 1;
 let allSongs = [];
 let deleteTargetId = null;
 
-// ─── Helpers ───────────────────────────────────────────────────
+// Helpers
 function escapeHtml(str) {
   if (!str) return '';
   const div = document.createElement('div');
@@ -42,7 +42,7 @@ function generateSlug(text) {
     .replace(/^-|-$/g, '');
 }
 
-// ─── API Calls ─────────────────────────────────────────────────
+// API Calls
 async function apiGet(url) {
   const res = await fetch(url);
   if (!res.ok) {
@@ -81,7 +81,7 @@ async function apiDelete(url) {
   return data;
 }
 
-// ─── Load Songs Table ──────────────────────────────────────────
+// Load Songs Table
 async function loadSongs(page = 1) {
   const tbody = document.getElementById('songsTableBody');
   tbody.innerHTML = '<tr><td colspan="6" class="admin-table__empty">Loading...</td></tr>';
@@ -122,7 +122,7 @@ function renderTable(songs) {
         <div class="admin-table__actions">
           <button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>
           <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, '${escapeHtml(song.title).replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
-          <a href="/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁</a>
+          <a href="../song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
     </tr>
@@ -139,12 +139,12 @@ function renderPagination() {
   el.innerHTML = html;
 }
 
-// ─── Stats ─────────────────────────────────────────────────────
+// Stats
 async function updateStats(data) {
   document.getElementById('statTotal').textContent = data.total || allSongs.length;
 
   try {
-    const catData = await apiGet('/api/categories');
+    const catData = await apiGet('../api/categories');
     document.getElementById('statCategories').textContent = catData.categories?.length || 0;
   } catch { /* ignore */ }
 
@@ -152,7 +152,7 @@ async function updateStats(data) {
   document.getElementById('statViews').textContent = formatViews(totalViews);
 }
 
-// ─── Filter / Search ───────────────────────────────────────────
+// Filter / Search
 function filterSongs(query) {
   const q = query.toLowerCase().trim();
   if (!q) {
@@ -168,7 +168,7 @@ function filterSongs(query) {
   renderTable(filtered);
 }
 
-// ─── Modal Helpers ─────────────────────────────────────────────
+// Modal Helpers
 function openModal() {
   document.getElementById('songModal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -193,7 +193,7 @@ function showFormMessage(text, isError = false) {
   el.style.display = 'block';
 }
 
-// ─── New Song ──────────────────────────────────────────────────
+// New Song
 function openNewSong() {
   clearForm();
   document.getElementById('modalTitle').textContent = 'New Song';
@@ -202,7 +202,7 @@ function openNewSong() {
   document.getElementById('formTitle').focus();
 }
 
-// ─── Edit Song ─────────────────────────────────────────────────
+// Edit Song
 async function editSong(id) {
   clearForm();
   document.getElementById('modalTitle').textContent = 'Edit Song';
@@ -222,7 +222,7 @@ async function editSong(id) {
   }
 }
 
-// ─── Save Song (Create or Update) ─────────────────────────────
+// Save Song (Create or Update)
 async function saveSong(e) {
   e.preventDefault();
 
@@ -264,7 +264,7 @@ async function saveSong(e) {
   }
 }
 
-// ─── Delete Song ───────────────────────────────────────────────
+// Delete Song
 function confirmDelete(id, title) {
   deleteTargetId = id;
   document.getElementById('deleteSongName').textContent = title;
@@ -295,7 +295,7 @@ async function deleteSong() {
   }
 }
 
-// ─── Auto-generate slug as user types title ────────────────────
+// Auto-generate slug as user types title
 function autoSlug() {
   const slugField = document.getElementById('formSlug');
   const titleField = document.getElementById('formTitle');
@@ -305,7 +305,7 @@ function autoSlug() {
   }
 }
 
-// ─── Init ──────────────────────────────────────────────────────
+// Init
 document.addEventListener('DOMContentLoaded', () => {
   // Load songs
   loadSongs();

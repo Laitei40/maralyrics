@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e1a" />
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="icon" type="image/svg+xml" href="../icon.svg" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,26 +16,26 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/admin.css" />
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
 
-  <!-- ═══ Header ═══ -->
+  <!-- ─── Header ─────────────────────────────── -->
   <header class="header">
     <div class="header__inner">
-      <a href="/" class="header__logo">
-        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+      <a href="../" class="header__logo">
+        <img src="../icon.svg" alt="MaraLyrics" class="header__logo-icon" />
         MaraLyrics
       </a>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link">View Site</a>
+        <a href="../" class="header__nav-link">View Site</a>
         <span class="admin-badge">Admin</span>
       </nav>
     </div>
   </header>
 
-  <!-- ═══ Admin Content ═══ -->
+  <!-- ─── Admin Content ──────────────────────── -->
   <main class="container admin">
 
     <!-- Top Bar -->
@@ -94,7 +94,7 @@
 
   </main>
 
-  <!-- ═══ Song Modal (Create / Edit) ═══ -->
+  <!-- ─── Song Modal (Create / Edit) ─────────── -->
   <div id="songModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="modalBackdrop"></div>
     <div class="modal__content">
@@ -143,7 +143,7 @@
     </div>
   </div>
 
-  <!-- ═══ Delete Confirmation Modal ═══ -->
+  <!-- ─── Delete Confirmation Modal ──────────── -->
   <div id="deleteModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="deleteBackdrop"></div>
     <div class="modal__content modal__content--sm">
@@ -161,13 +161,13 @@
     </div>
   </div>
 
-  <!-- ═══ Footer ═══ -->
+  <!-- ─── Footer ─────────────────────────────── -->
   <footer class="footer">
     <div class="container">
       <p>MaraLyrics Admin Dashboard &middot; &copy; 2026</p>
     </div>
   </footer>
 
-  <script src="/admin.js"></script>
+  <script src="admin.js"></script>
 </body>
 </html>
