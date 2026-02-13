@@ -1,0 +1,22 @@
+name = "maralyrics"
+main = "worker/worker.js"
+compatibility_date = "2024-12-01"
+
+# ─── D1 Database Binding ───
+[[d1_databases]]
+binding = "DB"
+database_name = "maralyrics-db"
+database_id = "YOUR_D1_DATABASE_ID"  # Replace after: wrangler d1 create maralyrics-db
+
+# ─── Static Assets ───
+[site]
+bucket = "./public"
+
+# ─── Custom Domain (optional) ───
+# routes = [
+#   { pattern = "maralyrics.example.com", custom_domain = true }
+# ]
+
+# ─── Environment Variables ───
+[vars]
+ENVIRONMENT = "production"

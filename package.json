@@ -1,0 +1,19 @@
+{
+  "name": "maralyrics",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MaraLyrics — A modern Mara song lyrics website powered by Cloudflare Workers & D1",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create maralyrics-db",
+    "db:migrate": "wrangler d1 execute maralyrics-db --remote --file=./schema.sql",
+    "db:migrate:local": "wrangler d1 execute maralyrics-db --local --file=./schema.sql"
+  },
+  "dependencies": {
+    "@cloudflare/kv-asset-handler": "^0.3.4"
+  },
+  "devDependencies": {
+    "wrangler": "^3.99.0"
+  }
+}

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaraLyrics — Mara Song Lyrics Collection</title>
+
+  <!-- SEO Meta -->
+  <meta name="description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, modern, worship, and gospel songs from the Mara community." />
+  <meta name="keywords" content="Mara, lyrics, songs, Mara songs, traditional, gospel, worship, Mara lyrics" />
+  <meta name="author" content="MaraLyrics" />
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="MaraLyrics — Mara Song Lyrics Collection" />
+  <meta property="og:description" content="Explore and discover beautiful Mara song lyrics." />
+  <meta property="og:url" content="https://maralyrics.com" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "MaraLyrics",
+    "url": "https://maralyrics.com",
+    "description": "A collection of Mara song lyrics — traditional, modern, worship, and gospel.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://maralyrics.com/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link active">Home</a>
+        <a href="/#popular" class="header__nav-link">Popular</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ Hero ═══ -->
+  <section class="hero">
+    <div class="container">
+      <h1 class="hero__title">Mara Song Lyrics</h1>
+      <p class="hero__subtitle">Discover and explore beautiful lyrics from the Mara community</p>
+
+      <!-- Search -->
+      <div class="search" role="search">
+        <span class="search__icon" aria-hidden="true">🔍</span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search__input"
+          placeholder="Search songs by title or artist..."
+          autocomplete="off"
+          aria-label="Search songs"
+        />
+        <button id="searchClear" class="search__clear" aria-label="Clear search">&times;</button>
+      </div>
+
+      <!-- Categories -->
+      <div id="categories" class="categories" role="tablist" aria-label="Filter by category">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Main Content ═══ -->
+  <main class="container">
+
+    <!-- Search Results (hidden by default) -->
+    <section id="searchResults" style="display:none;" class="fade-in">
+      <h2 class="section-title">
+        <span class="section-title__icon">🔎</span>
+        Search Results
+        <span id="searchCount" style="font-weight:400;color:var(--text-muted);font-size:var(--text-sm);"></span>
+      </h2>
+      <div id="searchGrid" class="song-grid"></div>
+    </section>
+
+    <!-- Popular Songs -->
+    <section id="popularSection" class="fade-in">
+      <h2 class="section-title" id="popular">
+        <span class="section-title__icon">🔥</span>
+        Popular Songs
+      </h2>
+      <div id="popularGrid" class="song-grid"></div>
+    </section>
+
+    <!-- All Songs -->
+    <section id="allSongsSection" class="fade-in">
+      <h2 class="section-title">
+        <span class="section-title__icon">🎵</span>
+        All Songs
+      </h2>
+      <div id="songGrid" class="song-grid"></div>
+
+      <!-- Pagination -->
+      <div id="pagination" class="pagination"></div>
+    </section>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div class="empty-state__icon">🎵</div>
+      <h3 class="empty-state__title">No songs found</h3>
+      <p class="empty-state__text">Try a different search term or browse categories above.</p>
+    </div>
+
+  </main>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+    </div>
+  </footer>
+
+  <!-- Offline Badge -->
+  <div id="offlineBadge" class="offline-badge">
+    <span>⚡</span> Offline Mode
+  </div>
+
+  <!-- App Script -->
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 — Page Not Found | MaraLyrics</title>
+  <meta name="description" content="The page you're looking for doesn't exist." />
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ 404 Content ═══ -->
+  <main class="container">
+    <section class="error-page fade-in">
+      <div class="error-page__glow"></div>
+      <div class="error-page__code">404</div>
+      <h1 class="error-page__title">Page Not Found</h1>
+      <p class="error-page__text">
+        The page you're looking for doesn't exist or has been moved.
+        <br />Let's get you back to the music.
+      </p>
+      <div class="error-page__actions">
+        <a href="/" class="error-page__btn error-page__btn--primary">
+          ← Back to Home
+        </a>
+        <button onclick="history.back()" class="error-page__btn error-page__btn--ghost">
+          Go Back
+        </button>
+      </div>
+      <div class="error-page__notes">
+        <span class="error-page__note" style="animation-delay:0s">♪</span>
+        <span class="error-page__note" style="animation-delay:0.5s">♫</span>
+        <span class="error-page__note" style="animation-delay:1s">♬</span>
+        <span class="error-page__note" style="animation-delay:1.5s">♩</span>
+        <span class="error-page__note" style="animation-delay:2s">♪</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+    </div>
+  </footer>
+
+</body>
+</html>

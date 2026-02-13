@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">Song — MaraLyrics</title>
+
+  <!-- SEO Meta (dynamically updated by JS) -->
+  <meta name="description" id="metaDesc" content="Read song lyrics on MaraLyrics." />
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:title" id="ogTitle" content="Song — MaraLyrics" />
+  <meta property="og:description" id="ogDesc" content="Read song lyrics on MaraLyrics." />
+
+  <!-- JSON-LD (populated by JS) -->
+  <script type="application/ld+json" id="jsonLd">
+  {
+    "@context": "https://schema.org",
+    "@type": "MusicComposition",
+    "name": "Song",
+    "description": "Mara song lyrics"
+  }
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link">Home</a>
+        <a href="/#popular" class="header__nav-link">Popular</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ Song Content ═══ -->
+  <main class="song-page container" id="songPage">
+
+    <!-- Back Link -->
+    <a href="/" class="song-page__back">
+      ← Back to Songs
+    </a>
+
+    <!-- Loading Skeleton -->
+    <div id="songSkeleton">
+      <div class="skeleton" style="margin-bottom:var(--space-lg);">
+        <div class="skeleton__line skeleton__line--title"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
+      </div>
+      <div class="skeleton" style="min-height:300px;">
+        <div class="skeleton__line"></div>
+        <div class="skeleton__line skeleton__line--medium"></div>
+        <div class="skeleton__line"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
+        <div class="skeleton__line"></div>
+        <div class="skeleton__line skeleton__line--medium"></div>
+        <div class="skeleton__line"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
+      </div>
+    </div>
+
+    <!-- Song Detail (hidden until loaded) -->
+    <div id="songDetail" style="display:none;" class="fade-in">
+
+      <!-- Header Info -->
+      <div class="song-page__header">
+        <h1 class="song-page__title" id="songTitle"></h1>
+        <div class="song-page__info">
+          <span class="song-page__info-item" id="songArtist">
+            🎤 <span></span>
+          </span>
+          <span class="song-page__info-item" id="songCategory">
+            📁 <span></span>
+          </span>
+          <span class="song-page__info-item" id="songViews">
+            👁 <span></span> views
+          </span>
+        </div>
+      </div>
+
+      <!-- Lyrics Card -->
+      <div class="song-page__lyrics-card">
+        <pre class="song-page__lyrics" id="songLyrics"></pre>
+      </div>
+
+    </div>
+
+    <!-- Error State -->
+    <div id="songError" class="empty-state" style="display:none;">
+      <div class="empty-state__icon">😔</div>
+      <h3 class="empty-state__title">Song not found</h3>
+      <p class="empty-state__text">This song may have been removed or the link is incorrect.</p>
+      <a href="/" style="display:inline-block;margin-top:var(--space-lg);padding:var(--space-sm) var(--space-lg);background:var(--accent);color:#fff;border-radius:var(--radius-md);font-weight:600;">
+        ← Go Home
+      </a>
+    </div>
+
+  </main>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+    </div>
+  </footer>
+
+  <!-- Offline Badge -->
+  <div id="offlineBadge" class="offline-badge">
+    <span>⚡</span> Offline Mode
+  </div>
+
+  <!-- App Script -->
+  <script src="/app.js"></script>
+</body>
+</html>
