@@ -6,7 +6,7 @@ compatibility_date = "2024-12-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "maralyrics-db"
-database_id = "YOUR_D1_DATABASE_ID"  # Replace after: wrangler d1 create maralyrics-db
+database_id = "b27f5e8e-0b46-41df-8738-ddc611da58e3"  # Replace after: wrangler d1 create maralyrics-db
 
 # ─── Static Assets ───
 [site]
