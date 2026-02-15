@@ -713,7 +713,7 @@ body::before {
   color: var(--text-muted);
 }
 
-/* ─── Report Error Button (Song Page) ───────────────────────── */
+/* ─── Feedback Button (Song Page) ────────────────────────────── */
 .song-page__report {
   margin-top: var(--space-lg);
   padding-top: var(--space-md);

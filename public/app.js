@@ -705,7 +705,7 @@ const SongPage = {
       lyricsEl.textContent = cleanLyrics;
     }
 
-    // Report Error button — build link with song context
+    // Feedback button — build link with song context
     const reportBtn = document.getElementById('btnReportError');
     if (reportBtn) {
       const params = new URLSearchParams({

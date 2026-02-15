@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Report Error — MaraLyrics</title>
+  <title>Feedback — MaraLyrics</title>
 
-  <meta name="description" content="Report an error in song lyrics on MaraLyrics." />
+  <meta name="description" content="Send us your feedback about song lyrics on MaraLyrics." />
   <meta name="theme-color" content="#0a0e1a" />
 
   <!-- Favicon -->
@@ -42,23 +42,22 @@
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/" class="breadcrumb__link">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current">Report Error</span>
+      <span class="breadcrumb__current">Feedback</span>
     </nav>
 
     <div class="report-page__card">
 
       <h1 class="report-page__title">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;color:var(--accent);">
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
         </svg>
-        Report an Error
+        Feedback
       </h1>
-      <p class="report-page__subtitle">Found a mistake in the lyrics? Let us know and we'll fix it.</p>
+      <p class="report-page__subtitle">Have feedback about this song? Let us know and we'll look into it.</p>
 
       <!-- Song Info (auto-populated from URL params) -->
       <div class="report-page__song-info" id="songInfo" style="display:none;">
-        <div class="report-page__song-label">Reporting about:</div>
+        <div class="report-page__song-label">Feedback about:</div>
         <div class="report-page__song-detail">
           <span class="report-page__song-icon">🎵</span>
           <div>
@@ -83,8 +82,8 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="reportBody">Describe the error <span class="form-required">*</span></label>
-          <textarea id="reportBody" class="form-input form-textarea" rows="6" placeholder="Please describe what's wrong with the lyrics. For example: 'In verse 2, line 3, the word should be...' " required></textarea>
+          <label class="form-label" for="reportBody">Your Feedback <span class="form-required">*</span></label>
+          <textarea id="reportBody" class="form-input form-textarea" rows="6" placeholder="Tell us what you think — corrections, suggestions, or anything else about this song." required></textarea>
         </div>
 
         <div id="reportMessage" class="report-page__message" style="display:none;"></div>
@@ -94,7 +93,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;">
               <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
-            Send Report
+            Send Feedback
           </button>
           <a href="/" class="btn btn--ghost" id="btnBackHome">← Back</a>
         </div>
@@ -105,8 +104,8 @@
     <!-- Success State (hidden by default) -->
     <div id="reportSuccess" class="report-page__card report-page__success" style="display:none;">
       <div class="report-page__success-icon">✅</div>
-      <h2 class="report-page__success-title">Report Sent!</h2>
-      <p class="report-page__success-text">Thank you for helping us improve MaraLyrics. We'll review your report and fix the error as soon as possible.</p>
+      <h2 class="report-page__success-title">Feedback Sent!</h2>
+      <p class="report-page__success-text">Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.</p>
       <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);">← Back to Home</a>
     </div>
 
