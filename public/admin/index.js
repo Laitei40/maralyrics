@@ -5,6 +5,7 @@
 'use strict';
 
 const WORKER_ORIGIN = 'https://maralyrics.teiteipara.workers.dev';
+const SITE_ORIGIN = 'https://maralyrics.com';
 const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
 const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
 const ADMIN_API = `${API_ORIGIN}/api/admin`;
@@ -180,7 +181,7 @@ function renderSongsTable(songs) {
         <div class="admin-table__actions">
           <button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>
           <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, '${escapeHtml(song.title).replace(/'/g, "\\'")}', 'song')" title="Delete">🗑️</button>
-          <a href="../song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
+          <a href="${SITE_ORIGIN}/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
     </tr>
@@ -1150,7 +1151,7 @@ function renderReportsTable() {
         <td>
           <div class="admin-table__actions">
             <button class="btn btn--sm btn--ghost" onclick="viewFeedback(${r.id})" title="View Detail">📝</button>
-            ${r.song_slug ? `<a href="../song/${escapeHtml(r.song_slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View Song">👁️</a>` : ''}
+            ${r.song_slug ? `<a href="${SITE_ORIGIN}/song/${escapeHtml(r.song_slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View Song">👁️</a>` : ''}
             <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${r.id}, 'Report #${r.id}', 'report')" title="Delete">🗑️</button>
           </div>
         </td>
@@ -1194,7 +1195,7 @@ function viewFeedback(id) {
 
   const viewSongBtn = document.getElementById('feedbackBtnViewSong');
   if (r.song_slug) {
-    viewSongBtn.href = '../song/' + r.song_slug;
+    viewSongBtn.href = SITE_ORIGIN + '/song/' + r.song_slug;
     viewSongBtn.style.display = 'inline-flex';
   } else {
     viewSongBtn.style.display = 'none';
