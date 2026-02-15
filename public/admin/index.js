@@ -367,7 +367,7 @@ function renderPersonTable(type, items, tbody) {
         <div class="admin-table__actions">
           <button class="btn btn--sm btn--ghost" onclick="editPerson('${type}', ${item.id})" title="Edit">✏️</button>
           <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', '${type}')" title="Delete">🗑️</button>
-          <a href="../${type}/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
+          <a href="${SITE_ORIGIN}/${type}/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
     </tr>
@@ -974,7 +974,7 @@ function renderCopyrightOwnersTable(items, tbody) {
         <div class="admin-table__actions">
           <button class="btn btn--sm btn--ghost" onclick="editCopyrightOwner(${item.id})" title="Edit">✏️</button>
           <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', 'copyright-owner')" title="Delete">🗑️</button>
-          <a href="../copyright-owner/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
+          <a href="${SITE_ORIGIN}/copyright-owner/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
     </tr>
