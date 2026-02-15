@@ -241,6 +241,11 @@ export default {
 
       // ─── Static Files / SPA Routing ────────────────────
 
+      // Report page: /report → serve report.html
+      if (path === '/report') {
+        return await serveAsset(request, env, ctx, '/report.html');
+      }
+
       // Song page (clean URLs): /song/some-slug → serve songview.html
       if (path.startsWith('/song/')) {
         return await serveAsset(request, env, ctx, '/songview.html');
