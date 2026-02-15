@@ -266,15 +266,15 @@ const SearchHistory = {
 
     dropdown.innerHTML = `
       <div class="search-history__header">
-        <span class="search-history__label">Recent</span>
-        <button class="search-history__clear-all">Clear all</button>
+        <span class="search-history__label">${I18n.t('search_history.recent')}</span>
+        <button class="search-history__clear-all">${I18n.t('search_history.clear_all')}</button>
       </div>
       <div class="search-history__list">
         ${history.map(term => `
           <button class="search-history__item" data-term="${Utils.escapeHtml(term)}">
             <span class="search-history__item-icon">${clockSvg}</span>
             <span class="search-history__item-text">${Utils.escapeHtml(term)}</span>
-            <span class="search-history__item-remove" title="Remove">✕</span>
+            <span class="search-history__item-remove" title="${I18n.t('search_history.remove')}">✕</span>
           </button>
         `).join('')}
       </div>
@@ -715,7 +715,7 @@ const HomePage = {
         this.searchGrid.innerHTML = '';
         if (suggestions.length > 0 && sugBox) {
           sugBox.innerHTML =
-            `<p class="suggestions-title">Did you mean:</p>` +
+            `<p class="suggestions-title">${I18n.t('search.did_you_mean')}</p>` +
             suggestions.map(s =>
               `<a href="/song/${Utils.escapeHtml(s.slug)}" class="suggestion-chip">${Utils.escapeHtml(s.title)}</a>`
             ).join('');
@@ -900,8 +900,8 @@ const SongPage = {
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
     const title = `${song.title} — MaraLyrics`;
-    const artistDisplay = song.artist_name || song.artist || 'Unknown';
-    const desc = `Read lyrics of "${song.title}" by ${artistDisplay} on MaraLyrics.`;
+    const artistDisplay = song.artist_name || song.artist || I18n.t('common.unknown');
+    const desc = I18n.t('song.meta_desc', { title: song.title, artist: artistDisplay });
 
     document.title = title;
 
@@ -924,7 +924,7 @@ const SongPage = {
         '@context': 'https://schema.org',
         '@type': 'MusicComposition',
         name: song.title,
-        composer: song.composer_name || song.composer || 'Unknown',
+        composer: song.composer_name || song.composer || I18n.t('common.unknown'),
         lyricist: artistDisplay,
         genre: song.category || 'Mara',
         text: song.lyrics?.substring(0, 200),
@@ -1084,7 +1084,7 @@ const ProfilePage = {
   },
 
   updateMeta(data) {
-    const typeLabel = this.type === 'artist' ? 'Artist' : 'Composer';
+    const typeLabel = I18n.t(`${this.type}.role`);
     const title = `${data.name} — ${typeLabel} — MaraLyrics`;
     const songCount = data.songs?.length || 0;
     const desc = `${data.name} — ${typeLabel} on MaraLyrics. ${songCount} song${songCount !== 1 ? 's' : ''}.${data.bio ? ' ' + data.bio.substring(0, 120) : ''}`;
@@ -1192,7 +1192,7 @@ const CopyrightOwnerPage = {
 
     // Role label
     const roleEl = document.querySelector('.profile-page__role');
-    if (roleEl) roleEl.textContent = 'Copyright Owner';
+    if (roleEl) roleEl.textContent = I18n.t('copyright_owner.role');
 
     // Hide social links section
     const socialEl = document.getElementById('profileSocial');
@@ -1209,15 +1209,15 @@ const CopyrightOwnerPage = {
     if (infoContainer) {
       let html = '';
       const fields = [
-        { label: 'Full Legal Name', value: owner.full_legal_name },
-        { label: 'Organization / Publisher', value: owner.organization },
-        { label: 'Territory / Jurisdiction', value: owner.territory },
-        { label: 'Email', value: owner.email, isEmail: true },
-        { label: 'Website', value: owner.website, isUrl: true },
-        { label: 'Address', value: owner.address },
-        { label: 'IPI Number', value: owner.ipi_number },
-        { label: 'ISRC Prefix', value: owner.isrc_prefix },
-        { label: 'PRO Affiliation', value: owner.pro_affiliation },
+        { label: I18n.t('copyright_owner.full_legal_name'), value: owner.full_legal_name },
+        { label: I18n.t('copyright_owner.organization'), value: owner.organization },
+        { label: I18n.t('copyright_owner.territory'), value: owner.territory },
+        { label: I18n.t('copyright_owner.email'), value: owner.email, isEmail: true },
+        { label: I18n.t('copyright_owner.website'), value: owner.website, isUrl: true },
+        { label: I18n.t('copyright_owner.address'), value: owner.address },
+        { label: I18n.t('copyright_owner.ipi_number'), value: owner.ipi_number },
+        { label: I18n.t('copyright_owner.isrc_prefix'), value: owner.isrc_prefix },
+        { label: I18n.t('copyright_owner.pro_affiliation'), value: owner.pro_affiliation },
       ];
 
       const visibleFields = fields.filter(f => f.value);
@@ -1230,7 +1230,7 @@ const CopyrightOwnerPage = {
           html += `<div class="copyright-info__row"><span class="copyright-info__label">${f.label}</span><span class="copyright-info__value">${val}</span></div>`;
         });
         if (owner.notes) {
-          html += `<div class="copyright-info__row"><span class="copyright-info__label">Notes</span><span class="copyright-info__value">${Utils.escapeHtml(owner.notes)}</span></div>`;
+          html += `<div class="copyright-info__row"><span class="copyright-info__label">${I18n.t('copyright_owner.notes')}</span><span class="copyright-info__value">${Utils.escapeHtml(owner.notes)}</span></div>`;
         }
         html += '</div>';
       }
@@ -1246,7 +1246,7 @@ const CopyrightOwnerPage = {
     const songsTitleEl = document.getElementById('songsSectionTitle');
 
     if (songsTitleEl && owner.name) {
-      songsTitleEl.textContent = `Songs claimed by ${owner.name}`;
+      songsTitleEl.textContent = I18n.t('copyright_owner.songs_claimed_by', { name: owner.name });
     }
     if (countEl) countEl.textContent = `(${songs.length})`;
     if (songs.length === 0) {
@@ -1254,7 +1254,7 @@ const CopyrightOwnerPage = {
       if (emptyEl) {
         emptyEl.style.display = 'block';
         const emptyText = emptyEl.querySelector('.empty-state__text');
-        if (emptyText) emptyText.textContent = 'No songs claimed by this copyright owner.';
+        if (emptyText) emptyText.textContent = I18n.t('copyright_owner.no_songs');
       }
     } else {
       if (emptyEl) emptyEl.style.display = 'none';
@@ -1264,9 +1264,10 @@ const CopyrightOwnerPage = {
 
   updateMeta(data) {
     const owner = data.owner || data;
-    const title = `${owner.name} — Copyright Owner — MaraLyrics`;
+    const coRole = I18n.t('copyright_owner.role');
+    const title = `${owner.name} — ${coRole} — MaraLyrics`;
     const songCount = data.songs?.length || 0;
-    const desc = `${owner.name} — Copyright Owner on MaraLyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
+    const desc = `${owner.name} — ${coRole} on MaraLyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
 
     document.title = title;
     const metaDesc = document.getElementById('metaDesc');
@@ -1284,7 +1285,7 @@ const CopyrightOwnerPage = {
         '@context': 'https://schema.org',
         '@type': 'Organization',
         name: owner.name,
-        description: `Copyright owner${owner.organization ? ' — ' + owner.organization : ''}`,
+        description: `${I18n.t('copyright_owner.role')}${owner.organization ? ' — ' + owner.organization : ''}`,
         url: window.location.href,
       });
     }
@@ -1317,7 +1318,7 @@ if ('serviceWorker' in navigator) {
           newWorker.postMessage({ type: 'PRECACHE_API', apiBase: CONFIG.API_BASE });
           // Notify user of update if not first install
           if (navigator.serviceWorker.controller) {
-            Toast.show('Content updated', { type: 'success', duration: 2500 });
+            Toast.show(I18n.t('toast.content_updated'), { type: 'success', duration: 2500 });
           }
         }
       });

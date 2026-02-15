@@ -134,7 +134,7 @@ const I18n = (() => {
     // Show toast only after initialization (not on first page load)
     if (initialized && typeof Toast !== 'undefined') {
       const langName = SUPPORTED_LANGS.find(l => l.code === lang);
-      Toast.show('Language changed to ' + (langName ? langName.name : lang) + '.', { type: 'info', duration: 2500 });
+      Toast.show(I18n.t('toast.language_changed', { language: langName ? langName.name : lang }), { type: 'info', duration: 2500 });
     }
   }
 

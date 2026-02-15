@@ -23,10 +23,10 @@ const Theme = (() => {
   };
 
   const LABELS = {
-    dark:   'Dark',
-    light:  'Light',
-    system: 'System',
-    time:   'Auto Time',
+    dark:   'theme.dark',
+    light:  'theme.light',
+    system: 'theme.system',
+    time:   'theme.auto_time',
   };
 
   // ─── Helpers ─────────────────────────────────────────
@@ -74,7 +74,11 @@ const Theme = (() => {
     applyTheme();
     // Show toast only after initialization (not on page load)
     if (initialized && typeof Toast !== 'undefined') {
-      Toast.show('Theme changed to ' + LABELS[mode] + '.', { type: 'info', duration: 2500 });
+      const label = typeof I18n !== 'undefined' ? I18n.t(LABELS[mode]) : mode;
+      const msg = typeof I18n !== 'undefined'
+        ? I18n.t('toast.theme_changed', { theme: label })
+        : 'Theme changed to ' + mode + '.';
+      Toast.show(msg, { type: 'info', duration: 2500 });
     }
   }
 

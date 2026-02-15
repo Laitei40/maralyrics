@@ -8,7 +8,8 @@
     "copyright": "© 2026 MaraLyrics"
   },
   "offline": {
-    "badge": "Offline Mode"
+    "badge": "Offline Mode",
+    "badge_text": "Offline"
   },
   "breadcrumb": {
     "home": "Home"
@@ -26,6 +27,7 @@
   "song": {
     "breadcrumb": "Song",
     "feedback_btn": "Feedback",
+    "meta_desc": "Read lyrics of \"{title}\" by {artist} on MaraLyrics.",
     "error_title": "Song not found",
     "error_text": "This song may have been removed or the link is incorrect.",
     "error_go_home": "← Go Home"
@@ -221,5 +223,49 @@
     "s5_content": "<ul class=\"static-page__list\"><li>Fraudulent or bad-faith removal requests may be subject to legal consequences.</li><li>We may reach out for additional information or clarification before processing a request.</li><li>If you believe content was removed in error, you may contact us to file a counter-notification.</li></ul>",
     "h6": "Contact",
     "s6_content": "<p>For copyright-related inquiries, please email:</p><p class=\"contact-email\"><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p><p>For general inquiries, visit our <a href=\"/contact\">Contact Us</a> page.</p>"
+  },
+  "toast": {
+    "content_updated": "Content updated",
+    "back_online": "Back online.",
+    "offline_message": "No internet connection. You are viewing offline mode. Some features may not be available.",
+    "theme_changed": "Theme changed to {theme}.",
+    "language_changed": "Language changed to {language}."
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System",
+    "auto_time": "Auto Time"
+  },
+  "search_history": {
+    "recent": "Recent",
+    "clear_all": "Clear all",
+    "remove": "Remove"
+  },
+  "search": {
+    "did_you_mean": "Did you mean:"
+  },
+  "copyright_owner": {
+    "role": "Copyright Owner",
+    "full_legal_name": "Full Legal Name",
+    "organization": "Organization / Publisher",
+    "territory": "Territory / Jurisdiction",
+    "email": "Email",
+    "website": "Website",
+    "address": "Address",
+    "ipi_number": "IPI Number",
+    "isrc_prefix": "ISRC Prefix",
+    "pro_affiliation": "PRO Affiliation",
+    "notes": "Notes",
+    "songs_claimed_by": "Songs claimed by {name}",
+    "no_songs": "No songs claimed by this copyright owner."
+  },
+  "consent": {
+    "aria_label": "Cookie consent",
+    "title": "We use cookies",
+    "desc": "This site uses cookies and local storage to save your language, theme, and search history for a better experience.",
+    "learn_more": "Learn more",
+    "accept_all": "Accept All",
+    "essential_only": "Essential Only"
   }
 }

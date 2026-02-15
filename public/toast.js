@@ -103,7 +103,7 @@ const Toast = (() => {
       badge.className = 'offline-header-badge';
       badge.innerHTML =
         '<span class="offline-header-badge__dot"></span>' +
-        '<span class="offline-header-badge__text">Offline</span>';
+        '<span class="offline-header-badge__text">' + (typeof I18n !== 'undefined' ? I18n.t('offline.badge_text') : 'Offline') + '</span>';
       // Insert after logo, before nav
       const logo = headerInner.querySelector('.header__logo');
       if (logo && logo.nextElementSibling) {
@@ -118,7 +118,8 @@ const Toast = (() => {
     window.addEventListener('online', () => {
       setBadge(false);
       if (wasOffline) {
-        show('Back online.', { type: 'success', id: 'connectivity', duration: 3000 });
+        const msg = typeof I18n !== 'undefined' ? I18n.t('toast.back_online') : 'Back online.';
+        show(msg, { type: 'success', id: 'connectivity', duration: 3000 });
         wasOffline = false;
       }
     });
@@ -126,8 +127,11 @@ const Toast = (() => {
     window.addEventListener('offline', () => {
       setBadge(true);
       wasOffline = true;
+      const msg = typeof I18n !== 'undefined'
+        ? I18n.t('toast.offline_message')
+        : 'No internet connection. You are viewing offline mode. Some features may not be available.';
       show(
-        'No internet connection. You are viewing offline mode. Some features may not be available.',
+        msg,
         { type: 'warning', id: 'connectivity', duration: 5000 }
       );
     });

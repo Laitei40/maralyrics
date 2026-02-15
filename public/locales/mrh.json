@@ -8,7 +8,8 @@
     "copyright": "© 2026 MaraLyrics"
   },
   "offline": {
-    "badge": "Offline Mode"
+    "badge": "Offline Mode",
+    "badge_text": "Offline"
   },
   "breadcrumb": {
     "home": "Hmasa"
@@ -26,6 +27,7 @@
   "song": {
     "breadcrumb": "Hla",
     "feedback_btn": "Thuthang",
+    "meta_desc": "{artist} {title} hla caka MaraLyrics ah chhiar rawh.",
     "error_title": "Hla a awm lo",
     "error_text": "Hi hla hi thla a ni lo thei a sie ah link a dik lo.",
     "error_go_home": "← Hmasa ah kir"
@@ -221,5 +223,49 @@
     "s5_content": "<ul class=\"static-page__list\"><li>Fraudulent a sie ah bad-faith removal request in daan harsatna a tlawm thei.</li><li>Request process hma ah thuthang belh kan ngai thei.</li><li>Content a thla na a dik lo i rin chuan counter-notification kan kawl thei.</li></ul>",
     "h6": "Contact",
     "s6_content": "<p>Copyright zawtnak ding ah email rawh:</p><p class=\"contact-email\"><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p><p>Zawtnak dang ding ah kan <a href=\"/contact\">Contact Us</a> page en rawh.</p>"
+  },
+  "toast": {
+    "content_updated": "A thleng zo",
+    "back_online": "Online ah kir zo.",
+    "offline_message": "Internet connection a awm lo. Offline mode i en a si. Feature pawl a awm lo thei.",
+    "theme_changed": "{theme} ah theme a thleng.",
+    "language_changed": "{language} ah aw chuang a thleng."
+  },
+  "theme": {
+    "dark": "Thim",
+    "light": "Eng",
+    "system": "System",
+    "auto_time": "Hun A Zir"
+  },
+  "search_history": {
+    "recent": "A hnuai bik",
+    "clear_all": "Vaih taih thla",
+    "remove": "Thla"
+  },
+  "search": {
+    "did_you_mean": "I ruahnak:"
+  },
+  "copyright_owner": {
+    "role": "Copyright Ta Tu",
+    "full_legal_name": "Hming Vaih Taih",
+    "organization": "Organization / Publisher",
+    "territory": "Territory / Jurisdiction",
+    "email": "Email",
+    "website": "Website",
+    "address": "Chenna",
+    "ipi_number": "IPI Number",
+    "isrc_prefix": "ISRC Prefix",
+    "pro_affiliation": "PRO Affiliation",
+    "notes": "Thuthang Belh",
+    "songs_claimed_by": "{name} hla claim",
+    "no_songs": "Hi copyright owner hnuah hla claim a awm lo."
+  },
+  "consent": {
+    "aria_label": "Cookie pawmnak",
+    "title": "Cookie kan hman",
+    "desc": "Hi site ah cookie leh local storage in i aw chuang, theme, leh search history khawm nawh experience tha ding ah kan hman.",
+    "learn_more": "A tam thei in chhiar rawh",
+    "accept_all": "Vaih Taih Pawm",
+    "essential_only": "Pawimawh Chauh"
   }
 }

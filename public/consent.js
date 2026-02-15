@@ -65,7 +65,9 @@ const CookieConsent = (() => {
     banner.id = 'cookieConsent';
     banner.className = 'cookie-consent';
     banner.setAttribute('role', 'dialog');
-    banner.setAttribute('aria-label', 'Cookie consent');
+    banner.setAttribute('aria-label', typeof I18n !== 'undefined' ? I18n.t('consent.aria_label') : 'Cookie consent');
+
+    const _t = (key, fallback) => (typeof I18n !== 'undefined' ? I18n.t(key) : fallback);
 
     banner.innerHTML = `
       <div class="cookie-consent__inner">
@@ -81,13 +83,13 @@ const CookieConsent = (() => {
             </svg>
           </div>
           <div class="cookie-consent__text">
-            <p class="cookie-consent__title">We use cookies</p>
-            <p class="cookie-consent__desc">This site uses cookies and local storage to save your language, theme, and search history for a better experience. <a href="/privacy" class="cookie-consent__link">Learn more</a></p>
+            <p class="cookie-consent__title">${_t('consent.title', 'We use cookies')}</p>
+            <p class="cookie-consent__desc">${_t('consent.desc', 'This site uses cookies and local storage to save your language, theme, and search history for a better experience.')} <a href="/privacy" class="cookie-consent__link">${_t('consent.learn_more', 'Learn more')}</a></p>
           </div>
         </div>
         <div class="cookie-consent__actions">
-          <button class="cookie-consent__btn cookie-consent__btn--accept" id="cookieAccept">Accept All</button>
-          <button class="cookie-consent__btn cookie-consent__btn--decline" id="cookieDecline">Essential Only</button>
+          <button class="cookie-consent__btn cookie-consent__btn--accept" id="cookieAccept">${_t('consent.accept_all', 'Accept All')}</button>
+          <button class="cookie-consent__btn cookie-consent__btn--decline" id="cookieDecline">${_t('consent.essential_only', 'Essential Only')}</button>
         </div>
       </div>
     `;
