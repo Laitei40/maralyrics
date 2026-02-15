@@ -386,7 +386,7 @@ export async function handleCreateReport(request, db) {
 
 export async function handleGetReports(db) {
   const reports = await getReports(db);
-  return json(reports);
+  return json({ reports });
 }
 
 export async function handleUpdateReportStatus(id, request, db) {
