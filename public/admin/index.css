@@ -454,3 +454,128 @@
     padding: var(--space-md);
   }
 }
+
+/* ─── Image Upload ──────────────────────────────────────────── */
+.image-upload {
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: rgba(255,255,255,0.02);
+}
+
+.image-upload__dropzone {
+  padding: var(--space-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.image-upload__dropzone.dragover {
+  background: rgba(139, 92, 246, 0.08);
+  border-color: var(--accent);
+}
+
+.image-upload__icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-sm);
+  opacity: 0.6;
+}
+
+.image-upload__text {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.image-upload__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.image-upload__or {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.image-upload__file-btn {
+  cursor: pointer;
+}
+
+.image-upload__url-input {
+  max-width: 360px;
+  margin: var(--space-sm) auto 0;
+}
+
+.image-upload__preview {
+  position: relative;
+  text-align: center;
+  padding: var(--space-md);
+  background: rgba(0,0,0,0.2);
+}
+
+.image-upload__preview canvas {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: var(--radius-md);
+  cursor: crosshair;
+}
+
+.image-upload__crop-controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.image-upload__remove {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ─── Social Links Editor ───────────────────────────────────── */
+.social-links-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.social-link-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.social-link-row .social-link__icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.social-link-row input {
+  flex: 1;
+}
+
+.social-link-row .btn--remove-social {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.social-link-row .btn--remove-social:hover {
+  color: var(--danger);
+}

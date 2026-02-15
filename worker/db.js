@@ -189,18 +189,18 @@ export async function getSongsByArtist(db, artistId) {
     .then((r) => r.results || []);
 }
 
-export async function createArtist(db, { name, slug, bio, image_url }) {
+export async function createArtist(db, { name, slug, bio, image_url, social_links }) {
   const result = await db
-    .prepare('INSERT INTO artists (name, slug, bio, image_url) VALUES (?, ?, ?, ?)')
-    .bind(name, slug, bio || null, image_url || null)
+    .prepare('INSERT INTO artists (name, slug, bio, image_url, social_links) VALUES (?, ?, ?, ?, ?)')
+    .bind(name, slug, bio || null, image_url || null, social_links || null)
     .run();
   return { id: result.meta.last_row_id };
 }
 
-export async function updateArtist(db, id, { name, slug, bio, image_url }) {
+export async function updateArtist(db, id, { name, slug, bio, image_url, social_links }) {
   const result = await db
-    .prepare('UPDATE artists SET name = ?, slug = ?, bio = ?, image_url = ? WHERE id = ?')
-    .bind(name, slug, bio || null, image_url || null, id)
+    .prepare('UPDATE artists SET name = ?, slug = ?, bio = ?, image_url = ?, social_links = ? WHERE id = ?')
+    .bind(name, slug, bio || null, image_url || null, social_links || null, id)
     .run();
   return result.meta.changes > 0;
 }
@@ -237,18 +237,18 @@ export async function getSongsByComposer(db, composerId) {
     .then((r) => r.results || []);
 }
 
-export async function createComposer(db, { name, slug, bio, image_url }) {
+export async function createComposer(db, { name, slug, bio, image_url, social_links }) {
   const result = await db
-    .prepare('INSERT INTO composers (name, slug, bio, image_url) VALUES (?, ?, ?, ?)')
-    .bind(name, slug, bio || null, image_url || null)
+    .prepare('INSERT INTO composers (name, slug, bio, image_url, social_links) VALUES (?, ?, ?, ?, ?)')
+    .bind(name, slug, bio || null, image_url || null, social_links || null)
     .run();
   return { id: result.meta.last_row_id };
 }
 
-export async function updateComposer(db, id, { name, slug, bio, image_url }) {
+export async function updateComposer(db, id, { name, slug, bio, image_url, social_links }) {
   const result = await db
-    .prepare('UPDATE composers SET name = ?, slug = ?, bio = ?, image_url = ? WHERE id = ?')
-    .bind(name, slug, bio || null, image_url || null, id)
+    .prepare('UPDATE composers SET name = ?, slug = ?, bio = ?, image_url = ?, social_links = ? WHERE id = ?')
+    .bind(name, slug, bio || null, image_url || null, social_links || null, id)
     .run();
   return result.meta.changes > 0;
 }

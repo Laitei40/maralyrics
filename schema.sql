@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS artists (
     slug        TEXT UNIQUE NOT NULL,
     bio         TEXT,
     image_url   TEXT,
+    social_links TEXT,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS composers (
     slug        TEXT UNIQUE NOT NULL,
     bio         TEXT,
     image_url   TEXT,
+    social_links TEXT,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -246,7 +246,7 @@ export async function handleAdminCreateArtist(request, db) {
   let body;
   try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
 
-  const { name, bio, image_url } = body;
+  const { name, bio, image_url, social_links } = body;
   let { slug } = body;
 
   if (!name || !name.trim()) return badRequest('Name is required');
@@ -257,6 +257,7 @@ export async function handleAdminCreateArtist(request, db) {
 
   const result = await createArtist(db, {
     name: name.trim(), slug, bio: bio?.trim() || null, image_url: image_url?.trim() || null,
+    social_links: social_links || null,
   });
   return json({ success: true, id: result.id, slug }, 201);
 }
@@ -266,7 +267,7 @@ export async function handleAdminUpdateArtist(id, request, db) {
   let body;
   try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
 
-  const { name, bio, image_url } = body;
+  const { name, bio, image_url, social_links } = body;
   let { slug } = body;
 
   if (!name || !name.trim()) return badRequest('Name is required');
@@ -279,6 +280,7 @@ export async function handleAdminUpdateArtist(id, request, db) {
 
   const updated = await updateArtist(db, parseInt(id, 10), {
     name: name.trim(), slug, bio: bio?.trim() || null, image_url: image_url?.trim() || null,
+    social_links: social_links || null,
   });
   if (!updated) return notFound('Artist not found');
   return json({ success: true, id: parseInt(id, 10), slug });
@@ -309,7 +311,7 @@ export async function handleAdminCreateComposer(request, db) {
   let body;
   try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
 
-  const { name, bio, image_url } = body;
+  const { name, bio, image_url, social_links } = body;
   let { slug } = body;
 
   if (!name || !name.trim()) return badRequest('Name is required');
@@ -320,6 +322,7 @@ export async function handleAdminCreateComposer(request, db) {
 
   const result = await createComposer(db, {
     name: name.trim(), slug, bio: bio?.trim() || null, image_url: image_url?.trim() || null,
+    social_links: social_links || null,
   });
   return json({ success: true, id: result.id, slug }, 201);
 }
@@ -329,7 +332,7 @@ export async function handleAdminUpdateComposer(id, request, db) {
   let body;
   try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
 
-  const { name, bio, image_url } = body;
+  const { name, bio, image_url, social_links } = body;
   let { slug } = body;
 
   if (!name || !name.trim()) return badRequest('Name is required');
@@ -342,6 +345,7 @@ export async function handleAdminUpdateComposer(id, request, db) {
 
   const updated = await updateComposer(db, parseInt(id, 10), {
     name: name.trim(), slug, bio: bio?.trim() || null, image_url: image_url?.trim() || null,
+    social_links: social_links || null,
   });
   if (!updated) return notFound('Composer not found');
   return json({ success: true, id: parseInt(id, 10), slug });

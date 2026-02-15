@@ -666,6 +666,33 @@ body::before {
   margin-top: var(--space-sm);
 }
 
+.profile-page__social {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.social-icon:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139,92,246,0.3);
+}
+
 .profile-page__songs {
   margin-top: var(--space-lg);
 }

@@ -24,7 +24,7 @@
   <!-- ─── Header ─────────────────────────────── -->
   <header class="header">
     <div class="header__inner">
-      <a href="https://maralyrics.pages.dev" class="header__logo">
+      <a href="./" class="header__logo">
         <img src="icon.svg" alt="MaraLyrics" class="header__logo-icon" />
         MaraLyrics
       </a>
@@ -265,9 +265,42 @@
           <textarea id="personFormBio" class="form-input form-textarea" rows="4" placeholder="Brief biography..."></textarea>
         </div>
 
+        <!-- Profile Image Upload -->
         <div class="form-group">
-          <label class="form-label" for="personFormImage">Image URL</label>
-          <input type="url" id="personFormImage" class="form-input" placeholder="https://example.com/photo.jpg" />
+          <label class="form-label">Profile Image</label>
+          <div class="image-upload" id="imageUploadZone">
+            <div class="image-upload__preview" id="imagePreviewWrap" style="display:none;">
+              <canvas id="imageCropCanvas"></canvas>
+              <div class="image-upload__crop-controls">
+                <button type="button" class="btn btn--sm btn--ghost" id="btnCropReset" title="Reset crop">↺ Reset</button>
+                <button type="button" class="btn btn--sm btn--primary" id="btnCropApply" title="Apply crop">✓ Crop</button>
+              </div>
+              <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-upload__remove" id="btnRemoveImage" title="Remove">&times;</button>
+            </div>
+            <div class="image-upload__dropzone" id="imageDropzone">
+              <div class="image-upload__icon">📷</div>
+              <p class="image-upload__text">Drag & drop an image, or</p>
+              <div class="image-upload__actions">
+                <label class="btn btn--sm btn--primary image-upload__file-btn">
+                  Select File
+                  <input type="file" id="personFormImageFile" accept="image/*" hidden />
+                </label>
+                <span class="image-upload__or">or</span>
+                <button type="button" class="btn btn--sm btn--ghost" id="btnImageUrl">Paste URL</button>
+              </div>
+              <input type="url" id="personFormImageUrl" class="form-input image-upload__url-input" placeholder="https://example.com/photo.jpg" style="display:none;margin-top:var(--space-sm);" />
+            </div>
+          </div>
+          <input type="hidden" id="personFormImage" />
+        </div>
+
+        <!-- Social Links -->
+        <div class="form-group">
+          <label class="form-label">Social Links</label>
+          <div id="socialLinksContainer" class="social-links-editor">
+            <!-- Dynamic social link inputs will appear here -->
+          </div>
+          <button type="button" class="btn btn--sm btn--ghost" id="btnAddSocial" style="margin-top:var(--space-xs);">+ Add Social Link</button>
         </div>
 
         <div id="personFormMessage" class="form-message" style="display:none;"></div>
