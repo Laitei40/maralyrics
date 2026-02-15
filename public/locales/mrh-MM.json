@@ -1,0 +1,94 @@
+{
+  "nav": {
+    "home": "Home",
+    "popular": "Popular"
+  },
+  "footer": {
+    "made_with": "Made with <span class=\"footer__heart\">♥</span> for the Mara community",
+    "copyright": "© 2026 MaraLyrics"
+  },
+  "offline": {
+    "badge": "Offline Mode"
+  },
+  "breadcrumb": {
+    "home": "Home"
+  },
+  "home": {
+    "hero_title": "Mara Song Lyrics",
+    "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
+    "search_placeholder": "Search songs by title or artist...",
+    "search_results": "Search Results",
+    "popular_songs": "Popular Songs",
+    "all_songs": "All Songs",
+    "no_songs_title": "No songs found",
+    "no_songs_text": "Try a different search term or browse categories above."
+  },
+  "song": {
+    "breadcrumb": "Song",
+    "feedback_btn": "Feedback",
+    "error_title": "Song not found",
+    "error_text": "This song may have been removed or the link is incorrect.",
+    "error_go_home": "← Go Home"
+  },
+  "artist": {
+    "breadcrumb": "Artist",
+    "role": "Artist",
+    "songs_title": "Songs by this Artist",
+    "no_songs": "No songs found for this artist.",
+    "error_title": "Artist not found",
+    "error_text": "This artist may have been removed or the link is incorrect.",
+    "error_go_home": "← Go Home"
+  },
+  "composer": {
+    "breadcrumb": "Composer",
+    "role": "Composer",
+    "songs_title": "Songs by this Composer",
+    "no_songs": "No songs found for this composer.",
+    "error_title": "Composer not found",
+    "error_text": "This composer may have been removed or the link is incorrect.",
+    "error_go_home": "← Go Home"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "subtitle": "Have feedback about this song? Let us know and we'll look into it.",
+    "about_label": "Feedback about:",
+    "name_label": "Your Name",
+    "name_placeholder": "Enter your name",
+    "email_label": "Your Email",
+    "email_placeholder": "you@example.com",
+    "body_label": "Your Feedback",
+    "body_placeholder": "Tell us what you think — corrections, suggestions, or anything else about this song.",
+    "submit_btn": "Send Feedback",
+    "back_btn": "← Back",
+    "back_to_song": "← Back to Song",
+    "sending": "Sending...",
+    "success_title": "Feedback Sent!",
+    "success_text": "Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.",
+    "success_back_home": "← Back to Home",
+    "err_fill_all": "Please fill in all fields.",
+    "err_turnstile": "Please complete the verification challenge.",
+    "err_send_failed": "Failed to send report",
+    "err_generic": "Something went wrong. Please try again."
+  },
+  "error_page": {
+    "code": "404",
+    "title": "Page Not Found",
+    "text_line1": "The page you're looking for doesn't exist or has been moved.",
+    "text_line2": "Let's get you back to the music.",
+    "back_home": "← Back to Home",
+    "go_back": "Go Back"
+  },
+  "common": {
+    "all": "All",
+    "unknown": "Unknown",
+    "unknown_artist": "Unknown Artist",
+    "uncategorized": "Uncategorized",
+    "loading": "Loading...",
+    "views": "views",
+    "prev": "← Prev",
+    "next": "Next →",
+    "found": "({count} found)",
+    "cached": "({count} cached)",
+    "website": "Website"
+  }
+}
