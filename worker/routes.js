@@ -393,26 +393,22 @@ export async function handleCreateReport(request, db, env) {
       <hr><small>Report ID: ${result.id}</small>
     `;
 
-    const mailPayload = {
-      personalizations: [
-        {
-          to: [{ email: 'info@maralyrics.com' }],
-          dkim_domain: 'maralyrics.com',
-        },
-      ],
-      from: { email: 'info@maralyrics.com', name: 'MaraLyrics Reports' },
-      reply_to: { email: reporter_email, name: reporter_name },
-      subject,
-      content: [{ type: 'text/html', value: html }],
-    };
-
     await fetch('https://api.mailchannels.net/tx/v1/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(mailPayload),
+      body: JSON.stringify({
+        personalizations: [
+          {
+            to: [{ email: 'info@maralyrics.com' }],
+          },
+        ],
+        from: { email: 'info@maralyrics.com', name: 'MaraLyrics Reports' },
+        reply_to: { email: reporter_email, name: reporter_name },
+        subject,
+        content: [{ type: 'text/html', value: html }],
+      }),
     });
   } catch (err) {
-    // Log but don't fail the report
     console.error('Email send failed:', err);
   }
 
