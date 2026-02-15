@@ -171,13 +171,13 @@
     "h6": "6. Third-Party Services",
     "s6_content": "<p>Data khawm nawh en ding ah third-party services kan hman thei:</p><ul class=\"static-page__list\"><li><strong>Cloudflare:</strong> DNS, CDN, security, leh analytics</li><li><strong>Google AdSense:</strong> Advertisement lang nawh siam ding</li><li><strong>Cloudflare Turnstile:</strong> Bot detect nawh spam block ding</li></ul><p>Hi services pawl hi an privacy policy an nei, en rawh tih kan chah.</p>",
     "h7": "7. I Diknak",
-    "s7_content": "<p>I khua dang in hi diknak i nei thei:</p><ul class=\"static-page__list\"><li>I personal data hmu, dik, a sie ah thla ding</li><li>I data process na object a sie ah restrict ding</li><li>Pawm na i lak kir thei hun khawh ah</li><li>I data copy portable format in request ding</li></ul><p>Hi diknak hman ding ah <a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a> ah kan kawl rawh.</p>",
+    "s7_content": "<p>I khua dang in hi diknak i nei thei:</p><ul class=\"static-page__list\"><li>I personal data hmu, dik, a sie ah thla ding</li><li>I data process na object a sie ah restrict ding</li><li>Pawm na i lak kir thei hun khawh ah</li><li>I data copy portable format in request ding</li></ul><p>Hi diknak hman ding ah <a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a> ah kan kawl rawh.</p>",
     "h8": "8. Naupang Privacy",
     "s8_content": "<p>Hi Site hi kum 13 hnuai naupang ding ah a si lo. Naupang personal thuthang kan khawm duh lo. Naupang thuthang kan khawm tih i rin chuan kan kawl rawh.</p>",
     "h9": "9. Hi Policy Thleng Dan",
     "s9_content": "<p>Hi Privacy Policy hi hun hnih in kan update thei. Thleng na hi hi page ah kan dah ang \"A hnuai bik ah update\" date nen. Site i hman chhunzawm in thleng na ah i pawm a si.</p>",
     "h10": "10. Kan Kawl Rawh",
-    "s10_content": "<p>Hi Privacy Policy chungin zawtnak i nei chuan kan kawl rawh:</p><p><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p>"
+    "s10_content": "<p>Hi Privacy Policy chungin zawtnak i nei chuan kan kawl rawh:</p><p><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p>"
   },
   "terms": {
     "breadcrumb": "Terms & Conditions",
@@ -204,7 +204,7 @@
     "h10": "10. Governing Law",
     "s10_content": "<p>Hi Terms hi applicable law in govern a si. Hi Terms a sie ah Site hman na lak ah dispute a awm chuan good-faith negotiation in resolve ding a si.</p>",
     "h11": "11. Contact",
-    "s11_content": "<p>Hi Terms chungin zawtnak i nei chuan kan kawl rawh:</p><p><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p>"
+    "s11_content": "<p>Hi Terms chungin zawtnak i nei chuan kan kawl rawh:</p><p><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p>"
   },
   "copyright_page": {
     "breadcrumb": "Copyright & Removal Request",
@@ -214,12 +214,12 @@
     "h2": "Copyright Notice",
     "s2_content": "<p>Hi Site ah hla caka vaih taih hi sa tu, phuah tu, leh rights holder pawl ta a si. MaraLyrics in hla caka kan ta lo. Hla caka hi personal, cultural, educational, leh archival use ding ah a si.</p><p>Website design, code, branding, leh original content (hla caka lo) hi © 2026 MaraLyrics. Rights vaih taih kan humhim.</p>",
     "h3": "Removal Request Process",
-    "s3_content": "<p>Copyright holder i si (a sie ah tu hmingah i thawh) nawh MaraLyrics ah i copyrighted work authorization lo in a om tih i rin chuan, removal request i thawn thei. Hi step pawl hi zui rawh:</p><div class=\"static-page__steps\"><div class=\"static-page__step\"><span class=\"static-page__step-number\">1</span><div><h3 class=\"static-page__subheading\">Content Hmuh Na</h3><p>Copyright material a awm page URL dik thawn rawh.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">2</span><div><h3 class=\"static-page__subheading\">I Identity Pek</h3><p>I hming vaih taih, copyrighted work nen i paw dan (sa tu, phuah tu, publisher, authorized agent), leh contact thuthang.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">3</span><div><h3 class=\"static-page__subheading\">Statement Pek</h3><p>Material hman na hi copyright owner, agent, a sie ah daan in authorize a si lo tih i rin statement pek rawh.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">4</span><div><h3 class=\"static-page__subheading\">Request Thawn</h3><p>Removal request vaih taih hi email rawh:</p><p class=\"contact-email\"><a href=\"mailto:copyright@maralyrics.com\">copyright@maralyrics.com</a></p></div></div></div>",
+    "s3_content": "<p>Copyright holder i si (a sie ah tu hmingah i thawh) nawh MaraLyrics ah i copyrighted work authorization lo in a om tih i rin chuan, removal request i thawn thei. Hi step pawl hi zui rawh:</p><div class=\"static-page__steps\"><div class=\"static-page__step\"><span class=\"static-page__step-number\">1</span><div><h3 class=\"static-page__subheading\">Content Hmuh Na</h3><p>Copyright material a awm page URL dik thawn rawh.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">2</span><div><h3 class=\"static-page__subheading\">I Identity Pek</h3><p>I hming vaih taih, copyrighted work nen i paw dan (sa tu, phuah tu, publisher, authorized agent), leh contact thuthang.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">3</span><div><h3 class=\"static-page__subheading\">Statement Pek</h3><p>Material hman na hi copyright owner, agent, a sie ah daan in authorize a si lo tih i rin statement pek rawh.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">4</span><div><h3 class=\"static-page__subheading\">Request Thawn</h3><p>Removal request vaih taih hi email rawh:</p><p class=\"contact-email\"><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p></div></div></div>",
     "h4": "A Hnuah A Chungin",
     "s4_content": "<ul class=\"static-page__list\"><li><strong>48 hours</strong> chhung ah i request kan hmu tih kan theih tir ang.</li><li>Claim kan en nawh verify kan ti ang.</li><li>Claim a dik chuan <strong>ni 7 business</strong> chhung ah content kan thla ang.</li><li>Content a thla zo chuan kan theih tir ang.</li></ul>",
     "h5": "Thuthang Pawimawh",
     "s5_content": "<ul class=\"static-page__list\"><li>Fraudulent a sie ah bad-faith removal request in daan harsatna a tlawm thei.</li><li>Request process hma ah thuthang belh kan ngai thei.</li><li>Content a thla na a dik lo i rin chuan counter-notification kan kawl thei.</li></ul>",
     "h6": "Contact",
-    "s6_content": "<p>Copyright zawtnak ding ah email rawh:</p><p class=\"contact-email\"><a href=\"mailto:copyright@maralyrics.com\">copyright@maralyrics.com</a></p><p>Zawtnak dang ding ah kan <a href=\"/contact\">Contact Us</a> page en rawh.</p>"
+    "s6_content": "<p>Copyright zawtnak ding ah email rawh:</p><p class=\"contact-email\"><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p><p>Zawtnak dang ding ah kan <a href=\"/contact\">Contact Us</a> page en rawh.</p>"
   }
 }
