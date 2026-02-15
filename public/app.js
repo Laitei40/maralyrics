@@ -560,10 +560,11 @@ const HomePage = {
     this.searchGrid.innerHTML = UI.createSkeletons(3);
 
     try {
-      let results;
+      let results, suggestions = [];
       if (Utils.isOnline()) {
         const data = await API.search(q);
         results = data.results;
+        suggestions = data.suggestions || [];
         Cache.set('search_' + q.toLowerCase(), results);
       } else {
         // Offline: search from cached data
@@ -572,13 +573,21 @@ const HomePage = {
       }
 
       this.searchCount.textContent = I18n.t('common.found', { count: results.length });
-
+      const suggestionsBox = document.getElementById('searchSuggestions');
       if (results.length === 0) {
         this.searchGrid.innerHTML = '';
+        if (suggestions && suggestions.length) {
+          suggestionsBox.innerHTML = `<div class='suggestions-box'><div style='font-weight:600;margin-bottom:0.5rem;'>Suggestions:</div>` +
+            suggestions.map(title => `<div class='suggestion-item'>${Utils.escapeHtml(title)}</div>`).join('') + '</div>';
+          suggestionsBox.style.display = 'block';
+        } else {
+          suggestionsBox.style.display = 'none';
+        }
         UI.showEmptyState(true);
         return;
+      } else {
+        suggestionsBox.style.display = 'none';
       }
-
       this.searchGrid.innerHTML = results
         .map((s, i) => UI.createSongCard(s, i))
         .join('');

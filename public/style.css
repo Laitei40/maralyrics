@@ -1,3 +1,23 @@
+/* Suggestions box for search */
+.suggestions-box {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  max-width: 400px;
+}
+.suggestion-item {
+  padding: 0.25em 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+.suggestion-item:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
 /* ╔══════════════════════════════════════════════════════════════╗
    ║       MaraLyrics — Production CSS                          ║
    ║       Glass UI · Dark Mode · Soft Neon Accents             ║
