@@ -38,6 +38,8 @@ import {
   handleGetReports,
   handleUpdateReportStatus,
   handleDeleteReport,
+  // Contact
+  handleCreateContact,
 } from './routes.js';
 
 const assetManifest = JSON.parse(manifestJSON);
@@ -239,7 +241,22 @@ export default {
         return await handleDeleteReport(id, env.DB);
       }
 
+      // ─── Contact API Route ─────────────────────────────
+
+      // POST /api/contact — Submit contact form
+      if (path === '/api/contact' && method === 'POST') {
+        return await handleCreateContact(request, env.DB, env);
+      }
+
       // ─── Static Files / SPA Routing ────────────────────
+
+      // Static info pages
+      if (path === '/about') return await serveAsset(request, env, ctx, '/about.html');
+      if (path === '/contact') return await serveAsset(request, env, ctx, '/contact.html');
+      if (path === '/faq') return await serveAsset(request, env, ctx, '/faq.html');
+      if (path === '/privacy') return await serveAsset(request, env, ctx, '/privacy.html');
+      if (path === '/terms') return await serveAsset(request, env, ctx, '/terms.html');
+      if (path === '/copyright') return await serveAsset(request, env, ctx, '/copyright.html');
 
       // Report page: /report → serve report.html
       if (path === '/report') {

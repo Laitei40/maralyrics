@@ -287,3 +287,13 @@ export async function deleteReport(db, id) {
   const result = await db.prepare('DELETE FROM reports WHERE id = ?').bind(id).run();
   return result.meta.changes > 0;
 }
+
+// ─── Contact ──────────────────────────────────────────────────
+
+export async function createContact(db, { name, email, subject, message }) {
+  const result = await db
+    .prepare('INSERT INTO contacts (name, email, subject, message) VALUES (?, ?, ?, ?)')
+    .bind(name, email, subject || 'General', message)
+    .run();
+  return { id: result.meta.last_row_id };
+}

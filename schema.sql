@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS reports (
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS contacts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    email      TEXT NOT NULL,
+    subject    TEXT DEFAULT 'General',
+    message    TEXT NOT NULL,
+    status     TEXT DEFAULT 'unread',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Performance indexes
 CREATE INDEX IF NOT EXISTS idx_songs_slug       ON songs(slug);
 CREATE INDEX IF NOT EXISTS idx_songs_title      ON songs(title);

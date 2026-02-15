@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ — MaraLyrics</title>
+  <meta name="description" content="Frequently asked questions about MaraLyrics — song accuracy, submissions, copyright, and more." />
+  <meta name="theme-color" content="#0a0e1a" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+        <div class="settings-toggle">
+          <button class="settings-toggle__btn" aria-label="Settings" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </button>
+          <div class="settings-panel">
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                Language
+              </div>
+              <div class="settings-panel__options">
+                <button class="lang-switcher__btn active" data-lang="en">EN</button>
+                <button class="lang-switcher__btn" data-lang="mrh">Mara</button>
+                <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+              </div>
+            </div>
+            <div class="settings-panel__divider"></div>
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                Theme
+              </div>
+              <div class="settings-panel__options">
+                <button class="theme-switcher__btn" data-theme="dark" title="Dark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+                <button class="theme-switcher__btn" data-theme="light" title="Light"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+                <button class="theme-switcher__btn" data-theme="system" title="Follow System"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
+                <button class="theme-switcher__btn" data-theme="time" title="Follow Time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ FAQ Content ═══ -->
+  <main class="static-page container">
+
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/" class="breadcrumb__link">Home</a>
+      <span class="breadcrumb__sep">›</span>
+      <span class="breadcrumb__current">FAQ</span>
+    </nav>
+
+    <div class="static-page__card">
+
+      <h1 class="static-page__title">Frequently Asked Questions</h1>
+
+      <div class="faq-list">
+
+        <details class="faq-item">
+          <summary class="faq-item__question">How accurate are the song lyrics on MaraLyrics?</summary>
+          <div class="faq-item__answer">
+            <p>We strive for the highest level of accuracy. All lyrics are sourced from original recordings, official publications, or trusted community members. However, some variations may exist between different performances or regional dialects. If you notice an error, please use our <a href="/report">Report Error</a> page to let us know.</p>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-item__question">How can I submit a song to MaraLyrics?</summary>
+          <div class="faq-item__answer">
+            <p>We welcome song submissions from the community! To submit lyrics, please <a href="/contact">contact us</a> with the following information:</p>
+            <ul>
+              <li>Song title</li>
+              <li>Artist / composer name</li>
+              <li>Complete lyrics text</li>
+              <li>Category (Gospel, Love, Traditional, Patriotic, etc.)</li>
+              <li>Any additional context or notes</li>
+            </ul>
+            <p>Our editorial team will review the submission and publish it once verified.</p>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-item__question">Is MaraLyrics free to use?</summary>
+          <div class="faq-item__answer">
+            <p>Yes! MaraLyrics is completely free. Our mission is to make Mara song lyrics accessible to everyone. The platform may display advertisements to support operational costs, but access to lyrics will always remain free.</p>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-item__question">Who owns the copyright to the lyrics?</summary>
+          <div class="faq-item__answer">
+            <p>The copyright of all lyrics belongs to their respective artists, composers, and rights holders. MaraLyrics displays lyrics for cultural, educational, and personal use only. We do not claim ownership of any song content. If you are a copyright owner and wish to request a removal, please visit our <a href="/copyright">Copyright</a> page.</p>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-item__question">How do I report an error in the lyrics?</summary>
+          <div class="faq-item__answer">
+            <p>You can report errors directly from the song page by clicking the "Send Feedback" button, or visit our <a href="/report">Report Error</a> page. Please include the song title and a description of the issue. Our team will review and correct it promptly.</p>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-item__question">Can I use lyrics from MaraLyrics for my project?</summary>
+          <div class="faq-item__answer">
+            <p>Lyrics on MaraLyrics are shared for cultural and educational purposes. For personal, non-commercial use (such as learning, singing, or study), you are welcome to reference the content. For any commercial use, please contact the original rights holders. Please see our <a href="/terms">Terms &amp; Conditions</a> for full details.</p>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-item__question">Does MaraLyrics collect my personal data?</summary>
+          <div class="faq-item__answer">
+            <p>We collect minimal data necessary to operate the platform. This includes basic analytics (page views) and information you voluntarily submit through our forms (name, email). We never sell your data. For full details, please read our <a href="/privacy">Privacy Policy</a>.</p>
+          </div>
+        </details>
+
+        <details class="faq-item">
+          <summary class="faq-item__question">How can I support MaraLyrics?</summary>
+          <div class="faq-item__answer">
+            <p>You can support us by:</p>
+            <ul>
+              <li>Sharing MaraLyrics with friends and family</li>
+              <li>Submitting song lyrics or corrections</li>
+              <li>Providing feedback through our <a href="/contact">Contact</a> page</li>
+              <li>Spreading the word about Mara music and culture</li>
+            </ul>
+          </div>
+        </details>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a href="/" class="footer__brand">
+            <img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" />
+            MaraLyrics
+          </a>
+          <p class="footer__tagline">Preserving Mara music for future generations.</p>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Information</h4>
+          <ul class="footer__links">
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Legal</h4>
+          <ul class="footer__links">
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms &amp; Conditions</a></li>
+            <li><a href="/copyright">Copyright</a></li>
+          </ul>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Support</h4>
+          <ul class="footer__links">
+            <li><a href="/contact">Contact Us</a></li>
+            <li><a href="/report">Report Error</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
+        <p>&copy; 2026 MaraLyrics. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/i18n.js"></script>
+  <script src="/theme.js"></script>
+  <script>
+    I18n.init();
+    Theme.init();
+    (function() {
+      const togBtn = document.querySelector('.settings-toggle__btn');
+      const togWrap = document.querySelector('.settings-toggle');
+      if (togBtn && togWrap) {
+        togBtn.addEventListener('click', (e) => { e.stopPropagation(); togWrap.classList.toggle('open'); });
+        document.addEventListener('click', (e) => { if (!togWrap.contains(e.target)) togWrap.classList.remove('open'); });
+      }
+    })();
+
+    // ─── FAQ Accordion ──────────────────────────────
+    document.querySelectorAll('.faq-item').forEach(item => {
+      item.addEventListener('toggle', () => {
+        if (item.open) {
+          document.querySelectorAll('.faq-item').forEach(other => {
+            if (other !== item) other.removeAttribute('open');
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
