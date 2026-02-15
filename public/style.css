@@ -1557,12 +1557,16 @@ body::before {
 
   --text-primary:   #1e293b;
   --text-secondary: #475569;
-  --text-muted:     #94a3b8;
+  --text-muted:     #64748b;
 
   --accent:         #7c3aed;
   --accent-glow:    rgba(124, 58, 237, 0.20);
-  --accent-light:   #8b5cf6;
-  --accent-dark:    #6d28d9;
+  --accent-light:   #6d28d9;
+  --accent-dark:    #5b21b6;
+
+  --neon-pink:      #db2777;
+  --neon-cyan:      #0891b2;
+  --neon-green:     #059669;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
@@ -1577,75 +1581,241 @@ body::before {
 
 [data-theme="light"] body::before {
   background:
-    radial-gradient(ellipse at 20% 0%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(236, 72, 153, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(34, 211, 238, 0.03) 0%, transparent 60%);
+    radial-gradient(ellipse at 20% 0%, rgba(124, 58, 237, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(219, 39, 119, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(8, 145, 178, 0.03) 0%, transparent 60%);
 }
 
+/* Header */
 [data-theme="light"] .header {
   background: rgba(245, 247, 251, 0.88);
   border-bottom-color: rgba(0, 0, 0, 0.06);
 }
 
+[data-theme="light"] .header__logo {
+  color: var(--text-primary);
+}
+
+/* Settings panel */
 [data-theme="light"] .settings-panel {
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(0, 0, 0, 0.08);
   box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
 }
 
-[data-theme="light"] .song-card {
-  background: var(--bg-card);
-  border-color: rgba(0, 0, 0, 0.06);
+[data-theme="light"] .settings-toggle__btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .settings-toggle__btn:hover {
+  background: rgba(0, 0, 0, 0.08);
 }
 
-[data-theme="light"] .song-page__card {
-  background: var(--bg-card);
-  border-color: rgba(0, 0, 0, 0.06);
+[data-theme="light"] .lang-switcher__btn:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
-[data-theme="light"] .song-page__card::before {
-  background: linear-gradient(135deg, rgba(124,58,237,0.04) 0%, transparent 60%);
+[data-theme="light"] .theme-switcher__btn:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
-[data-theme="light"] .profile-page__card {
-  background: var(--bg-card);
-  border-color: rgba(0, 0, 0, 0.06);
+/* Hero */
+[data-theme="light"] .hero__title {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 50%, var(--neon-pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-[data-theme="light"] .footer {
-  border-top-color: rgba(0, 0, 0, 0.06);
-}
-
+/* Search */
 [data-theme="light"] .search__input {
   background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(0, 0, 0, 0.10);
+  border-color: rgba(0, 0, 0, 0.12);
   color: var(--text-primary);
 }
+[data-theme="light"] .search__input::placeholder {
+  color: var(--text-muted);
+}
+[data-theme="light"] .search__input:focus {
+  background: #fff;
+  border-color: var(--accent);
+}
 
+/* Category buttons */
 [data-theme="light"] .category-btn {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.08);
   color: var(--text-secondary);
 }
 [data-theme="light"] .category-btn:hover {
+  color: var(--text-primary);
   background: rgba(124, 58, 237, 0.06);
 }
 [data-theme="light"] .category-btn.active {
   color: #fff;
 }
 
-[data-theme="light"] .pagination__btn {
-  background: rgba(255, 255, 255, 0.7);
+/* Song cards */
+[data-theme="light"] .song-card {
+  background: rgba(255, 255, 255, 0.80);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+}
+[data-theme="light"] .song-card:hover {
+  border-color: rgba(124, 58, 237, 0.25);
+  box-shadow: var(--shadow-md), 0 0 20px rgba(124, 58, 237, 0.08);
+}
+[data-theme="light"] .song-card__title {
+  color: var(--text-primary);
+}
+[data-theme="light"] .song-card__category {
+  background: rgba(124, 58, 237, 0.10);
+  color: var(--accent);
+}
+
+/* Song detail page */
+[data-theme="light"] .song-page__card {
+  background: rgba(255, 255, 255, 0.80);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+}
+[data-theme="light"] .song-page__card::before {
+  background: linear-gradient(135deg, rgba(124,58,237,0.04) 0%, transparent 60%);
+}
+[data-theme="light"] .song-page__title {
+  background: linear-gradient(135deg, var(--text-primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+[data-theme="light"] .song-page__lyrics {
+  color: var(--text-primary);
+}
+[data-theme="light"] .song-page__meta-item {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .song-page__meta-item:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* Feedback / report button on song page */
+[data-theme="light"] .song-page__report {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .btn--report {
+  background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-[data-theme="light"] .offline-badge {
-  background: rgba(255, 255, 255, 0.9);
+/* Profile page */
+[data-theme="light"] .profile-page__card {
+  background: rgba(255, 255, 255, 0.80);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+}
+[data-theme="light"] .profile-page__name {
+  color: var(--text-primary);
+}
+
+/* Social icons */
+[data-theme="light"] .social-icon {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-secondary);
+}
+[data-theme="light"] .social-icon:hover {
+  color: #fff;
+}
+
+/* Footer */
+[data-theme="light"] .footer {
+  border-top-color: rgba(0, 0, 0, 0.06);
   color: var(--text-secondary);
 }
 
+/* Report / feedback page */
+[data-theme="light"] .report-page__card {
+  background: rgba(255, 255, 255, 0.80);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+}
+[data-theme="light"] .report-page__form .form-input {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+}
+[data-theme="light"] .report-page__form .form-input:focus {
+  background: #fff;
+  border-color: var(--accent);
+}
+
+/* Send feedback button — keep white text on gradient */
+[data-theme="light"] .btn-send-feedback {
+  color: #fff;
+}
+
+/* Pagination */
+[data-theme="light"] .pagination__btn {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-secondary);
+}
+[data-theme="light"] .pagination__btn:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+[data-theme="light"] .pagination__btn.active {
+  color: #fff;
+}
+
+/* Skeleton loading */
+[data-theme="light"] .skeleton {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .skeleton::after {
+  background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.03) 50%, transparent 100%);
+}
+[data-theme="light"] .skeleton__line {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Offline badge */
+[data-theme="light"] .offline-badge {
+  background: rgba(239, 68, 68, 0.95);
+  color: #fff;
+}
+
+/* Breadcrumb */
+[data-theme="light"] .breadcrumb__current {
+  color: var(--text-primary);
+}
+
+/* 404 error page */
 [data-theme="light"] .error-page__title {
   color: var(--text-primary);
+}
+[data-theme="light"] .error-page__text {
+  color: var(--text-secondary);
+}
+[data-theme="light"] .error-page__btn--primary {
+  color: #fff;
+}
+[data-theme="light"] .error-page__btn--ghost {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-secondary);
+}
+[data-theme="light"] .error-page__btn--ghost:hover {
+  color: var(--text-primary);
+}
+
+/* Links */
+[data-theme="light"] a {
+  color: var(--accent);
+}
+[data-theme="light"] a:hover {
+  color: var(--accent-dark);
 }
 
 /* ─── Print ─────────────────────────────────────────────────── */
