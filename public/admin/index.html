@@ -191,6 +191,51 @@
 
   </main>
 
+  <!-- ─── Feedback Detail Modal ────────────── -->
+  <div id="feedbackModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="feedbackBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title" id="feedbackModalTitle">Feedback Detail</h2>
+        <button class="modal__close" id="feedbackModalClose">&times;</button>
+      </div>
+      <div class="feedback-detail">
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Song</div>
+          <div class="feedback-detail__value" id="fdSong">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Artist</div>
+          <div class="feedback-detail__value" id="fdArtist">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Reporter</div>
+          <div class="feedback-detail__value" id="fdReporter">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Email</div>
+          <div class="feedback-detail__value" id="fdEmail">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Status</div>
+          <div class="feedback-detail__value" id="fdStatus">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Date</div>
+          <div class="feedback-detail__value" id="fdDate">—</div>
+        </div>
+        <div class="feedback-detail__section feedback-detail__section--full">
+          <div class="feedback-detail__label">Feedback</div>
+          <div class="feedback-detail__body" id="fdBody">—</div>
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button type="button" id="feedbackBtnClose" class="btn btn--ghost">Close</button>
+        <a href="#" id="feedbackBtnViewSong" class="btn btn--primary" target="_blank" style="display:none;">View Song</a>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── Song Modal (Create / Edit) ─────────── -->
   <div id="songModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="modalBackdrop"></div>

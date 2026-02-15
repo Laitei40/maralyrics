@@ -20,3 +20,4 @@ bucket = "./public"
 # ─── Environment Variables ───
 [vars]
 ENVIRONMENT = "production"
+TURNSTILE_SECRET = "0x4AAAAAABjilRq3bTeF-BxIDQE1BYShzl4"

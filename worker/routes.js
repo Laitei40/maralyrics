@@ -367,8 +367,8 @@ export async function handleAdminDeleteComposer(id, db) {
 // ║                    Report Handlers                          ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-export async function handleCreateReport(request, db) {
-  const { song_slug, song_title, song_artist, reporter_name, reporter_email, body } = await request.json();
+export async function handleCreateReport(request, db, env) {
+  const { song_slug, song_title, song_artist, reporter_name, reporter_email, body, turnstile_token } = await request.json();
 
   if (!reporter_name || !reporter_email || !body) {
     return badRequest('Name, email, and description are required.');
@@ -377,6 +377,28 @@ export async function handleCreateReport(request, db) {
   // Basic email validation
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reporter_email)) {
     return badRequest('Invalid email address.');
+  }
+
+  // Verify Cloudflare Turnstile token
+  if (!turnstile_token) {
+    return badRequest('Verification challenge is required.');
+  }
+  try {
+    const tsRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: env.TURNSTILE_SECRET,
+        response: turnstile_token,
+      }),
+    });
+    const tsData = await tsRes.json();
+    if (!tsData.success) {
+      return json({ error: 'Verification failed. Please try again.' }, 403);
+    }
+  } catch (err) {
+    console.error('Turnstile verification error:', err);
+    return json({ error: 'Verification service unavailable.' }, 500);
   }
 
   const result = await createReport(db, { song_slug, song_title, song_artist, reporter_name, reporter_email, body });

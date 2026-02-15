@@ -219,7 +219,7 @@ export default {
 
       // POST /api/report — Submit error report
       if (path === '/api/report' && method === 'POST') {
-        return await handleCreateReport(request, env.DB);
+        return await handleCreateReport(request, env.DB, env);
       }
 
       // GET /api/admin/reports — List all reports

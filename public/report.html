@@ -18,6 +18,9 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="/style.css" />
+
+  <!-- Cloudflare Turnstile -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -87,6 +90,9 @@
         </div>
 
         <div id="reportMessage" class="report-page__message" style="display:none;"></div>
+
+        <!-- Cloudflare Turnstile -->
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAABjildkegfR6T0sd" data-theme="dark"></div>
 
         <div class="report-page__actions">
           <button type="submit" class="btn btn--primary" id="btnSubmitReport">
@@ -172,6 +178,17 @@
         btn.disabled = true;
         btn.textContent = 'Sending...';
 
+        // Get Turnstile token
+        const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+        if (!turnstileToken) {
+          msgEl.textContent = 'Please complete the verification challenge.';
+          msgEl.className = 'report-page__message report-page__message--error';
+          msgEl.style.display = 'block';
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Feedback';
+          return;
+        }
+
         try {
           const res = await fetch(API_BASE + '/api/report', {
             method: 'POST',
@@ -183,6 +200,7 @@
               reporter_name: name,
               reporter_email: email,
               body: body,
+              turnstile_token: turnstileToken,
             }),
           });
 
@@ -207,7 +225,9 @@
           msgEl.style.display = 'block';
         } finally {
           btn.disabled = false;
-          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Report';
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Feedback';
+          // Reset Turnstile
+          if (window.turnstile) turnstile.reset();
         }
       });
     })();

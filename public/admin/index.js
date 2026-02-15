@@ -882,6 +882,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Reports filter
   document.getElementById('reportFilterStatus').addEventListener('change', () => renderReportsTable());
 
+  // Feedback detail modal
+  document.getElementById('feedbackModalClose').addEventListener('click', closeFeedbackModal);
+  document.getElementById('feedbackBackdrop').addEventListener('click', closeFeedbackModal);
+  document.getElementById('feedbackBtnClose').addEventListener('click', closeFeedbackModal);
+
   // Auto-slug on title/name typing
   document.getElementById('formTitle').addEventListener('input', autoSongSlug);
   document.getElementById('formSlug').addEventListener('input', function () {
@@ -898,6 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeSongModal();
       closePersonModal();
       closeDeleteModal();
+      closeFeedbackModal();
     }
   });
 });
@@ -908,6 +914,7 @@ window.editPerson = editPerson;
 window.confirmDelete = confirmDelete;
 window.loadSongs = loadSongs;
 window.updateReportStatus = updateReportStatus;
+window.viewFeedback = viewFeedback;
 
 // ═══════════════════════════════════════════════════
 // ═══ REPORTS ══════════════════════════════════════
@@ -968,6 +975,7 @@ function renderReportsTable() {
         <td>${formatDate(r.created_at)}</td>
         <td>
           <div class="admin-table__actions">
+            <button class="btn btn--sm btn--ghost" onclick="viewFeedback(${r.id})" title="View Detail">📝</button>
             ${r.song_slug ? `<a href="../song/${escapeHtml(r.song_slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View Song">👁️</a>` : ''}
             <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${r.id}, 'Report #${r.id}', 'report')" title="Delete">🗑️</button>
           </div>
@@ -988,4 +996,39 @@ async function updateReportStatus(id, status) {
     alert('Failed to update status: ' + err.message);
     loadReports();
   }
+}
+
+// ─── Feedback Detail Modal ─────────────────────────
+function viewFeedback(id) {
+  const r = allReports.find(rep => rep.id === id);
+  if (!r) return;
+
+  const statusLabels = { pending: 'Pending', reviewed: 'Reviewed', resolved: 'Resolved', dismissed: 'Dismissed' };
+  const statusColors = { pending: '#f59e0b', reviewed: '#3b82f6', resolved: '#10b981', dismissed: '#6b7280' };
+  const color = statusColors[r.status] || '#6b7280';
+
+  document.getElementById('feedbackModalTitle').textContent = `Feedback #${r.id}`;
+  document.getElementById('fdSong').textContent = r.song_title || r.song_slug || '—';
+  document.getElementById('fdArtist').textContent = r.song_artist || '—';
+  document.getElementById('fdReporter').textContent = r.reporter_name || '—';
+  document.getElementById('fdEmail').innerHTML = r.reporter_email
+    ? `<a href="mailto:${escapeHtml(r.reporter_email)}" style="color:var(--accent);">${escapeHtml(r.reporter_email)}</a>`
+    : '—';
+  document.getElementById('fdStatus').innerHTML = `<span style="color:${color};font-weight:600;">${statusLabels[r.status] || r.status}</span>`;
+  document.getElementById('fdDate').textContent = formatDate(r.created_at);
+  document.getElementById('fdBody').textContent = r.body || '—';
+
+  const viewSongBtn = document.getElementById('feedbackBtnViewSong');
+  if (r.song_slug) {
+    viewSongBtn.href = '../song/' + r.song_slug;
+    viewSongBtn.style.display = 'inline-flex';
+  } else {
+    viewSongBtn.style.display = 'none';
+  }
+
+  document.getElementById('feedbackModal').style.display = 'flex';
+}
+
+function closeFeedbackModal() {
+  document.getElementById('feedbackModal').style.display = 'none';
 }
