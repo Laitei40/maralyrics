@@ -853,6 +853,61 @@ body::before {
   color: var(--text-muted);
 }
 
+/* ─── Copyright Owner Info Section ───────────────────────────── */
+.copyright-info-section {
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.copyright-info {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-md);
+}
+
+.copyright-info__row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-sm);
+  align-items: start;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.copyright-info__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.copyright-info__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.copyright-info__value {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.song-page__meta-item--copyright {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+@media (max-width: 640px) {
+  .copyright-info__row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─── Feedback Button (Song Page) ────────────────────────────── */
 .song-page__report {
   margin-top: var(--space-lg);

@@ -43,6 +43,7 @@
       <button class="admin__tab active" data-tab="songs">Songs</button>
       <button class="admin__tab" data-tab="artists">Artists</button>
       <button class="admin__tab" data-tab="composers">Composers</button>
+      <button class="admin__tab" data-tab="copyright-owners">Copyright Owners</button>
       <button class="admin__tab" data-tab="reports">Reports</button>
     </div>
 
@@ -149,6 +150,32 @@
           </thead>
           <tbody id="composersTableBody">
             <tr><td colspan="4" class="admin-table__empty">Loading composers...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Copyright Owners Tab ═══ -->
+    <div class="admin__panel" id="panelCopyright-owners" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Copyright Owner Management</h1>
+        <button id="btnNewCopyrightOwner" class="btn btn--primary">+ New Copyright Owner</button>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="copyrightOwnersTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Organization</th>
+              <th>Territory</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="copyrightOwnersTableBody">
+            <tr><td colspan="5" class="admin-table__empty">Loading copyright owners...</td></tr>
           </tbody>
         </table>
       </div>
@@ -265,6 +292,13 @@
               <option value="">— None —</option>
             </select>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="formCopyrightOwner">Copyright Owner</label>
+          <select id="formCopyrightOwner" class="form-input">
+            <option value="">— None —</option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -389,6 +423,91 @@
         <div class="modal__actions">
           <button type="button" id="personBtnCancel" class="btn btn--ghost">Cancel</button>
           <button type="submit" id="personBtnSubmit" class="btn btn--primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── Copyright Owner Modal ──────────────── -->
+  <div id="copyrightOwnerModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="coBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title" id="coModalTitle">New Copyright Owner</h2>
+        <button class="modal__close" id="coModalClose">&times;</button>
+      </div>
+      <form id="copyrightOwnerForm" class="modal__form">
+        <input type="hidden" id="coFormId" value="" />
+
+        <div class="form-group">
+          <label class="form-label" for="coFormName">Name <span class="required">*</span></label>
+          <input type="text" id="coFormName" class="form-input" required placeholder="Copyright owner name" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="coFormSlug">Slug</label>
+          <input type="text" id="coFormSlug" class="form-input" placeholder="auto-generated-from-name" />
+          <span class="form-hint">Leave blank to auto-generate from name</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="coFormFullLegalName">Full Legal Name</label>
+          <input type="text" id="coFormFullLegalName" class="form-input" placeholder="Full legal name of copyright owner" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="coFormOrganization">Organization / Publisher</label>
+            <input type="text" id="coFormOrganization" class="form-input" placeholder="Publishing company" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="coFormTerritory">Territory / Jurisdiction</label>
+            <input type="text" id="coFormTerritory" class="form-input" placeholder="e.g. Worldwide, US, EU" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="coFormEmail">Email</label>
+            <input type="email" id="coFormEmail" class="form-input" placeholder="contact@example.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="coFormWebsite">Website</label>
+            <input type="url" id="coFormWebsite" class="form-input" placeholder="https://example.com" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="coFormAddress">Address</label>
+          <textarea id="coFormAddress" class="form-input" rows="2" placeholder="Physical address"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="coFormIPI">IPI Number</label>
+            <input type="text" id="coFormIPI" class="form-input" placeholder="Interested Parties Information #" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="coFormISRC">ISRC Prefix</label>
+            <input type="text" id="coFormISRC" class="form-input" placeholder="International Standard Recording Code prefix" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="coFormPRO">PRO Affiliation</label>
+          <input type="text" id="coFormPRO" class="form-input" placeholder="e.g. ASCAP, BMI, SESAC, PRS" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="coFormNotes">Notes</label>
+          <textarea id="coFormNotes" class="form-input" rows="3" placeholder="Additional notes..."></textarea>
+        </div>
+
+        <div id="coFormMessage" class="form-message" style="display:none;"></div>
+
+        <div class="modal__actions">
+          <button type="button" id="coBtnCancel" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="coBtnSubmit" class="btn btn--primary">Save</button>
         </div>
       </form>
     </div>

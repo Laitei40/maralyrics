@@ -62,6 +62,7 @@ const Utils = {
     if (path.startsWith('/song/')) return 'song';
     if (path.startsWith('/artist/')) return 'artist';
     if (path.startsWith('/composer/')) return 'composer';
+    if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
     return 'home';
   },
 
@@ -246,6 +247,11 @@ const API = {
     return fetch(`${CONFIG.API_BASE}/view/${encodeURIComponent(slug)}`, {
       method: 'POST',
     });
+  },
+
+  /** Get copyright owner by slug. */
+  async getCopyrightOwner(slug) {
+    return this.fetchJSON(`/copyright-owner/${encodeURIComponent(slug)}`);
   },
 
   /** Get artist by slug. */
@@ -695,6 +701,18 @@ const SongPage = {
     if (categoryEl) categoryEl.textContent = song.category || I18n.t('common.uncategorized');
     if (viewsEl) viewsEl.textContent = Utils.formatViews(song.views);
 
+    // Copyright owner (only show if present)
+    const coWrap = document.getElementById('songCopyrightOwnerWrap');
+    const coEl = document.getElementById('songCopyrightOwner');
+    if (coWrap && coEl) {
+      if (song.copyright_owner_name) {
+        coEl.innerHTML = Utils.renderNameLink(song.copyright_owner_name, song.copyright_owner_slug, 'copyright-owner');
+        coWrap.style.display = 'flex';
+      } else {
+        coWrap.style.display = 'none';
+      }
+    }
+
     // Update breadcrumb
     const breadcrumbTitle = document.getElementById('breadcrumbTitle');
     if (breadcrumbTitle) breadcrumbTitle.textContent = song.title;
@@ -946,6 +964,181 @@ const ProfilePage = {
   },
 };
 
+// ─── Copyright Owner Page Controller ───────────────────────────
+const CopyrightOwnerPage = {
+  async init() {
+    const slug = Utils.getSlugFromUrl();
+    if (!slug) {
+      this.showError();
+      return;
+    }
+    await this.loadOwner(slug);
+  },
+
+  async loadOwner(slug) {
+    try {
+      let data;
+      const cacheKey = `copyright_owner_${slug}`;
+
+      if (Utils.isOnline()) {
+        data = await API.getCopyrightOwner(slug);
+        Cache.set(cacheKey, data);
+      } else {
+        data = Cache.get(cacheKey);
+        if (!data) { this.showError(); return; }
+        UI.setOfflineMode(true);
+      }
+
+      this.render(data);
+      this.updateMeta(data);
+    } catch (err) {
+      console.warn('Failed to load copyright owner:', err);
+      const cached = Cache.get(`copyright_owner_${slug}`);
+      if (cached) {
+        this.render(cached);
+        this.updateMeta(cached);
+        UI.setOfflineMode(true);
+      } else {
+        this.showError();
+      }
+    }
+  },
+
+  render(data) {
+    const skeleton = document.getElementById('profileSkeleton');
+    const detail = document.getElementById('profileDetail');
+    const error = document.getElementById('profileError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (error) error.style.display = 'none';
+    if (detail) detail.style.display = 'block';
+
+    // Name & breadcrumb
+    const nameEl = document.getElementById('profileName');
+    if (nameEl) nameEl.textContent = data.owner?.name || data.name || '';
+
+    const breadcrumbEl = document.getElementById('breadcrumbName');
+    if (breadcrumbEl) breadcrumbEl.textContent = data.owner?.name || data.name || '';
+
+    const owner = data.owner || data;
+
+    // Avatar fallback (© icon)
+    const avatarEl = document.getElementById('profileAvatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = '<span class="profile-page__avatar-fallback" style="font-size:2rem;">©</span>';
+    }
+
+    // Role label
+    const roleEl = document.querySelector('.profile-page__role');
+    if (roleEl) roleEl.textContent = 'Copyright Owner';
+
+    // Hide social links section
+    const socialEl = document.getElementById('profileSocial');
+    if (socialEl) socialEl.style.display = 'none';
+
+    // Bio area becomes copyright info
+    const bioEl = document.getElementById('profileBio');
+    if (bioEl) {
+      bioEl.style.display = 'none';
+    }
+
+    // Copyright details section
+    const infoContainer = document.getElementById('copyrightInfoSection');
+    if (infoContainer) {
+      let html = '';
+      const fields = [
+        { label: 'Full Legal Name', value: owner.full_legal_name },
+        { label: 'Organization / Publisher', value: owner.organization },
+        { label: 'Territory / Jurisdiction', value: owner.territory },
+        { label: 'Email', value: owner.email, isEmail: true },
+        { label: 'Website', value: owner.website, isUrl: true },
+        { label: 'Address', value: owner.address },
+        { label: 'IPI Number', value: owner.ipi_number },
+        { label: 'ISRC Prefix', value: owner.isrc_prefix },
+        { label: 'PRO Affiliation', value: owner.pro_affiliation },
+      ];
+
+      const visibleFields = fields.filter(f => f.value);
+      if (visibleFields.length) {
+        html += '<div class="copyright-info">';
+        visibleFields.forEach(f => {
+          let val = Utils.escapeHtml(f.value);
+          if (f.isEmail) val = `<a href="mailto:${val}" class="meta-link">${val}</a>`;
+          if (f.isUrl) val = `<a href="${val}" target="_blank" rel="noopener noreferrer" class="meta-link">${val}</a>`;
+          html += `<div class="copyright-info__row"><span class="copyright-info__label">${f.label}</span><span class="copyright-info__value">${val}</span></div>`;
+        });
+        if (owner.notes) {
+          html += `<div class="copyright-info__row"><span class="copyright-info__label">Notes</span><span class="copyright-info__value">${Utils.escapeHtml(owner.notes)}</span></div>`;
+        }
+        html += '</div>';
+      }
+      infoContainer.innerHTML = html;
+      infoContainer.style.display = visibleFields.length ? 'block' : 'none';
+    }
+
+    // Songs
+    const songs = data.songs || [];
+    const songGrid = document.getElementById('profileSongGrid');
+    const emptyEl = document.getElementById('profileEmpty');
+    const countEl = document.getElementById('songCount');
+    const songsTitleEl = document.getElementById('songsSectionTitle');
+
+    if (songsTitleEl && owner.name) {
+      songsTitleEl.textContent = `Songs claimed by ${owner.name}`;
+    }
+    if (countEl) countEl.textContent = `(${songs.length})`;
+    if (songs.length === 0) {
+      if (songGrid) songGrid.innerHTML = '';
+      if (emptyEl) {
+        emptyEl.style.display = 'block';
+        const emptyText = emptyEl.querySelector('.empty-state__text');
+        if (emptyText) emptyText.textContent = 'No songs claimed by this copyright owner.';
+      }
+    } else {
+      if (emptyEl) emptyEl.style.display = 'none';
+      if (songGrid) songGrid.innerHTML = songs.map((s, i) => UI.createSongCard(s, i)).join('');
+    }
+  },
+
+  updateMeta(data) {
+    const owner = data.owner || data;
+    const title = `${owner.name} — Copyright Owner — MaraLyrics`;
+    const songCount = data.songs?.length || 0;
+    const desc = `${owner.name} — Copyright Owner on MaraLyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
+
+    document.title = title;
+    const metaDesc = document.getElementById('metaDesc');
+    if (metaDesc) metaDesc.content = desc;
+    const ogTitle = document.getElementById('ogTitle');
+    if (ogTitle) ogTitle.content = title;
+    const ogDesc = document.getElementById('ogDesc');
+    if (ogDesc) ogDesc.content = desc;
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = title;
+
+    const jsonLd = document.getElementById('jsonLd');
+    if (jsonLd) {
+      jsonLd.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: owner.name,
+        description: `Copyright owner${owner.organization ? ' — ' + owner.organization : ''}`,
+        url: window.location.href,
+      });
+    }
+  },
+
+  showError() {
+    const skeleton = document.getElementById('profileSkeleton');
+    const detail = document.getElementById('profileDetail');
+    const error = document.getElementById('profileError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (detail) detail.style.display = 'none';
+    if (error) error.style.display = 'block';
+  },
+};
+
 // ─── Offline Detection ─────────────────────────────────────────
 function initOfflineDetection() {
   window.addEventListener('online', () => {
@@ -997,6 +1190,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       break;
     case 'composer':
       ProfilePage.init('composer');
+      break;
+    case 'copyright-owner':
+      CopyrightOwnerPage.init();
       break;
     default:
       HomePage.init();

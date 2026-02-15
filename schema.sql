@@ -6,6 +6,7 @@
 DROP TABLE IF EXISTS songs;
 DROP TABLE IF EXISTS composers;
 DROP TABLE IF EXISTS artists;
+DROP TABLE IF EXISTS copyright_owners;
 
 -- Artists table
 CREATE TABLE IF NOT EXISTS artists (
@@ -29,19 +30,39 @@ CREATE TABLE IF NOT EXISTS composers (
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Copyright Owners table (international standard fields)
+CREATE TABLE IF NOT EXISTS copyright_owners (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL,
+    slug            TEXT UNIQUE NOT NULL,
+    full_legal_name TEXT,
+    organization    TEXT,
+    territory       TEXT,
+    email           TEXT,
+    website         TEXT,
+    address         TEXT,
+    ipi_number      TEXT,
+    isrc_prefix     TEXT,
+    pro_affiliation TEXT,
+    notes           TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Songs table
 CREATE TABLE IF NOT EXISTS songs (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    title       TEXT NOT NULL,
-    slug        TEXT UNIQUE NOT NULL,
-    artist_id   INTEGER,
-    composer_id INTEGER,
-    category    TEXT,
-    lyrics      TEXT NOT NULL,
-    views       INTEGER DEFAULT 0,
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    title               TEXT NOT NULL,
+    slug                TEXT UNIQUE NOT NULL,
+    artist_id           INTEGER,
+    composer_id         INTEGER,
+    copyright_owner_id  INTEGER,
+    category            TEXT,
+    lyrics              TEXT NOT NULL,
+    views               INTEGER DEFAULT 0,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE SET NULL,
-    FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE SET NULL
+    FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE SET NULL,
+    FOREIGN KEY (copyright_owner_id) REFERENCES copyright_owners(id) ON DELETE SET NULL
 );
 
 -- Reports table
@@ -74,8 +95,10 @@ CREATE INDEX IF NOT EXISTS idx_songs_category   ON songs(category);
 CREATE INDEX IF NOT EXISTS idx_songs_views      ON songs(views DESC);
 CREATE INDEX IF NOT EXISTS idx_songs_artist_id  ON songs(artist_id);
 CREATE INDEX IF NOT EXISTS idx_songs_composer_id ON songs(composer_id);
+CREATE INDEX IF NOT EXISTS idx_songs_copyright_owner_id ON songs(copyright_owner_id);
 CREATE INDEX IF NOT EXISTS idx_artists_slug     ON artists(slug);
 CREATE INDEX IF NOT EXISTS idx_composers_slug   ON composers(slug);
+CREATE INDEX IF NOT EXISTS idx_copyright_owners_slug ON copyright_owners(slug);
 
 -- ╔══════════════════════════════════════════════════════════════╗
 -- ║                    Sample Seed Data                         ║

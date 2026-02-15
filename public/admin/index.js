@@ -17,6 +17,7 @@ let allComposers = [];
 let deleteTargetId = null;
 let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report'
 let allReports = [];
+let allCopyrightOwners = [];
 
 // Helpers
 function escapeHtml(str) {
@@ -97,23 +98,27 @@ function switchTab(tab) {
   if (tab === 'artists') loadArtists();
   if (tab === 'composers') loadComposers();
   if (tab === 'reports') loadReports();
+  if (tab === 'copyright-owners') loadCopyrightOwners();
 }
 
 // ─── Populate Artist/Composer Dropdowns ─────────
 async function populateDropdowns() {
   try {
-    const [aData, cData] = await Promise.all([
+    const [aData, cData, coData] = await Promise.all([
       apiGet(`${ADMIN_API}/artists`),
       apiGet(`${ADMIN_API}/composers`),
+      apiGet(`${ADMIN_API}/copyright-owners`),
     ]);
     allArtists = aData.artists || [];
     allComposers = cData.composers || [];
+    allCopyrightOwners = coData.copyright_owners || [];
   } catch (err) {
-    console.warn('Failed to load artists/composers for dropdowns:', err);
+    console.warn('Failed to load dropdowns:', err);
   }
 
   const artistSel = document.getElementById('formArtist');
   const composerSel = document.getElementById('formComposer');
+  const coSel = document.getElementById('formCopyrightOwner');
 
   if (artistSel) {
     artistSel.innerHTML = '<option value="">— None —</option>' +
@@ -122,6 +127,10 @@ async function populateDropdowns() {
   if (composerSel) {
     composerSel.innerHTML = '<option value="">— None —</option>' +
       allComposers.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  }
+  if (coSel) {
+    coSel.innerHTML = '<option value="">— None —</option>' +
+      allCopyrightOwners.map(co => `<option value="${co.id}">${escapeHtml(co.name)}</option>`).join('');
   }
 }
 
@@ -255,6 +264,7 @@ async function editSong(id) {
     document.getElementById('formArtist').value = song.artist_id || '';
     document.getElementById('formComposer').value = song.composer_id || '';
     document.getElementById('formCategory').value = song.category || '';
+    document.getElementById('formCopyrightOwner').value = song.copyright_owner_id || '';
     document.getElementById('formSlug').value = song.slug || '';
     document.getElementById('formLyrics').value = song.lyrics || '';
   } catch (err) {
@@ -269,6 +279,7 @@ async function saveSong(e) {
   const title = document.getElementById('formTitle').value.trim();
   const artist_id = document.getElementById('formArtist').value || null;
   const composer_id = document.getElementById('formComposer').value || null;
+  const copyright_owner_id = document.getElementById('formCopyrightOwner').value || null;
   const category = document.getElementById('formCategory').value.trim();
   const slug = document.getElementById('formSlug').value.trim();
   const lyrics = document.getElementById('formLyrics').value.trim();
@@ -281,7 +292,7 @@ async function saveSong(e) {
   btn.textContent = 'Saving...';
 
   try {
-    const body = { title, artist_id, composer_id, category, slug, lyrics };
+    const body = { title, artist_id, composer_id, copyright_owner_id, category, slug, lyrics };
 
     if (id) {
       await apiPut(`${ADMIN_API}/song/${id}`, body);
@@ -824,6 +835,7 @@ async function deleteItem() {
     if (deleteTargetType === 'song') loadSongs(currentPage);
     else if (deleteTargetType === 'artist') loadArtists();
     else if (deleteTargetType === 'report') loadReports();
+    else if (deleteTargetType === 'copyright-owner') loadCopyrightOwners();
     else loadComposers();
   } catch (err) {
     alert('Delete failed: ' + err.message);
@@ -866,6 +878,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('personBackdrop').addEventListener('click', closePersonModal);
   document.getElementById('personBtnCancel').addEventListener('click', closePersonModal);
 
+  // Copyright Owner buttons
+  document.getElementById('btnNewCopyrightOwner').addEventListener('click', openNewCopyrightOwner);
+  document.getElementById('copyrightOwnerForm').addEventListener('submit', saveCopyrightOwner);
+  document.getElementById('coModalClose').addEventListener('click', closeCopyrightOwnerModal);
+  document.getElementById('coBackdrop').addEventListener('click', closeCopyrightOwnerModal);
+  document.getElementById('coBtnCancel').addEventListener('click', closeCopyrightOwnerModal);
+
   // Delete modal
   document.getElementById('deleteModalClose').addEventListener('click', closeDeleteModal);
   document.getElementById('deleteBackdrop').addEventListener('click', closeDeleteModal);
@@ -896,12 +915,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('personFormSlug').addEventListener('input', function () {
     this.dataset.manual = this.value ? '1' : '';
   });
+  document.getElementById('coFormName').addEventListener('input', autoCOSlug);
+  document.getElementById('coFormSlug').addEventListener('input', function () {
+    this.dataset.manual = this.value ? '1' : '';
+  });
 
   // Keyboard: Escape to close modals
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeSongModal();
       closePersonModal();
+      closeCopyrightOwnerModal();
       closeDeleteModal();
       closeFeedbackModal();
     }
@@ -911,10 +935,159 @@ document.addEventListener('DOMContentLoaded', () => {
 // Expose to inline onclick handlers
 window.editSong = editSong;
 window.editPerson = editPerson;
+window.editCopyrightOwner = editCopyrightOwner;
 window.confirmDelete = confirmDelete;
 window.loadSongs = loadSongs;
 window.updateReportStatus = updateReportStatus;
 window.viewFeedback = viewFeedback;
+
+// ═══════════════════════════════════════════════════
+// ═══ COPYRIGHT OWNERS ═════════════════════════════
+// ═══════════════════════════════════════════════════
+
+async function loadCopyrightOwners() {
+  const tbody = document.getElementById('copyrightOwnersTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  try {
+    const data = await apiGet(`${ADMIN_API}/copyright-owners`);
+    allCopyrightOwners = data.copyright_owners || [];
+    renderCopyrightOwnersTable(allCopyrightOwners, tbody);
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderCopyrightOwnersTable(items, tbody) {
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">No copyright owners found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(item => `
+    <tr data-id="${item.id}">
+      <td><div class="admin-table__title">${escapeHtml(item.name)}</div></td>
+      <td><div class="admin-table__slug">/copyright-owner/${escapeHtml(item.slug)}</div></td>
+      <td>${escapeHtml(item.organization || '—')}</td>
+      <td>${escapeHtml(item.territory || '—')}</td>
+      <td>
+        <div class="admin-table__actions">
+          <button class="btn btn--sm btn--ghost" onclick="editCopyrightOwner(${item.id})" title="Edit">✏️</button>
+          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', 'copyright-owner')" title="Delete">🗑️</button>
+          <a href="../copyright-owner/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// Copyright Owner Modal
+function openCopyrightOwnerModal() {
+  document.getElementById('copyrightOwnerModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeCopyrightOwnerModal() {
+  document.getElementById('copyrightOwnerModal').style.display = 'none';
+  document.body.style.overflow = '';
+  clearCopyrightOwnerForm();
+}
+function clearCopyrightOwnerForm() {
+  document.getElementById('copyrightOwnerForm').reset();
+  document.getElementById('coFormId').value = '';
+  document.getElementById('coFormMessage').style.display = 'none';
+}
+function showCOMessage(text, isError = false) {
+  const el = document.getElementById('coFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = 'block';
+}
+
+function openNewCopyrightOwner() {
+  clearCopyrightOwnerForm();
+  document.getElementById('coModalTitle').textContent = 'New Copyright Owner';
+  document.getElementById('coBtnSubmit').textContent = 'Create Copyright Owner';
+  openCopyrightOwnerModal();
+  document.getElementById('coFormName').focus();
+}
+
+async function editCopyrightOwner(id) {
+  clearCopyrightOwnerForm();
+  document.getElementById('coModalTitle').textContent = 'Edit Copyright Owner';
+  document.getElementById('coBtnSubmit').textContent = 'Update Copyright Owner';
+  openCopyrightOwnerModal();
+
+  try {
+    const item = await apiGet(`${ADMIN_API}/copyright-owner/${id}`);
+    document.getElementById('coFormId').value = item.id;
+    document.getElementById('coFormName').value = item.name || '';
+    document.getElementById('coFormSlug').value = item.slug || '';
+    document.getElementById('coFormFullLegalName').value = item.full_legal_name || '';
+    document.getElementById('coFormOrganization').value = item.organization || '';
+    document.getElementById('coFormTerritory').value = item.territory || '';
+    document.getElementById('coFormEmail').value = item.email || '';
+    document.getElementById('coFormWebsite').value = item.website || '';
+    document.getElementById('coFormAddress').value = item.address || '';
+    document.getElementById('coFormIPI').value = item.ipi_number || '';
+    document.getElementById('coFormISRC').value = item.isrc_prefix || '';
+    document.getElementById('coFormPRO').value = item.pro_affiliation || '';
+    document.getElementById('coFormNotes').value = item.notes || '';
+  } catch (err) {
+    showCOMessage('Failed to load: ' + err.message, true);
+  }
+}
+
+async function saveCopyrightOwner(e) {
+  e.preventDefault();
+
+  const id = document.getElementById('coFormId').value;
+  const name = document.getElementById('coFormName').value.trim();
+  const slug = document.getElementById('coFormSlug').value.trim();
+  const full_legal_name = document.getElementById('coFormFullLegalName').value.trim();
+  const organization = document.getElementById('coFormOrganization').value.trim();
+  const territory = document.getElementById('coFormTerritory').value.trim();
+  const email = document.getElementById('coFormEmail').value.trim();
+  const website = document.getElementById('coFormWebsite').value.trim();
+  const address = document.getElementById('coFormAddress').value.trim();
+  const ipi_number = document.getElementById('coFormIPI').value.trim();
+  const isrc_prefix = document.getElementById('coFormISRC').value.trim();
+  const pro_affiliation = document.getElementById('coFormPRO').value.trim();
+  const notes = document.getElementById('coFormNotes').value.trim();
+
+  if (!name) { showCOMessage('Name is required.', true); return; }
+
+  const btn = document.getElementById('coBtnSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const body = { name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes };
+
+    if (id) {
+      await apiPut(`${ADMIN_API}/copyright-owner/${id}`, body);
+      showCOMessage('Copyright owner updated successfully!');
+    } else {
+      await apiPost(`${ADMIN_API}/copyright-owners`, body);
+      showCOMessage('Copyright owner created successfully!');
+    }
+
+    setTimeout(() => {
+      closeCopyrightOwnerModal();
+      loadCopyrightOwners();
+    }, 800);
+  } catch (err) {
+    showCOMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = id ? 'Update Copyright Owner' : 'Create Copyright Owner';
+  }
+}
+
+function autoCOSlug() {
+  const slugField = document.getElementById('coFormSlug');
+  const nameField = document.getElementById('coFormName');
+  if (!slugField.dataset.manual) {
+    slugField.value = generateSlug(nameField.value);
+  }
+}
 
 // ═══════════════════════════════════════════════════
 // ═══ REPORTS ══════════════════════════════════════

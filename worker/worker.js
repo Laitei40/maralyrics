@@ -33,6 +33,14 @@ import {
   handleAdminCreateComposer,
   handleAdminUpdateComposer,
   handleAdminDeleteComposer,
+  // Copyright Owners
+  handleGetCopyrightOwner,
+  handleGetCopyrightOwnersList,
+  handleAdminGetCopyrightOwners,
+  handleAdminGetCopyrightOwner,
+  handleAdminCreateCopyrightOwner,
+  handleAdminUpdateCopyrightOwner,
+  handleAdminDeleteCopyrightOwner,
   // Reports
   handleCreateReport,
   handleGetReports,
@@ -217,6 +225,49 @@ export default {
         return await handleAdminDeleteComposer(id, env.DB);
       }
 
+      // ─── Copyright Owner Public API Routes ────────────
+
+      // GET /api/copyright-owners
+      if (path === '/api/copyright-owners' && method === 'GET') {
+        return await handleGetCopyrightOwnersList(env.DB);
+      }
+
+      // GET /api/copyright-owner/:slug
+      if (path.startsWith('/api/copyright-owner/') && method === 'GET') {
+        const slug = path.replace('/api/copyright-owner/', '').trim();
+        return await handleGetCopyrightOwner(slug, env.DB);
+      }
+
+      // ─── Admin Copyright Owner CRUD Routes ────────────
+
+      // GET /api/admin/copyright-owners
+      if (path === '/api/admin/copyright-owners' && method === 'GET') {
+        return await handleAdminGetCopyrightOwners(env.DB);
+      }
+
+      // POST /api/admin/copyright-owners
+      if (path === '/api/admin/copyright-owners' && method === 'POST') {
+        return await handleAdminCreateCopyrightOwner(request, env.DB);
+      }
+
+      // GET /api/admin/copyright-owner/:id
+      if (path.match(/^\/api\/admin\/copyright-owner\/\d+$/) && method === 'GET') {
+        const id = path.split('/').pop();
+        return await handleAdminGetCopyrightOwner(id, env.DB);
+      }
+
+      // PUT /api/admin/copyright-owner/:id
+      if (path.match(/^\/api\/admin\/copyright-owner\/\d+$/) && method === 'PUT') {
+        const id = path.split('/').pop();
+        return await handleAdminUpdateCopyrightOwner(id, request, env.DB);
+      }
+
+      // DELETE /api/admin/copyright-owner/:id
+      if (path.match(/^\/api\/admin\/copyright-owner\/\d+$/) && method === 'DELETE') {
+        const id = path.split('/').pop();
+        return await handleAdminDeleteCopyrightOwner(id, env.DB);
+      }
+
       // ─── Report API Routes ─────────────────────────────
 
       // POST /api/report — Submit error report
@@ -276,6 +327,11 @@ export default {
       // Composer page (clean URLs): /composer/some-slug → serve composerview.html
       if (path.startsWith('/composer/')) {
         return await serveAsset(request, env, ctx, '/composerview.html');
+      }
+
+      // Copyright owner page: /copyright-owner/some-slug → serve copyrightownerview.html
+      if (path.startsWith('/copyright-owner/')) {
+        return await serveAsset(request, env, ctx, '/copyrightownerview.html');
       }
 
       // Try to serve the static asset directly

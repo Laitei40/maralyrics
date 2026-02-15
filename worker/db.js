@@ -5,14 +5,16 @@
 // ─── Song list SELECT with JOINs ──────────────────────────────
 const SONG_LIST_COLS = `
   s.id, s.title, s.slug, s.category, s.views, s.created_at,
-  s.artist_id, s.composer_id,
+  s.artist_id, s.composer_id, s.copyright_owner_id,
   a.name AS artist_name, a.slug AS artist_slug,
-  c.name AS composer_name, c.slug AS composer_slug`;
+  c.name AS composer_name, c.slug AS composer_slug,
+  co.name AS copyright_owner_name, co.slug AS copyright_owner_slug`;
 
 const SONG_JOINS = `
   FROM songs s
   LEFT JOIN artists   a ON s.artist_id   = a.id
-  LEFT JOIN composers c ON s.composer_id = c.id`;
+  LEFT JOIN composers c ON s.composer_id = c.id
+  LEFT JOIN copyright_owners co ON s.copyright_owner_id = co.id`;
 
 /**
  * Fetch paginated song list from D1.
@@ -53,7 +55,8 @@ export async function getSongBySlug(db, slug) {
   return db
     .prepare(
       `SELECT s.*, a.name AS artist_name, a.slug AS artist_slug,
-              c.name AS composer_name, c.slug AS composer_slug
+              c.name AS composer_name, c.slug AS composer_slug,
+              co.name AS copyright_owner_name, co.slug AS copyright_owner_slug
        ${SONG_JOINS}
        WHERE s.slug = ?`
     )
@@ -120,7 +123,8 @@ export async function getSongById(db, id) {
   return db
     .prepare(
       `SELECT s.*, a.name AS artist_name, a.slug AS artist_slug,
-              c.name AS composer_name, c.slug AS composer_slug
+              c.name AS composer_name, c.slug AS composer_slug,
+              co.name AS copyright_owner_name, co.slug AS copyright_owner_slug
        ${SONG_JOINS}
        WHERE s.id = ?`
     )
@@ -132,24 +136,24 @@ export async function getSongBySlugRaw(db, slug) {
   return db.prepare('SELECT * FROM songs WHERE slug = ?').bind(slug).first();
 }
 
-export async function createSong(db, { title, slug, artist_id, composer_id, category, lyrics }) {
+export async function createSong(db, { title, slug, artist_id, composer_id, copyright_owner_id, category, lyrics }) {
   const result = await db
     .prepare(
-      `INSERT INTO songs (title, slug, artist_id, composer_id, category, lyrics)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO songs (title, slug, artist_id, composer_id, copyright_owner_id, category, lyrics)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(title, slug, artist_id || null, composer_id || null, category || null, lyrics)
+    .bind(title, slug, artist_id || null, composer_id || null, copyright_owner_id || null, category || null, lyrics)
     .run();
   return { id: result.meta.last_row_id };
 }
 
-export async function updateSong(db, id, { title, slug, artist_id, composer_id, category, lyrics }) {
+export async function updateSong(db, id, { title, slug, artist_id, composer_id, copyright_owner_id, category, lyrics }) {
   const result = await db
     .prepare(
-      `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, category = ?, lyrics = ?
+      `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?
        WHERE id = ?`
     )
-    .bind(title, slug, artist_id || null, composer_id || null, category || null, lyrics, id)
+    .bind(title, slug, artist_id || null, composer_id || null, copyright_owner_id || null, category || null, lyrics, id)
     .run();
   return result.meta.changes > 0;
 }
@@ -296,4 +300,58 @@ export async function createContact(db, { name, email, subject, message }) {
     .bind(name, email, subject || 'General', message)
     .run();
   return { id: result.meta.last_row_id };
+}
+
+// ─── Copyright Owners ─────────────────────────────────────────
+
+export async function getCopyrightOwners(db) {
+  const result = await db
+    .prepare('SELECT * FROM copyright_owners ORDER BY name ASC')
+    .all();
+  return result.results || [];
+}
+
+export async function getCopyrightOwnerBySlug(db, slug) {
+  return db.prepare('SELECT * FROM copyright_owners WHERE slug = ?').bind(slug).first();
+}
+
+export async function getCopyrightOwnerById(db, id) {
+  return db.prepare('SELECT * FROM copyright_owners WHERE id = ?').bind(id).first();
+}
+
+export async function getSongsByCopyrightOwner(db, ownerId) {
+  return db
+    .prepare(
+      `SELECT ${SONG_LIST_COLS} ${SONG_JOINS} WHERE s.copyright_owner_id = ? ORDER BY s.title ASC`
+    )
+    .bind(ownerId)
+    .all()
+    .then((r) => r.results || []);
+}
+
+export async function createCopyrightOwner(db, { name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes }) {
+  const result = await db
+    .prepare(
+      `INSERT INTO copyright_owners (name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(name, slug, full_legal_name || null, organization || null, territory || null, email || null, website || null, address || null, ipi_number || null, isrc_prefix || null, pro_affiliation || null, notes || null)
+    .run();
+  return { id: result.meta.last_row_id };
+}
+
+export async function updateCopyrightOwner(db, id, { name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes }) {
+  const result = await db
+    .prepare(
+      `UPDATE copyright_owners SET name = ?, slug = ?, full_legal_name = ?, organization = ?, territory = ?, email = ?, website = ?, address = ?, ipi_number = ?, isrc_prefix = ?, pro_affiliation = ?, notes = ?
+       WHERE id = ?`
+    )
+    .bind(name, slug, full_legal_name || null, organization || null, territory || null, email || null, website || null, address || null, ipi_number || null, isrc_prefix || null, pro_affiliation || null, notes || null, id)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function deleteCopyrightOwner(db, id) {
+  const result = await db.prepare('DELETE FROM copyright_owners WHERE id = ?').bind(id).run();
+  return result.meta.changes > 0;
 }

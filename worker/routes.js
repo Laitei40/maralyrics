@@ -30,6 +30,14 @@ import {
   createComposer,
   updateComposer,
   deleteComposer,
+  // Copyright Owners
+  getCopyrightOwners,
+  getCopyrightOwnerBySlug,
+  getCopyrightOwnerById,
+  getSongsByCopyrightOwner,
+  createCopyrightOwner,
+  updateCopyrightOwner,
+  deleteCopyrightOwner,
   // Reports
   createReport,
   getReports,
@@ -174,7 +182,7 @@ export async function handleAdminCreateSong(request, db) {
   let body;
   try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
 
-  const { title, artist_id, composer_id, category, lyrics } = body;
+  const { title, artist_id, composer_id, copyright_owner_id, category, lyrics } = body;
   let { slug } = body;
 
   if (!title || !title.trim()) return badRequest('Title is required');
@@ -190,6 +198,7 @@ export async function handleAdminCreateSong(request, db) {
     slug,
     artist_id: artist_id ? parseInt(artist_id, 10) : null,
     composer_id: composer_id ? parseInt(composer_id, 10) : null,
+    copyright_owner_id: copyright_owner_id ? parseInt(copyright_owner_id, 10) : null,
     category: category?.trim() || null,
     lyrics: lyrics.trim(),
   });
@@ -202,7 +211,7 @@ export async function handleAdminUpdateSong(id, request, db) {
   let body;
   try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
 
-  const { title, artist_id, composer_id, category, lyrics } = body;
+  const { title, artist_id, composer_id, copyright_owner_id, category, lyrics } = body;
   let { slug } = body;
 
   if (!title || !title.trim()) return badRequest('Title is required');
@@ -220,6 +229,7 @@ export async function handleAdminUpdateSong(id, request, db) {
     slug,
     artist_id: artist_id ? parseInt(artist_id, 10) : null,
     composer_id: composer_id ? parseInt(composer_id, 10) : null,
+    copyright_owner_id: copyright_owner_id ? parseInt(copyright_owner_id, 10) : null,
     category: category?.trim() || null,
     lyrics: lyrics.trim(),
   });
@@ -362,6 +372,104 @@ export async function handleAdminDeleteComposer(id, db) {
   if (!id) return badRequest('Composer ID is required');
   const deleted = await deleteComposer(db, parseInt(id, 10));
   if (!deleted) return notFound('Composer not found');
+  return json({ success: true });
+}
+
+// ─── Copyright Owner Public Route ────────────────────────────
+
+export async function handleGetCopyrightOwner(slug, db) {
+  if (!slug) return badRequest('Slug is required');
+  const owner = await getCopyrightOwnerBySlug(db, slug);
+  if (!owner) return notFound('Copyright owner not found');
+  const songs = await getSongsByCopyrightOwner(db, owner.id);
+  return json({ ...owner, songs }, 200, { 'Cache-Control': 'public, max-age=300' });
+}
+
+export async function handleGetCopyrightOwnersList(db) {
+  const owners = await getCopyrightOwners(db);
+  return json({ copyright_owners: owners }, 200, { 'Cache-Control': 'public, max-age=300' });
+}
+
+// ─── Admin Copyright Owner CRUD ──────────────────────────────
+
+export async function handleAdminGetCopyrightOwners(db) {
+  const owners = await getCopyrightOwners(db);
+  return json({ copyright_owners: owners });
+}
+
+export async function handleAdminGetCopyrightOwner(id, db) {
+  if (!id) return badRequest('Copyright Owner ID is required');
+  const owner = await getCopyrightOwnerById(db, parseInt(id, 10));
+  if (!owner) return notFound('Copyright owner not found');
+  return json(owner);
+}
+
+export async function handleAdminCreateCopyrightOwner(request, db) {
+  let body;
+  try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
+
+  const { name, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes } = body;
+  let { slug } = body;
+
+  if (!name || !name.trim()) return badRequest('Name is required');
+  slug = (slug && slug.trim()) ? slug.trim() : generateSlug(name);
+
+  const existing = await getCopyrightOwnerBySlug(db, slug);
+  if (existing) return json({ error: 'A copyright owner with this slug already exists' }, 409);
+
+  const result = await createCopyrightOwner(db, {
+    name: name.trim(), slug,
+    full_legal_name: full_legal_name?.trim() || null,
+    organization: organization?.trim() || null,
+    territory: territory?.trim() || null,
+    email: email?.trim() || null,
+    website: website?.trim() || null,
+    address: address?.trim() || null,
+    ipi_number: ipi_number?.trim() || null,
+    isrc_prefix: isrc_prefix?.trim() || null,
+    pro_affiliation: pro_affiliation?.trim() || null,
+    notes: notes?.trim() || null,
+  });
+  return json({ success: true, id: result.id, slug }, 201);
+}
+
+export async function handleAdminUpdateCopyrightOwner(id, request, db) {
+  if (!id) return badRequest('Copyright Owner ID is required');
+  let body;
+  try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
+
+  const { name, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes } = body;
+  let { slug } = body;
+
+  if (!name || !name.trim()) return badRequest('Name is required');
+  slug = (slug && slug.trim()) ? slug.trim() : generateSlug(name);
+
+  const existing = await getCopyrightOwnerBySlug(db, slug);
+  if (existing && existing.id !== parseInt(id, 10)) {
+    return json({ error: 'A different copyright owner with this slug already exists' }, 409);
+  }
+
+  const updated = await updateCopyrightOwner(db, parseInt(id, 10), {
+    name: name.trim(), slug,
+    full_legal_name: full_legal_name?.trim() || null,
+    organization: organization?.trim() || null,
+    territory: territory?.trim() || null,
+    email: email?.trim() || null,
+    website: website?.trim() || null,
+    address: address?.trim() || null,
+    ipi_number: ipi_number?.trim() || null,
+    isrc_prefix: isrc_prefix?.trim() || null,
+    pro_affiliation: pro_affiliation?.trim() || null,
+    notes: notes?.trim() || null,
+  });
+  if (!updated) return notFound('Copyright owner not found');
+  return json({ success: true, id: parseInt(id, 10), slug });
+}
+
+export async function handleAdminDeleteCopyrightOwner(id, db) {
+  if (!id) return badRequest('Copyright Owner ID is required');
+  const deleted = await deleteCopyrightOwner(db, parseInt(id, 10));
+  if (!deleted) return notFound('Copyright owner not found');
   return json({ success: true });
 }
 
