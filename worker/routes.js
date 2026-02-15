@@ -116,14 +116,8 @@ export async function handleSearch(request, db) {
   const url = new URL(request.url);
   const q = sanitizeQuery(url.searchParams.get('q'));
   if (!q || q.length < 1) return badRequest('Search query too short');
-  const searchResult = await searchSongs(db, q);
-  if (Array.isArray(searchResult)) {
-    // Normal results
-    return json({ query: q, results: searchResult, count: searchResult.length });
-  } else {
-    // Fallback: suggestions
-    return json({ query: q, results: [], count: 0, suggestions: searchResult.suggestions || [] });
-  }
+  const { results, suggestions } = await searchSongs(db, q);
+  return json({ query: q, results, count: results.length, suggestions });
 }
 
 export async function handleViewIncrement(slug, request, db) {

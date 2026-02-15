@@ -68,50 +68,50 @@ export async function getSongBySlug(db, slug) {
  * Search songs by title or artist name.
  */
 export async function searchSongs(db, query, limit = 30) {
-  // Fuzzy search: match title, artist, or lyrics (case-insensitive)
+  // Search across title, artist name, composer name, AND lyrics content
   const pattern = `%${query}%`;
-  const results = await db
+  const result = await db
     .prepare(
       `SELECT ${SONG_LIST_COLS} ${SONG_JOINS}
-       WHERE LOWER(s.title) LIKE LOWER(?)
-          OR LOWER(a.name) LIKE LOWER(?)
-          OR LOWER(s.lyrics) LIKE LOWER(?)
-       ORDER BY s.views DESC
-       LIMIT ?`
+       WHERE s.title LIKE ?1
+          OR a.name  LIKE ?1
+          OR c.name  LIKE ?1
+          OR s.lyrics LIKE ?1
+       ORDER BY
+         CASE WHEN s.title LIKE ?1 THEN 0 ELSE 1 END,
+         s.views DESC
+       LIMIT ?2`
     )
-    .bind(pattern, pattern, pattern, limit)
+    .bind(pattern, limit)
     .all();
-  if (results.results && results.results.length > 0) {
-    return results.results;
-  }
-  // If no results, suggest 5 nearest titles (by Levenshtein distance)
-  const allTitles = await db.prepare('SELECT title FROM songs').all();
-  function levenshtein(a, b) {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
-    const matrix = [];
-    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        if (b.charAt(i - 1) === a.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          );
-        }
+  const rows = result.results || [];
+  if (rows.length > 0) return { results: rows, suggestions: [] };
+
+  // No matches — return 5 nearest titles (Levenshtein distance)
+  const allRows = await db
+    .prepare('SELECT title, slug FROM songs ORDER BY views DESC LIMIT 200')
+    .all();
+  const titles = (allRows.results || []);
+  const ql = query.toLowerCase();
+  function lev(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n; if (!n) return m;
+    let prev = Array.from({ length: n + 1 }, (_, i) => i);
+    for (let i = 1; i <= m; i++) {
+      const curr = [i];
+      for (let j = 1; j <= n; j++) {
+        curr[j] = a[i - 1] === b[j - 1]
+          ? prev[j - 1]
+          : 1 + Math.min(prev[j - 1], prev[j], curr[j - 1]);
       }
+      prev = curr;
     }
-    return matrix[b.length][a.length];
+    return prev[n];
   }
-  const suggestions = (allTitles.results || [])
-    .map(r => ({ title: r.title, dist: levenshtein(query.toLowerCase(), r.title.toLowerCase()) }))
+  const suggestions = titles
+    .map(r => ({ title: r.title, slug: r.slug, dist: lev(ql, r.title.toLowerCase()) }))
     .sort((a, b) => a.dist - b.dist)
-    .slice(0, 5)
-    .map(r => r.title);
+    .slice(0, 5);
   return { results: [], suggestions };
 }
 

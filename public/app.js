@@ -573,21 +573,25 @@ const HomePage = {
       }
 
       this.searchCount.textContent = I18n.t('common.found', { count: results.length });
-      const suggestionsBox = document.getElementById('searchSuggestions');
+      const sugBox = document.getElementById('searchSuggestions');
+
       if (results.length === 0) {
         this.searchGrid.innerHTML = '';
-        if (suggestions && suggestions.length) {
-          suggestionsBox.innerHTML = `<div class='suggestions-box'><div style='font-weight:600;margin-bottom:0.5rem;'>Suggestions:</div>` +
-            suggestions.map(title => `<div class='suggestion-item'>${Utils.escapeHtml(title)}</div>`).join('') + '</div>';
-          suggestionsBox.style.display = 'block';
-        } else {
-          suggestionsBox.style.display = 'none';
+        if (suggestions.length > 0 && sugBox) {
+          sugBox.innerHTML =
+            `<p class="suggestions-title">Did you mean:</p>` +
+            suggestions.map(s =>
+              `<a href="/song/${Utils.escapeHtml(s.slug)}" class="suggestion-chip">${Utils.escapeHtml(s.title)}</a>`
+            ).join('');
+          sugBox.style.display = 'block';
+        } else if (sugBox) {
+          sugBox.style.display = 'none';
         }
         UI.showEmptyState(true);
         return;
-      } else {
-        suggestionsBox.style.display = 'none';
       }
+
+      if (sugBox) sugBox.style.display = 'none';
       this.searchGrid.innerHTML = results
         .map((s, i) => UI.createSongCard(s, i))
         .join('');
@@ -638,6 +642,8 @@ const HomePage = {
     if (this.searchResults) this.searchResults.style.display = 'none';
     if (this.popularSection) this.popularSection.style.display = 'block';
     if (this.allSongsSection) this.allSongsSection.style.display = 'block';
+    const sugBox = document.getElementById('searchSuggestions');
+    if (sugBox) sugBox.style.display = 'none';
     UI.showEmptyState(false);
   },
 };
