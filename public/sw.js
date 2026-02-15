@@ -3,7 +3,7 @@
 // ║       Stale-While-Revalidate · Offline-First                ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const CACHE_VERSION = 'ml-v1';
+const CACHE_VERSION = 'ml-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -123,7 +123,7 @@ async function networkFirstWithCache(request, cacheName, maxAge) {
         { status: 503, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    return caches.match('/404.html');
+    return (await caches.match('/404.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
   }
 }
 
@@ -142,7 +142,7 @@ async function cacheFirstWithNetwork(request, cacheName) {
     }
     return response;
   } catch {
-    return caches.match('/404.html');
+    return (await caches.match('/404.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
   }
 }
 
@@ -160,7 +160,7 @@ async function staleWhileRevalidate(request, cacheName) {
     return response;
   }).catch(() => null);
 
-  return cached || (await fetchPromise) || caches.match('/404.html');
+  return cached || (await fetchPromise) || (await caches.match('/404.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
 }
 
 /**
@@ -187,7 +187,7 @@ async function serveSpaShell(pathname) {
     }
     return response;
   } catch {
-    return caches.match('/404.html') || new Response('Offline', { status: 503 });
+    return (await caches.match('/404.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
   }
 }
 
