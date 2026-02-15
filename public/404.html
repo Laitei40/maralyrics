@@ -141,6 +141,7 @@
   <script>
     I18n.init();
     Theme.init();
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
 
     // Settings panel toggle
     const togBtn = document.querySelector('.settings-toggle__btn');

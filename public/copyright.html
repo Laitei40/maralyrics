@@ -194,6 +194,7 @@
   <script src="/theme.js"></script>
   <script>
     I18n.init(); Theme.init();
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
     (function() {
       const togBtn = document.querySelector('.settings-toggle__btn');
       const togWrap = document.querySelector('.settings-toggle');

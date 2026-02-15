@@ -271,6 +271,7 @@ const UI = {
   /** Create a song card HTML string. */
   createSongCard(song, index = 0) {
     const delay = Math.min(index * 60, 600);
+    const isCached = Cache.getCachedSong(song.slug) !== null;
     return `
       <a href="/song/${Utils.escapeHtml(song.slug)}"
          class="song-card stagger-enter"
@@ -280,7 +281,7 @@ const UI = {
         <p class="song-card__artist">${Utils.escapeHtml(song.artist_name || song.artist || I18n.t('common.unknown_artist'))}</p>
         <div class="song-card__meta">
           ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
-          <span class="song-card__views">👁 ${Utils.formatViews(song.views)}</span>
+          <span class="song-card__views">${isCached ? '📌 ' : ''}👁 ${Utils.formatViews(song.views)}</span>
         </div>
       </a>`;
   },
@@ -1156,14 +1157,60 @@ const CopyrightOwnerPage = {
   },
 };
 
+// ─── Service Worker Registration ───────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    // Prefetch page shells and API data in background
+    if (reg.active) {
+      reg.active.postMessage({ type: 'PRECACHE_PAGES' });
+      reg.active.postMessage({ type: 'PRECACHE_API', apiBase: CONFIG.API_BASE });
+    }
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'activated') {
+          newWorker.postMessage({ type: 'PRECACHE_PAGES' });
+          newWorker.postMessage({ type: 'PRECACHE_API', apiBase: CONFIG.API_BASE });
+          // Notify user of update if not first install
+          if (navigator.serviceWorker.controller) {
+            showToast('✓ Content updated', 2500);
+          }
+        }
+      });
+    });
+  }).catch(() => {});
+}
+
 // ─── Offline Detection ─────────────────────────────────────────
+function showToast(message, duration = 3000) {
+  let toast = document.getElementById('mlToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'mlToast';
+    toast.className = 'ml-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('visible');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('visible'), duration);
+}
+
 function initOfflineDetection() {
+  let wasOffline = !Utils.isOnline();
+
   window.addEventListener('online', () => {
     UI.setOfflineMode(false);
+    if (wasOffline) {
+      showToast('✓ Back online');
+      wasOffline = false;
+    }
   });
 
   window.addEventListener('offline', () => {
     UI.setOfflineMode(true);
+    wasOffline = true;
+    showToast('⚡ You are offline — cached content available', 4000);
   });
 
   // Initial check
