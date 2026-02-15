@@ -207,6 +207,113 @@ const Cache = {
   },
 };
 
+// ─── Search History Module ─────────────────────────────────────
+const SearchHistory = {
+  MAX_ITEMS: 10,
+  STORAGE_KEY: 'ml_search_history',
+
+  /** Check if preference storage is allowed. */
+  _canStore() {
+    return typeof CookieConsent === 'undefined' || CookieConsent.hasConsent();
+  },
+
+  /** Get search history array. */
+  getHistory() {
+    if (!this._canStore()) return [];
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  },
+
+  /** Add a search term to history. */
+  add(term) {
+    if (!term?.trim() || !this._canStore()) return;
+    const history = this.getHistory();
+    const normalized = term.trim();
+    const filtered = history.filter(h => h.toLowerCase() !== normalized.toLowerCase());
+    filtered.unshift(normalized);
+    if (filtered.length > this.MAX_ITEMS) filtered.length = this.MAX_ITEMS;
+    try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered)); } catch {}
+  },
+
+  /** Remove a specific term. */
+  remove(term) {
+    const history = this.getHistory();
+    const filtered = history.filter(h => h !== term);
+    try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered)); } catch {}
+  },
+
+  /** Clear all history. */
+  clear() {
+    try { localStorage.removeItem(this.STORAGE_KEY); } catch {}
+  },
+
+  /** Create and show the dropdown under the input. */
+  show(input) {
+    const history = this.getHistory();
+    if (history.length === 0) { this.hide(); return; }
+
+    let dropdown = document.getElementById('searchHistory');
+    if (!dropdown) {
+      dropdown = document.createElement('div');
+      dropdown.id = 'searchHistory';
+      dropdown.className = 'search-history';
+      input.parentElement.appendChild(dropdown);
+    }
+
+    const clockSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+
+    dropdown.innerHTML = `
+      <div class="search-history__header">
+        <span class="search-history__label">Recent</span>
+        <button class="search-history__clear-all">Clear all</button>
+      </div>
+      <div class="search-history__list">
+        ${history.map(term => `
+          <button class="search-history__item" data-term="${Utils.escapeHtml(term)}">
+            <span class="search-history__item-icon">${clockSvg}</span>
+            <span class="search-history__item-text">${Utils.escapeHtml(term)}</span>
+            <span class="search-history__item-remove" title="Remove">✕</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    // Bind events
+    dropdown.querySelector('.search-history__clear-all').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.clear();
+      this.hide();
+    });
+
+    dropdown.querySelectorAll('.search-history__item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.search-history__item-remove')) {
+          e.stopPropagation();
+          this.remove(item.dataset.term);
+          this.show(input);
+          return;
+        }
+        input.value = item.dataset.term;
+        this.hide();
+        // Trigger search
+        if (typeof HomePage !== 'undefined') {
+          HomePage.handleSearch(item.dataset.term);
+        }
+      });
+    });
+
+    dropdown.classList.add('visible');
+  },
+
+  /** Hide the dropdown. */
+  hide() {
+    const dropdown = document.getElementById('searchHistory');
+    if (dropdown) dropdown.classList.remove('visible');
+  },
+};
+
 // ─── API Module ────────────────────────────────────────────────
 const API = {
   /** Generic JSON fetch with error handling. */
@@ -388,7 +495,26 @@ const HomePage = {
       );
       this.searchInput.addEventListener('input', (e) => {
         this.searchClear.classList.toggle('visible', e.target.value.length > 0);
+        if (!e.target.value.trim()) {
+          SearchHistory.show(this.searchInput);
+        } else {
+          SearchHistory.hide();
+        }
         debouncedSearch(e);
+      });
+
+      // Show search history on focus when input is empty
+      this.searchInput.addEventListener('focus', () => {
+        if (!this.searchInput.value.trim()) {
+          SearchHistory.show(this.searchInput);
+        }
+      });
+
+      // Hide search history on click outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search') && !e.target.closest('.search-history')) {
+          SearchHistory.hide();
+        }
       });
     }
 
@@ -558,6 +684,7 @@ const HomePage = {
     this.popularSection.style.display = 'none';
     this.allSongsSection.style.display = 'none';
     UI.showEmptyState(false);
+    SearchHistory.hide();
 
     this.searchGrid.innerHTML = UI.createSkeletons(3);
 
@@ -573,6 +700,9 @@ const HomePage = {
         results = this._offlineSearch(q);
         UI.setOfflineMode(true);
       }
+
+      // Save to search history
+      SearchHistory.add(q);
 
       this.searchCount.textContent = I18n.t('common.found', { count: results.length });
       const sugBox = document.getElementById('searchSuggestions');
@@ -646,6 +776,7 @@ const HomePage = {
     if (this.allSongsSection) this.allSongsSection.style.display = 'block';
     const sugBox = document.getElementById('searchSuggestions');
     if (sugBox) sugBox.style.display = 'none';
+    SearchHistory.hide();
     UI.showEmptyState(false);
   },
 };
@@ -1221,6 +1352,9 @@ function initOfflineDetection() {
 
 // ─── App Initialization ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize cookie consent
+  if (typeof CookieConsent !== 'undefined') CookieConsent.init();
+
   // Initialize i18n first
   await I18n.init();
 

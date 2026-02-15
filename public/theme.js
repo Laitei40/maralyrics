@@ -66,7 +66,10 @@ const Theme = (() => {
   function setMode(mode) {
     if (!MODES.includes(mode)) mode = DEFAULT_MODE;
     currentMode = mode;
-    localStorage.setItem(STORAGE_KEY, mode);
+    // Only persist if user has accepted cookies
+    if (typeof CookieConsent === 'undefined' || CookieConsent.hasConsent()) {
+      localStorage.setItem(STORAGE_KEY, mode);
+    }
     applyTheme();
   }
 

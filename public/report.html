@@ -196,12 +196,14 @@
   <div id="offlineBadge" class="offline-badge">
     <span>⚡</span> <span data-i18n="offline.badge">Offline Mode</span>
   </div>
+  <script src="/consent.js"></script>
   <!-- i18n -->
   <script src="/i18n.js"></script>
   <!-- Theme -->
   <script src="/theme.js"></script>
   <script>
-    // Initialize i18n and theme
+    // Initialize consent, i18n, and theme
+    CookieConsent.init();
     I18n.init();
     Theme.init();
     if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});

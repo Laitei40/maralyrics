@@ -106,7 +106,10 @@ const I18n = (() => {
     }
 
     currentLang = lang;
-    localStorage.setItem(STORAGE_KEY, lang);
+    // Only persist if user has accepted cookies
+    if (typeof CookieConsent === 'undefined' || CookieConsent.hasConsent()) {
+      localStorage.setItem(STORAGE_KEY, lang);
+    }
 
     // Load requested language
     const data = await loadTranslations(lang);

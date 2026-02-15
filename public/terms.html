@@ -208,10 +208,11 @@
     </div>
   </footer>
 
+  <script src="/consent.js"></script>
   <script src="/i18n.js"></script>
   <script src="/theme.js"></script>
   <script>
-    I18n.init(); Theme.init();
+    CookieConsent.init(); I18n.init(); Theme.init();
     if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
     (function() {
       const togBtn = document.querySelector('.settings-toggle__btn');

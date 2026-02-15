@@ -13,6 +13,7 @@ const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/style.css',
+  '/consent.js',
   '/app.js',
   '/i18n.js',
   '/theme.js',
