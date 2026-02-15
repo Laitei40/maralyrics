@@ -7,7 +7,8 @@
 
 // ─── Configuration ─────────────────────────────────────────────
 const WORKER_ORIGIN = 'https://maralyrics.teiteipara.workers.dev';
-const API_ORIGIN = window.location.hostname.endsWith('pages.dev') ? WORKER_ORIGIN : '';
+const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
+const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
 const CONFIG = {
   API_BASE: `${API_ORIGIN}/api`,
   CACHE_PREFIX: 'ml_',
