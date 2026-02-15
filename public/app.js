@@ -71,7 +71,7 @@ const Utils = {
       const href = `/${type}/${this.escapeHtml(slug)}`;
       return `<a href="${href}" class="meta-link">${this.escapeHtml(name)}</a>`;
     }
-    return `<span class="meta-link meta-link--disabled">${this.escapeHtml(name || 'Unknown')}</span>`;
+    return `<span class="meta-link meta-link--disabled">${this.escapeHtml(name || I18n.t('common.unknown'))}</span>`;
   },
 
   /** Detect social platform from URL and return name + SVG icon. */
@@ -88,7 +88,7 @@ const Utils = {
     for (const p of platforms) {
       if (p.pattern.test(url)) return p;
     }
-    return { name: 'Website', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>' };
+    return { name: I18n.t('common.website'), icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>' };
   },
 };
 
@@ -270,7 +270,7 @@ const UI = {
          style="animation-delay:${delay}ms"
          data-slug="${Utils.escapeHtml(song.slug)}">
         <h3 class="song-card__title">${Utils.escapeHtml(song.title)}</h3>
-        <p class="song-card__artist">${Utils.escapeHtml(song.artist_name || song.artist || 'Unknown Artist')}</p>
+        <p class="song-card__artist">${Utils.escapeHtml(song.artist_name || song.artist || I18n.t('common.unknown_artist'))}</p>
         <div class="song-card__meta">
           ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
           <span class="song-card__views">👁 ${Utils.formatViews(song.views)}</span>
@@ -300,7 +300,7 @@ const UI = {
     let html = '';
 
     // Previous button
-    html += `<button class="pagination__btn" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">← Prev</button>`;
+    html += `<button class="pagination__btn" ${page <= 1 ? 'disabled' : ''} data-page="${page - 1}">${I18n.t('common.prev')}</button>`;
 
     // Page numbers
     const range = 2;
@@ -322,7 +322,7 @@ const UI = {
     }
 
     // Next button
-    html += `<button class="pagination__btn" ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">Next →</button>`;
+    html += `<button class="pagination__btn" ${page >= totalPages ? 'disabled' : ''} data-page="${page + 1}">${I18n.t('common.next')}</button>`;
 
     return html;
   },
@@ -431,7 +431,7 @@ const HomePage = {
         data = { categories: Cache.get('categories') || [] };
       }
 
-      const allBtn = `<button class="category-btn active" data-category="">All</button>`;
+      const allBtn = `<button class="category-btn active" data-category="">${I18n.t('common.all')}</button>`;
       const catBtns = data.categories
         .map((c) => `<button class="category-btn" data-category="${Utils.escapeHtml(c)}">${Utils.escapeHtml(c)}</button>`)
         .join('');
@@ -565,7 +565,7 @@ const HomePage = {
         UI.setOfflineMode(true);
       }
 
-      this.searchCount.textContent = `(${results.length} found)`;
+      this.searchCount.textContent = I18n.t('common.found', { count: results.length });
 
       if (results.length === 0) {
         this.searchGrid.innerHTML = '';
@@ -581,13 +581,13 @@ const HomePage = {
       const cached = Cache.get('search_' + q.toLowerCase());
       if (cached?.length) {
         this.searchGrid.innerHTML = cached.map((s, i) => UI.createSongCard(s, i)).join('');
-        this.searchCount.textContent = `(${cached.length} cached)`;
+        this.searchCount.textContent = I18n.t('common.cached', { count: cached.length });
         UI.setOfflineMode(true);
       } else {
         const offline = this._offlineSearch(q);
         if (offline.length) {
           this.searchGrid.innerHTML = offline.map((s, i) => UI.createSongCard(s, i)).join('');
-          this.searchCount.textContent = `(${offline.length} cached)`;
+          this.searchCount.textContent = I18n.t('common.cached', { count: offline.length });
         } else {
           this.searchGrid.innerHTML = '';
           UI.showEmptyState(true);
@@ -692,7 +692,7 @@ const SongPage = {
     if (artistEl) artistEl.innerHTML = Utils.renderNameLink(song.artist_name || song.artist, song.artist_slug, 'artist');
     const composerEl = document.getElementById('songComposer');
     if (composerEl) composerEl.innerHTML = Utils.renderNameLink(song.composer_name || song.composer, song.composer_slug, 'composer');
-    if (categoryEl) categoryEl.textContent = song.category || 'Uncategorized';
+    if (categoryEl) categoryEl.textContent = song.category || I18n.t('common.uncategorized');
     if (viewsEl) viewsEl.textContent = Utils.formatViews(song.views);
 
     // Update breadcrumb
@@ -956,7 +956,10 @@ function initOfflineDetection() {
 }
 
 // ─── App Initialization ────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize i18n first
+  await I18n.init();
+
   initOfflineDetection();
 
   // Detect which page we're on

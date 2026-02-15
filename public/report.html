@@ -32,8 +32,13 @@
         MaraLyrics
       </a>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link">Home</a>
-        <a href="/#popular" class="header__nav-link">Popular</a>
+        <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+        <div class="lang-switcher">
+          <button class="lang-switcher__btn active" data-lang="en">EN</button>
+          <button class="lang-switcher__btn" data-lang="mra">Mara</button>
+          <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+        </div>
       </nav>
     </div>
   </header>
@@ -45,7 +50,7 @@
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/" class="breadcrumb__link">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current">Feedback</span>
+      <span class="breadcrumb__current" data-i18n="feedback.title">Feedback</span>
     </nav>
 
     <div class="report-page__card">
@@ -54,13 +59,13 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;color:var(--accent);">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
         </svg>
-        Feedback
+        <span data-i18n="feedback.title">Feedback</span>
       </h1>
-      <p class="report-page__subtitle">Have feedback about this song? Let us know and we'll look into it.</p>
+      <p class="report-page__subtitle" data-i18n="feedback.subtitle">Have feedback about this song? Let us know and we'll look into it.</p>
 
       <!-- Song Info (auto-populated from URL params) -->
       <div class="report-page__song-info" id="songInfo" style="display:none;">
-        <div class="report-page__song-label">Feedback about:</div>
+        <div class="report-page__song-label" data-i18n="feedback.about_label">Feedback about:</div>
         <div class="report-page__song-detail">
           <span class="report-page__song-icon">🎵</span>
           <div>
@@ -75,18 +80,18 @@
         <input type="hidden" id="reportSongSlug" />
 
         <div class="form-group">
-          <label class="form-label" for="reporterName">Your Name <span class="form-required">*</span></label>
-          <input type="text" id="reporterName" class="form-input" placeholder="Enter your name" required />
+          <label class="form-label" for="reporterName" data-i18n="feedback.name_label">Your Name <span class="form-required">*</span></label>
+          <input type="text" id="reporterName" class="form-input" placeholder="Enter your name" data-i18n-placeholder="feedback.name_placeholder" required />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="reporterEmail">Your Email <span class="form-required">*</span></label>
-          <input type="email" id="reporterEmail" class="form-input" placeholder="you@example.com" required />
+          <label class="form-label" for="reporterEmail" data-i18n="feedback.email_label">Your Email <span class="form-required">*</span></label>
+          <input type="email" id="reporterEmail" class="form-input" placeholder="you@example.com" data-i18n-placeholder="feedback.email_placeholder" required />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="reportBody">Your Feedback <span class="form-required">*</span></label>
-          <textarea id="reportBody" class="form-input form-textarea" rows="6" placeholder="Tell us what you think — corrections, suggestions, or anything else about this song." required></textarea>
+          <label class="form-label" for="reportBody" data-i18n="feedback.body_label">Your Feedback <span class="form-required">*</span></label>
+          <textarea id="reportBody" class="form-input form-textarea" rows="6" placeholder="Tell us what you think — corrections, suggestions, or anything else about this song." data-i18n-placeholder="feedback.body_placeholder" required></textarea>
         </div>
 
         <div id="reportMessage" class="report-page__message" style="display:none;"></div>
@@ -101,9 +106,9 @@
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>
             </span>
-            <span class="btn-send-feedback__text">Send Feedback</span>
+            <span class="btn-send-feedback__text" data-i18n="feedback.submit_btn">Send Feedback</span>
           </button>
-          <a href="/" class="btn btn--ghost" id="btnBackHome">← Back</a>
+          <a href="/" class="btn btn--ghost" id="btnBackHome" data-i18n="feedback.back_btn">← Back</a>
         </div>
       </form>
 
@@ -112,9 +117,9 @@
     <!-- Success State (hidden by default) -->
     <div id="reportSuccess" class="report-page__card report-page__success" style="display:none;">
       <div class="report-page__success-icon">✅</div>
-      <h2 class="report-page__success-title">Feedback Sent!</h2>
-      <p class="report-page__success-text">Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.</p>
-      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);">← Back to Home</a>
+      <h2 class="report-page__success-title" data-i18n="feedback.success_title">Feedback Sent!</h2>
+      <p class="report-page__success-text" data-i18n="feedback.success_text">Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.</p>
+      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);" data-i18n="feedback.success_back_home">← Back to Home</a>
     </div>
 
   </main>
@@ -122,17 +127,17 @@
   <!-- ═══ Footer ═══ -->
   <footer class="footer">
     <div class="container">
-      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
-      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+      <p data-i18n="footer.made_with">Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);" data-i18n="footer.copyright">&copy; 2026 MaraLyrics</p>
     </div>
   </footer>
 
   <!-- Offline Badge -->
   <div id="offlineBadge" class="offline-badge">
-    <span>⚡</span> Offline Mode
+    <span>⚡</span> <span data-i18n="offline.badge">Offline Mode</span>
   </div>
-
-  <script>
+  <!-- i18n -->
+  <script src="/i18n.js"></script>  <script>
     // ─── Report Page Logic ──────────────────────────
     (function () {
       const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost'))
@@ -157,7 +162,7 @@
       // Set back button to song page if came from one
       if (songSlug) {
         document.getElementById('btnBackHome').href = '/song/' + songSlug;
-        document.getElementById('btnBackHome').textContent = '← Back to Song';
+        document.getElementById('btnBackHome').textContent = I18n.t('feedback.back_to_song');
       }
 
       // Form submission
@@ -170,7 +175,7 @@
         const msgEl = document.getElementById('reportMessage');
 
         if (!name || !email || !body) {
-          msgEl.textContent = 'Please fill in all fields.';
+          msgEl.textContent = I18n.t('feedback.err_fill_all');
           msgEl.className = 'report-page__message report-page__message--error';
           msgEl.style.display = 'block';
           return;
@@ -178,12 +183,12 @@
 
         const btn = document.getElementById('btnSubmitReport');
         btn.disabled = true;
-        btn.textContent = 'Sending...';
+        btn.textContent = I18n.t('feedback.sending');
 
         // Get Turnstile token
         const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
         if (!turnstileToken) {
-          msgEl.textContent = 'Please complete the verification challenge.';
+          msgEl.textContent = I18n.t('feedback.err_turnstile');
           msgEl.className = 'report-page__message report-page__message--error';
           msgEl.style.display = 'block';
           btn.disabled = false;
@@ -208,7 +213,7 @@
 
           if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || 'Failed to send report');
+            throw new Error(err.error || I18n.t('feedback.err_send_failed'));
           }
 
           // Show success state
@@ -218,11 +223,11 @@
           // Also update back link in success
           if (songSlug) {
             document.querySelector('#reportSuccess .btn').href = '/song/' + songSlug;
-            document.querySelector('#reportSuccess .btn').textContent = '← Back to Song';
+            document.querySelector('#reportSuccess .btn').textContent = I18n.t('feedback.back_to_song');
           }
 
         } catch (err) {
-          msgEl.textContent = err.message || 'Something went wrong. Please try again.';
+          msgEl.textContent = err.message || I18n.t('feedback.err_generic');
           msgEl.className = 'report-page__message report-page__message--error';
           msgEl.style.display = 'block';
         } finally {

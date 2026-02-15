@@ -45,8 +45,13 @@
         MaraLyrics
       </a>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link">Home</a>
-        <a href="/#popular" class="header__nav-link">Popular</a>
+        <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+        <div class="lang-switcher">
+          <button class="lang-switcher__btn active" data-lang="en">EN</button>
+          <button class="lang-switcher__btn" data-lang="mra">Mara</button>
+          <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+        </div>
       </nav>
     </div>
   </header>
@@ -56,9 +61,9 @@
 
     <!-- Back Link -->
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/" class="breadcrumb__link">Home</a>
+      <a href="/" class="breadcrumb__link" data-i18n="breadcrumb.home">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current" id="breadcrumbTitle">Song</span>
+      <span class="breadcrumb__current" id="breadcrumbTitle" data-i18n="song.breadcrumb">Song</span>
     </nav>
 
     <!-- Loading Skeleton -->
@@ -123,7 +128,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
-            Feedback
+            <span data-i18n="song.feedback_btn">Feedback</span>
           </a>
         </div>
 
@@ -134,9 +139,9 @@
     <!-- Error State -->
     <div id="songError" class="empty-state" style="display:none;">
       <div class="empty-state__icon">😔</div>
-      <h3 class="empty-state__title">Song not found</h3>
-      <p class="empty-state__text">This song may have been removed or the link is incorrect.</p>
-      <a href="/" style="display:inline-block;margin-top:var(--space-lg);padding:var(--space-sm) var(--space-lg);background:var(--accent);color:#fff;border-radius:var(--radius-md);font-weight:600;">
+      <h3 class="empty-state__title" data-i18n="song.error_title">Song not found</h3>
+      <p class="empty-state__text" data-i18n="song.error_text">This song may have been removed or the link is incorrect.</p>
+      <a href="/" style="display:inline-block;margin-top:var(--space-lg);padding:var(--space-sm) var(--space-lg);background:var(--accent);color:#fff;border-radius:var(--radius-md);font-weight:600;" data-i18n="song.error_go_home">
         ← Go Home
       </a>
     </div>
@@ -146,16 +151,18 @@
   <!-- ═══ Footer ═══ -->
   <footer class="footer">
     <div class="container">
-      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
-      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+      <p data-i18n="footer.made_with">Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);" data-i18n="footer.copyright">&copy; 2026 MaraLyrics</p>
     </div>
   </footer>
 
   <!-- Offline Badge -->
   <div id="offlineBadge" class="offline-badge">
-    <span>⚡</span> Offline Mode
+    <span>⚡</span> <span data-i18n="offline.badge">Offline Mode</span>
   </div>
 
+  <!-- i18n -->
+  <script src="/i18n.js"></script>
   <!-- App Script -->
   <script src="/app.js"></script>
 </body>

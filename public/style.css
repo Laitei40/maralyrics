@@ -196,6 +196,40 @@ body::before {
   background: var(--bg-glass);
 }
 
+/* Language Switcher */
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: var(--space-sm);
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+}
+.lang-switcher__btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+.lang-switcher__btn:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+}
+.lang-switcher__btn.active {
+  color: var(--text-primary);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
 /* ─── Hero Section ──────────────────────────────────────────── */
 .hero {
   padding: var(--space-3xl) 0 var(--space-2xl);
@@ -1187,6 +1221,15 @@ body::before {
   .header__nav-link {
     font-size: var(--text-xs);
     padding: var(--space-xs);
+  }
+
+  .lang-switcher {
+    gap: 1px;
+    margin-left: var(--space-xs);
+  }
+  .lang-switcher__btn {
+    font-size: 10px;
+    padding: 3px 6px;
   }
 
   .profile-page__header {

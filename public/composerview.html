@@ -44,8 +44,13 @@
         MaraLyrics
       </a>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link">Home</a>
-        <a href="/#popular" class="header__nav-link">Popular</a>
+        <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+        <div class="lang-switcher">
+          <button class="lang-switcher__btn active" data-lang="en">EN</button>
+          <button class="lang-switcher__btn" data-lang="mra">Mara</button>
+          <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+        </div>
       </nav>
     </div>
   </header>
@@ -55,9 +60,9 @@
 
     <!-- Breadcrumb -->
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/" class="breadcrumb__link">Home</a>
+      <a href="/" class="breadcrumb__link" data-i18n="breadcrumb.home">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current" id="breadcrumbName">Composer</span>
+      <span class="breadcrumb__current" id="breadcrumbName" data-i18n="composer.breadcrumb">Composer</span>
     </nav>
 
     <!-- Loading Skeleton -->
@@ -84,7 +89,7 @@
         </div>
         <div class="profile-page__info">
           <h1 class="profile-page__name" id="profileName"></h1>
-          <span class="profile-page__role">Composer</span>
+          <span class="profile-page__role" data-i18n="composer.role">Composer</span>
           <p class="profile-page__bio" id="profileBio"></p>
           <div class="profile-page__social" id="profileSocial" style="display:none;"></div>
         </div>
@@ -93,13 +98,13 @@
       <!-- Song List -->
       <section class="profile-page__songs">
         <h2 class="profile-page__section-title">
-          Songs by this Composer
+          <span data-i18n="composer.songs_title">Songs by this Composer</span>
           <span class="profile-page__song-count" id="songCount"></span>
         </h2>
         <div class="song-grid" id="profileSongGrid"></div>
         <div id="profileEmpty" class="empty-state" style="display:none;">
           <div class="empty-state__icon">🎵</div>
-          <p class="empty-state__text">No songs found for this composer.</p>
+          <p class="empty-state__text" data-i18n="composer.no_songs">No songs found for this composer.</p>
         </div>
       </section>
 
@@ -108,9 +113,9 @@
     <!-- Error State -->
     <div id="profileError" class="empty-state" style="display:none;">
       <div class="empty-state__icon">😔</div>
-      <h3 class="empty-state__title">Composer not found</h3>
-      <p class="empty-state__text">This composer may have been removed or the link is incorrect.</p>
-      <a href="/" style="display:inline-block;margin-top:var(--space-lg);padding:var(--space-sm) var(--space-lg);background:var(--accent);color:#fff;border-radius:var(--radius-md);font-weight:600;">
+      <h3 class="empty-state__title" data-i18n="composer.error_title">Composer not found</h3>
+      <p class="empty-state__text" data-i18n="composer.error_text">This composer may have been removed or the link is incorrect.</p>
+      <a href="/" style="display:inline-block;margin-top:var(--space-lg);padding:var(--space-sm) var(--space-lg);background:var(--accent);color:#fff;border-radius:var(--radius-md);font-weight:600;" data-i18n="composer.error_go_home">
         ← Go Home
       </a>
     </div>
@@ -120,16 +125,18 @@
   <!-- ═══ Footer ═══ -->
   <footer class="footer">
     <div class="container">
-      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
-      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+      <p data-i18n="footer.made_with">Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);" data-i18n="footer.copyright">&copy; 2026 MaraLyrics</p>
     </div>
   </footer>
 
   <!-- Offline Badge -->
   <div id="offlineBadge" class="offline-badge">
-    <span>⚡</span> Offline Mode
+    <span>⚡</span> <span data-i18n="offline.badge">Offline Mode</span>
   </div>
 
+  <!-- i18n -->
+  <script src="/i18n.js"></script>
   <!-- App Script -->
   <script src="/app.js"></script>
 </body>

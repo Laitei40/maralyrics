@@ -28,7 +28,12 @@
         MaraLyrics
       </a>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link">Home</a>
+        <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
+        <div class="lang-switcher">
+          <button class="lang-switcher__btn active" data-lang="en">EN</button>
+          <button class="lang-switcher__btn" data-lang="mra">Mara</button>
+          <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+        </div>
       </nav>
     </div>
   </header>
@@ -37,17 +42,17 @@
   <main class="container">
     <section class="error-page fade-in">
       <div class="error-page__glow"></div>
-      <div class="error-page__code">404</div>
-      <h1 class="error-page__title">Page Not Found</h1>
+      <div class="error-page__code" data-i18n="error_page.code">404</div>
+      <h1 class="error-page__title" data-i18n="error_page.title">Page Not Found</h1>
       <p class="error-page__text">
-        The page you're looking for doesn't exist or has been moved.
-        <br />Let's get you back to the music.
+        <span data-i18n="error_page.text_line1">The page you're looking for doesn't exist or has been moved.</span>
+        <br /><span data-i18n="error_page.text_line2">Let's get you back to the music.</span>
       </p>
       <div class="error-page__actions">
-        <a href="/" class="error-page__btn error-page__btn--primary">
+        <a href="/" class="error-page__btn error-page__btn--primary" data-i18n="error_page.back_home">
           ← Back to Home
         </a>
-        <button onclick="history.back()" class="error-page__btn error-page__btn--ghost">
+        <button onclick="history.back()" class="error-page__btn error-page__btn--ghost" data-i18n="error_page.go_back">
           Go Back
         </button>
       </div>
@@ -64,10 +69,13 @@
   <!-- ═══ Footer ═══ -->
   <footer class="footer">
     <div class="container">
-      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
-      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+      <p data-i18n="footer.made_with">Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);" data-i18n="footer.copyright">&copy; 2026 MaraLyrics</p>
     </div>
   </footer>
 
+  <!-- i18n -->
+  <script src="/i18n.js"></script>
+  <script>I18n.init();</script>
 </body>
 </html>

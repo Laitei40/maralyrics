@@ -1,0 +1,94 @@
+{
+  "nav": {
+    "home": "Hmasa",
+    "popular": "Hminthang"
+  },
+  "footer": {
+    "made_with": "Mara aw chung ding ah <span class=\"footer__heart\">♥</span> in siah",
+    "copyright": "© 2026 MaraLyrics"
+  },
+  "offline": {
+    "badge": "Offline Mode"
+  },
+  "breadcrumb": {
+    "home": "Hmasa"
+  },
+  "home": {
+    "hero_title": "Mara Hla Caka",
+    "hero_subtitle": "Mara aw chung hla caka lem nawh thleng rawh",
+    "search_placeholder": "Hla hming a sila hrawh thla...",
+    "search_results": "Hrawh Thla Hmu",
+    "popular_songs": "Hminthang Hla",
+    "all_songs": "Hla Vaih Taih",
+    "no_songs_title": "Hla a awm lo",
+    "no_songs_text": "A dang cha in hrawh thla rawh a sie ah chhana hrawh rawh."
+  },
+  "song": {
+    "breadcrumb": "Hla",
+    "feedback_btn": "Thuthang",
+    "error_title": "Hla a awm lo",
+    "error_text": "Hi hla hi thla a ni lo thei a sie ah link a dik lo.",
+    "error_go_home": "← Hmasa ah kir"
+  },
+  "artist": {
+    "breadcrumb": "Sa Tu",
+    "role": "Sa Tu",
+    "songs_title": "Hi Sa Tu Hla",
+    "no_songs": "Hi sa tu hla a awm lo.",
+    "error_title": "Sa tu a awm lo",
+    "error_text": "Hi sa tu hi thla a ni lo thei a sie ah link a dik lo.",
+    "error_go_home": "← Hmasa ah kir"
+  },
+  "composer": {
+    "breadcrumb": "Phuah Tu",
+    "role": "Phuah Tu",
+    "songs_title": "Hi Phuah Tu Hla",
+    "no_songs": "Hi phuah tu hla a awm lo.",
+    "error_title": "Phuah tu a awm lo",
+    "error_text": "Hi phuah tu hi thla a ni lo thei a sie ah link a dik lo.",
+    "error_go_home": "← Hmasa ah kir"
+  },
+  "feedback": {
+    "title": "Thuthang",
+    "subtitle": "Hi hla chung ah thuthang i nei em? Kan theih tir rawh.",
+    "about_label": "Thuthang hi a chungin:",
+    "name_label": "I Hming",
+    "name_placeholder": "I hming dah rawh",
+    "email_label": "I Email",
+    "email_placeholder": "you@example.com",
+    "body_label": "I Thuthang",
+    "body_placeholder": "I rilru thu — a dik na, ngaih dan, a dang dang.",
+    "submit_btn": "Thuthang Thawn",
+    "back_btn": "← Kir",
+    "back_to_song": "← Hla ah kir",
+    "sending": "A thawn mek...",
+    "success_title": "Thuthang a thawn zo!",
+    "success_text": "MaraLyrics tha thleng ding in kan lawm e. I thuthang kan en ang.",
+    "success_back_home": "← Hmasa ah kir",
+    "err_fill_all": "Zawt dik taih a khat te hluh rawh.",
+    "err_turnstile": "Verification challenge khu zawh rawh.",
+    "err_send_failed": "Thawn a hlawh thlak lo",
+    "err_generic": "Thil a dik lo. Tum khat ti rawh."
+  },
+  "error_page": {
+    "code": "404",
+    "title": "Page A Awm Lo",
+    "text_line1": "I hrawh thla page hi a awm lo a sie ah a phe zo.",
+    "text_line2": "Aw chung ah kan kir ang.",
+    "back_home": "← Hmasa ah kir",
+    "go_back": "Kir"
+  },
+  "common": {
+    "all": "Vaih Taih",
+    "unknown": "A hre lo",
+    "unknown_artist": "Sa Tu A Hre Lo",
+    "uncategorized": "Chhana awm lo",
+    "loading": "A chhuak mek...",
+    "views": "en",
+    "prev": "← A hma",
+    "next": "A hnua →",
+    "found": "({count} hmu)",
+    "cached": "({count} cached)",
+    "website": "Website"
+  }
+}

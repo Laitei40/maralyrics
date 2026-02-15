@@ -54,8 +54,13 @@
         MaraLyrics
       </a>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link active">Home</a>
-        <a href="/#popular" class="header__nav-link">Popular</a>
+        <a href="/" class="header__nav-link active" data-i18n="nav.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+        <div class="lang-switcher">
+          <button class="lang-switcher__btn active" data-lang="en">EN</button>
+          <button class="lang-switcher__btn" data-lang="mra">Mara</button>
+          <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+        </div>
       </nav>
     </div>
   </header>
@@ -63,8 +68,8 @@
   <!-- ═══ Hero ═══ -->
   <section class="hero">
     <div class="container">
-      <h1 class="hero__title">Mara Song Lyrics</h1>
-      <p class="hero__subtitle">Discover and explore beautiful lyrics from the Mara community</p>
+      <h1 class="hero__title" data-i18n="home.hero_title">Mara Song Lyrics</h1>
+      <p class="hero__subtitle" data-i18n="home.hero_subtitle">Discover and explore beautiful lyrics from the Mara community</p>
 
       <!-- Search -->
       <div class="search" role="search">
@@ -74,6 +79,7 @@
           id="searchInput"
           class="search__input"
           placeholder="Search songs by title or artist..."
+          data-i18n-placeholder="home.search_placeholder"
           autocomplete="off"
           aria-label="Search songs"
         />
@@ -94,7 +100,7 @@
     <section id="searchResults" style="display:none;" class="fade-in">
       <h2 class="section-title">
         <span class="section-title__icon">🔎</span>
-        Search Results
+        <span data-i18n="home.search_results">Search Results</span>
         <span id="searchCount" style="font-weight:400;color:var(--text-muted);font-size:var(--text-sm);"></span>
       </h2>
       <div id="searchGrid" class="song-grid"></div>
@@ -104,7 +110,7 @@
     <section id="popularSection" class="fade-in">
       <h2 class="section-title" id="popular">
         <span class="section-title__icon">🔥</span>
-        Popular Songs
+        <span data-i18n="home.popular_songs">Popular Songs</span>
       </h2>
       <div id="popularGrid" class="song-grid"></div>
     </section>
@@ -113,7 +119,7 @@
     <section id="allSongsSection" class="fade-in">
       <h2 class="section-title">
         <span class="section-title__icon">🎵</span>
-        All Songs
+        <span data-i18n="home.all_songs">All Songs</span>
       </h2>
       <div id="songGrid" class="song-grid"></div>
 
@@ -124,8 +130,8 @@
     <!-- Empty State -->
     <div id="emptyState" class="empty-state" style="display:none;">
       <div class="empty-state__icon">🎵</div>
-      <h3 class="empty-state__title">No songs found</h3>
-      <p class="empty-state__text">Try a different search term or browse categories above.</p>
+      <h3 class="empty-state__title" data-i18n="home.no_songs_title">No songs found</h3>
+      <p class="empty-state__text" data-i18n="home.no_songs_text">Try a different search term or browse categories above.</p>
     </div>
 
   </main>
@@ -133,16 +139,18 @@
   <!-- ═══ Footer ═══ -->
   <footer class="footer">
     <div class="container">
-      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
-      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+      <p data-i18n="footer.made_with">Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);" data-i18n="footer.copyright">&copy; 2026 MaraLyrics</p>
     </div>
   </footer>
 
   <!-- Offline Badge -->
   <div id="offlineBadge" class="offline-badge">
-    <span>⚡</span> Offline Mode
+    <span>⚡</span> <span data-i18n="offline.badge">Offline Mode</span>
   </div>
 
+  <!-- i18n -->
+  <script src="/i18n.js"></script>
   <!-- App Script -->
   <script src="/app.js"></script>
 </body>
