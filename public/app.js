@@ -52,7 +52,7 @@ const Utils = {
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
-    const match = path.match(/\/(song|artist|composer)\/([^/]+)/);
+    const match = path.match(/\/(song|artist|composer|copyright-owner)\/([^/]+)/);
     return match ? match[2] : null;
   },
 
