@@ -367,7 +367,7 @@ export async function handleAdminDeleteComposer(id, db) {
 // ║                    Report Handlers                          ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-export async function handleCreateReport(request, db, env) {
+export async function handleCreateReport(request, db) {
   const { song_slug, song_title, song_artist, reporter_name, reporter_email, body } = await request.json();
 
   if (!reporter_name || !reporter_email || !body) {
@@ -380,37 +380,6 @@ export async function handleCreateReport(request, db, env) {
   }
 
   const result = await createReport(db, { song_slug, song_title, song_artist, reporter_name, reporter_email, body });
-
-  // ─── Email Sending (MailChannels) ───
-  try {
-    const subject = `MaraLyrics Error Report: ${song_title || song_slug || 'Unknown Song'}`;
-    const html = `
-      <h2>New Error Report</h2>
-      <p><b>Song:</b> ${song_title || 'Unknown'} (${song_slug || ''})<br>
-      <b>Artist:</b> ${song_artist || 'Unknown'}<br>
-      <b>Reporter:</b> ${reporter_name} (${reporter_email})<br>
-      <b>Description:</b><br>${body.replace(/\n/g, '<br>')}</p>
-      <hr><small>Report ID: ${result.id}</small>
-    `;
-
-    await fetch('https://api.mailchannels.net/tx/v1/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: 'info@maralyrics.com' }],
-          },
-        ],
-        from: { email: 'info@maralyrics.com', name: 'MaraLyrics Reports' },
-        reply_to: { email: reporter_email, name: reporter_name },
-        subject,
-        content: [{ type: 'text/html', value: html }],
-      }),
-    });
-  } catch (err) {
-    console.error('Email send failed:', err);
-  }
 
   return json({ success: true, id: result.id }, 201);
 }

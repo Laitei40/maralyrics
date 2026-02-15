@@ -579,3 +579,24 @@
 .social-link-row .btn--remove-social:hover {
   color: var(--danger);
 }
+
+/* ─── Reports ───────────────────────────────────────────────── */
+.admin-table__desc {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.admin__topbar-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.form-input--sm {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-xs);
+}

@@ -15,7 +15,8 @@ let allSongs = [];
 let allArtists = [];
 let allComposers = [];
 let deleteTargetId = null;
-let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer'
+let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report'
+let allReports = [];
 
 // Helpers
 function escapeHtml(str) {
@@ -95,6 +96,7 @@ function switchTab(tab) {
 
   if (tab === 'artists') loadArtists();
   if (tab === 'composers') loadComposers();
+  if (tab === 'reports') loadReports();
 }
 
 // ─── Populate Artist/Composer Dropdowns ─────────
@@ -821,6 +823,7 @@ async function deleteItem() {
     closeDeleteModal();
     if (deleteTargetType === 'song') loadSongs(currentPage);
     else if (deleteTargetType === 'artist') loadArtists();
+    else if (deleteTargetType === 'report') loadReports();
     else loadComposers();
   } catch (err) {
     alert('Delete failed: ' + err.message);
@@ -876,6 +879,9 @@ document.addEventListener('DOMContentLoaded', () => {
     searchTimer = setTimeout(() => filterSongs(e.target.value), 200);
   });
 
+  // Reports filter
+  document.getElementById('reportFilterStatus').addEventListener('change', () => renderReportsTable());
+
   // Auto-slug on title/name typing
   document.getElementById('formTitle').addEventListener('input', autoSongSlug);
   document.getElementById('formSlug').addEventListener('input', function () {
@@ -901,3 +907,85 @@ window.editSong = editSong;
 window.editPerson = editPerson;
 window.confirmDelete = confirmDelete;
 window.loadSongs = loadSongs;
+window.updateReportStatus = updateReportStatus;
+
+// ═══════════════════════════════════════════════════
+// ═══ REPORTS ══════════════════════════════════════
+// ═══════════════════════════════════════════════════
+
+async function loadReports() {
+  const tbody = document.getElementById('reportsTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" class="admin-table__empty">Loading...</td></tr>';
+
+  try {
+    const data = await apiGet(`${ADMIN_API}/reports`);
+    allReports = data.reports || [];
+    renderReportsTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderReportsTable() {
+  const tbody = document.getElementById('reportsTableBody');
+  const filterEl = document.getElementById('reportFilterStatus');
+  const statusFilter = filterEl ? filterEl.value : '';
+
+  let filtered = allReports;
+  if (statusFilter) {
+    filtered = allReports.filter(r => r.status === statusFilter);
+  }
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${statusFilter ? 'No ' + statusFilter + ' reports.' : 'No reports yet.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    const statusColors = { pending: '#f59e0b', reviewed: '#3b82f6', resolved: '#10b981', dismissed: '#6b7280' };
+    const statusColor = statusColors[r.status] || '#6b7280';
+    const bodyPreview = (r.body || '').length > 80 ? r.body.substring(0, 80) + '...' : (r.body || '');
+
+    return `
+      <tr data-id="${r.id}">
+        <td>
+          <div class="admin-table__title">${escapeHtml(r.song_title || r.song_slug || '—')}</div>
+          <div class="admin-table__slug">${escapeHtml(r.song_artist || '')}</div>
+        </td>
+        <td>
+          <div>${escapeHtml(r.reporter_name || '—')}</div>
+          <div class="admin-table__slug">${escapeHtml(r.reporter_email || '')}</div>
+        </td>
+        <td><div class="admin-table__desc" title="${escapeHtml(r.body || '')}">${escapeHtml(bodyPreview)}</div></td>
+        <td>
+          <select class="report-status-select" onchange="updateReportStatus(${r.id}, this.value)" style="background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}44;border-radius:var(--radius-md);padding:2px 8px;font-size:var(--text-xs);font-weight:600;cursor:pointer;">
+            <option value="pending" ${r.status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="reviewed" ${r.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+            <option value="resolved" ${r.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+            <option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>Dismissed</option>
+          </select>
+        </td>
+        <td>${formatDate(r.created_at)}</td>
+        <td>
+          <div class="admin-table__actions">
+            ${r.song_slug ? `<a href="../song/${escapeHtml(r.song_slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View Song">👁️</a>` : ''}
+            <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${r.id}, 'Report #${r.id}', 'report')" title="Delete">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function updateReportStatus(id, status) {
+  try {
+    await apiPut(`${ADMIN_API}/report/${id}`, { status });
+    // Update local state
+    const report = allReports.find(r => r.id === id);
+    if (report) report.status = status;
+    renderReportsTable();
+  } catch (err) {
+    alert('Failed to update status: ' + err.message);
+    loadReports();
+  }
+}

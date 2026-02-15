@@ -43,6 +43,7 @@
       <button class="admin__tab active" data-tab="songs">Songs</button>
       <button class="admin__tab" data-tab="artists">Artists</button>
       <button class="admin__tab" data-tab="composers">Composers</button>
+      <button class="admin__tab" data-tab="reports">Reports</button>
     </div>
 
     <!-- ═══ Songs Tab ═══ -->
@@ -148,6 +149,41 @@
           </thead>
           <tbody id="composersTableBody">
             <tr><td colspan="4" class="admin-table__empty">Loading composers...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Reports Tab ═══ -->
+    <div class="admin__panel" id="panelReports" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Error Reports</h1>
+        <div class="admin__topbar-actions">
+          <select id="reportFilterStatus" class="form-input form-input--sm" style="width:auto;">
+            <option value="">All Statuses</option>
+            <option value="pending" selected>Pending</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="resolved">Resolved</option>
+            <option value="dismissed">Dismissed</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="reportsTable">
+          <thead>
+            <tr>
+              <th>Song</th>
+              <th>Reporter</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTableBody">
+            <tr><td colspan="6" class="admin-table__empty">Loading reports...</td></tr>
           </tbody>
         </table>
       </div>
