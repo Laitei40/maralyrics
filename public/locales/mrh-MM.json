@@ -1,21 +1,21 @@
 {
   "nav": {
-    "home": "Home",
-    "popular": "Popular"
+    "home": "Hmiapi",
+    "popular": "Mo Hluhpazy"
   },
   "footer": {
-    "made_with": "Made with <span class=\"footer__heart\">♥</span> for the Mara community",
+    "made_with": "Marasaw châta <span class=\"footer__heart\">♥</span> ta taopa",
     "copyright": "© 2026 MaraLyrics"
   },
   "offline": {
-    "badge": "Offline Mode"
+    "badge": "Offline Dâh"
   },
   "breadcrumb": {
-    "home": "Home"
+    "home": "Hmiapi"
   },
   "home": {
-    "hero_title": "Mara Song Lyrics",
-    "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
+    "hero_title": "Mara Hlabie",
+    "hero_subtitle": "Marasawzy tawhta hlabie pha kawpazy hmô papua la tlua teh",
     "search_placeholder": "Search songs by title or artist...",
     "search_results": "Search Results",
     "popular_songs": "Popular Songs",
