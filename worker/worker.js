@@ -33,6 +33,11 @@ import {
   handleAdminCreateComposer,
   handleAdminUpdateComposer,
   handleAdminDeleteComposer,
+  // Reports
+  handleCreateReport,
+  handleGetReports,
+  handleUpdateReportStatus,
+  handleDeleteReport,
 } from './routes.js';
 
 const assetManifest = JSON.parse(manifestJSON);
@@ -208,6 +213,30 @@ export default {
       if (path.match(/^\/api\/admin\/composer\/\d+$/) && method === 'DELETE') {
         const id = path.split('/').pop();
         return await handleAdminDeleteComposer(id, env.DB);
+      }
+
+      // ─── Report API Routes ─────────────────────────────
+
+      // POST /api/report — Submit error report
+      if (path === '/api/report' && method === 'POST') {
+        return await handleCreateReport(request, env.DB);
+      }
+
+      // GET /api/admin/reports — List all reports
+      if (path === '/api/admin/reports' && method === 'GET') {
+        return await handleGetReports(env.DB);
+      }
+
+      // PUT /api/admin/report/:id — Update report status
+      if (path.match(/^\/api\/admin\/report\/\d+$/) && method === 'PUT') {
+        const id = path.split('/').pop();
+        return await handleUpdateReportStatus(id, request, env.DB);
+      }
+
+      // DELETE /api/admin/report/:id — Delete report
+      if (path.match(/^\/api\/admin\/report\/\d+$/) && method === 'DELETE') {
+        const id = path.split('/').pop();
+        return await handleDeleteReport(id, env.DB);
       }
 
       // ─── Static Files / SPA Routing ────────────────────

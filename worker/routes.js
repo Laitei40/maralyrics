@@ -30,6 +30,11 @@ import {
   createComposer,
   updateComposer,
   deleteComposer,
+  // Reports
+  createReport,
+  getReports,
+  updateReportStatus,
+  deleteReport,
 } from './db.js';
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -355,5 +360,44 @@ export async function handleAdminDeleteComposer(id, db) {
   if (!id) return badRequest('Composer ID is required');
   const deleted = await deleteComposer(db, parseInt(id, 10));
   if (!deleted) return notFound('Composer not found');
+  return json({ success: true });
+}
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║                    Report Handlers                          ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+export async function handleCreateReport(request, db) {
+  const { song_slug, song_title, song_artist, reporter_name, reporter_email, body } = await request.json();
+
+  if (!reporter_name || !reporter_email || !body) {
+    return badRequest('Name, email, and description are required.');
+  }
+
+  // Basic email validation
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reporter_email)) {
+    return badRequest('Invalid email address.');
+  }
+
+  const result = await createReport(db, { song_slug, song_title, song_artist, reporter_name, reporter_email, body });
+  return json({ success: true, id: result.id }, 201);
+}
+
+export async function handleGetReports(db) {
+  const reports = await getReports(db);
+  return json(reports);
+}
+
+export async function handleUpdateReportStatus(id, request, db) {
+  const { status } = await request.json();
+  if (!status) return badRequest('Status is required');
+  const updated = await updateReportStatus(db, parseInt(id, 10), status);
+  if (!updated) return notFound('Report not found');
+  return json({ success: true });
+}
+
+export async function handleDeleteReport(id, db) {
+  const deleted = await deleteReport(db, parseInt(id, 10));
+  if (!deleted) return notFound('Report not found');
   return json({ success: true });
 }

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report Error — MaraLyrics</title>
+
+  <meta name="description" content="Report an error in song lyrics on MaraLyrics." />
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link">Home</a>
+        <a href="/#popular" class="header__nav-link">Popular</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ Report Content ═══ -->
+  <main class="report-page container">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/" class="breadcrumb__link">Home</a>
+      <span class="breadcrumb__sep">›</span>
+      <span class="breadcrumb__current">Report Error</span>
+    </nav>
+
+    <div class="report-page__card">
+
+      <h1 class="report-page__title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;color:var(--accent);">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Report an Error
+      </h1>
+      <p class="report-page__subtitle">Found a mistake in the lyrics? Let us know and we'll fix it.</p>
+
+      <!-- Song Info (auto-populated from URL params) -->
+      <div class="report-page__song-info" id="songInfo" style="display:none;">
+        <div class="report-page__song-label">Reporting about:</div>
+        <div class="report-page__song-detail">
+          <span class="report-page__song-icon">🎵</span>
+          <div>
+            <div class="report-page__song-title" id="reportSongTitle"></div>
+            <div class="report-page__song-artist" id="reportSongArtist"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Form -->
+      <form id="reportForm" class="report-page__form">
+        <input type="hidden" id="reportSongSlug" />
+
+        <div class="form-group">
+          <label class="form-label" for="reporterName">Your Name <span class="form-required">*</span></label>
+          <input type="text" id="reporterName" class="form-input" placeholder="Enter your name" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reporterEmail">Your Email <span class="form-required">*</span></label>
+          <input type="email" id="reporterEmail" class="form-input" placeholder="you@example.com" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reportBody">Describe the error <span class="form-required">*</span></label>
+          <textarea id="reportBody" class="form-input form-textarea" rows="6" placeholder="Please describe what's wrong with the lyrics. For example: 'In verse 2, line 3, the word should be...' " required></textarea>
+        </div>
+
+        <div id="reportMessage" class="report-page__message" style="display:none;"></div>
+
+        <div class="report-page__actions">
+          <button type="submit" class="btn btn--primary" id="btnSubmitReport">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Send Report
+          </button>
+          <a href="/" class="btn btn--ghost" id="btnBackHome">← Back</a>
+        </div>
+      </form>
+
+    </div>
+
+    <!-- Success State (hidden by default) -->
+    <div id="reportSuccess" class="report-page__card report-page__success" style="display:none;">
+      <div class="report-page__success-icon">✅</div>
+      <h2 class="report-page__success-title">Report Sent!</h2>
+      <p class="report-page__success-text">Thank you for helping us improve MaraLyrics. We'll review your report and fix the error as soon as possible.</p>
+      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);">← Back to Home</a>
+    </div>
+
+  </main>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
+      <p style="margin-top:var(--space-xs);">&copy; 2026 MaraLyrics</p>
+    </div>
+  </footer>
+
+  <!-- Offline Badge -->
+  <div id="offlineBadge" class="offline-badge">
+    <span>⚡</span> Offline Mode
+  </div>
+
+  <script>
+    // ─── Report Page Logic ──────────────────────────
+    (function () {
+      const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost'))
+        ? 'https://maralyrics.teiteipara.workers.dev'
+        : '';
+
+      // Parse URL params: ?song=slug&title=...&artist=...
+      const params = new URLSearchParams(window.location.search);
+      const songSlug = params.get('song') || '';
+      const songTitle = params.get('title') || '';
+      const songArtist = params.get('artist') || '';
+
+      if (songSlug) {
+        document.getElementById('reportSongSlug').value = songSlug;
+      }
+      if (songTitle || songArtist) {
+        document.getElementById('songInfo').style.display = 'block';
+        document.getElementById('reportSongTitle').textContent = songTitle || 'Unknown Song';
+        document.getElementById('reportSongArtist').textContent = songArtist ? 'by ' + songArtist : '';
+      }
+
+      // Set back button to song page if came from one
+      if (songSlug) {
+        document.getElementById('btnBackHome').href = '/song/' + songSlug;
+        document.getElementById('btnBackHome').textContent = '← Back to Song';
+      }
+
+      // Form submission
+      document.getElementById('reportForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById('reporterName').value.trim();
+        const email = document.getElementById('reporterEmail').value.trim();
+        const body = document.getElementById('reportBody').value.trim();
+        const msgEl = document.getElementById('reportMessage');
+
+        if (!name || !email || !body) {
+          msgEl.textContent = 'Please fill in all fields.';
+          msgEl.className = 'report-page__message report-page__message--error';
+          msgEl.style.display = 'block';
+          return;
+        }
+
+        const btn = document.getElementById('btnSubmitReport');
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+
+        try {
+          const res = await fetch(API_BASE + '/api/report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              song_slug: songSlug,
+              song_title: songTitle,
+              song_artist: songArtist,
+              reporter_name: name,
+              reporter_email: email,
+              body: body,
+            }),
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to send report');
+          }
+
+          // Show success state
+          document.querySelector('.report-page__card:not(.report-page__success)').style.display = 'none';
+          document.getElementById('reportSuccess').style.display = 'block';
+
+          // Also update back link in success
+          if (songSlug) {
+            document.querySelector('#reportSuccess .btn').href = '/song/' + songSlug;
+            document.querySelector('#reportSuccess .btn').textContent = '← Back to Song';
+          }
+
+        } catch (err) {
+          msgEl.textContent = err.message || 'Something went wrong. Please try again.';
+          msgEl.className = 'report-page__message report-page__message--error';
+          msgEl.style.display = 'block';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Report';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

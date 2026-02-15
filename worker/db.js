@@ -257,3 +257,33 @@ export async function deleteComposer(db, id) {
   const result = await db.prepare('DELETE FROM composers WHERE id = ?').bind(id).run();
   return result.meta.changes > 0;
 }
+
+// ─── Reports ──────────────────────────────────────────────────
+
+export async function createReport(db, { song_slug, song_title, song_artist, reporter_name, reporter_email, body }) {
+  const result = await db
+    .prepare('INSERT INTO reports (song_slug, song_title, song_artist, reporter_name, reporter_email, body) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(song_slug || null, song_title || null, song_artist || null, reporter_name, reporter_email, body)
+    .run();
+  return { id: result.meta.last_row_id };
+}
+
+export async function getReports(db) {
+  return db
+    .prepare('SELECT * FROM reports ORDER BY created_at DESC')
+    .all()
+    .then(r => r.results || []);
+}
+
+export async function updateReportStatus(db, id, status) {
+  const result = await db
+    .prepare('UPDATE reports SET status = ? WHERE id = ?')
+    .bind(status, id)
+    .run();
+  return result.meta.changes > 0;
+}
+
+export async function deleteReport(db, id) {
+  const result = await db.prepare('DELETE FROM reports WHERE id = ?').bind(id).run();
+  return result.meta.changes > 0;
+}

@@ -44,6 +44,19 @@ CREATE TABLE IF NOT EXISTS songs (
     FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE SET NULL
 );
 
+-- Reports table
+CREATE TABLE IF NOT EXISTS reports (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_slug       TEXT,
+    song_title      TEXT,
+    song_artist     TEXT,
+    reporter_name   TEXT NOT NULL,
+    reporter_email  TEXT NOT NULL,
+    body            TEXT NOT NULL,
+    status          TEXT DEFAULT 'pending',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Performance indexes
 CREATE INDEX IF NOT EXISTS idx_songs_slug       ON songs(slug);
 CREATE INDEX IF NOT EXISTS idx_songs_title      ON songs(title);

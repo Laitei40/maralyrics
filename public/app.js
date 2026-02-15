@@ -704,6 +704,17 @@ const SongPage = {
       const cleanLyrics = (song.lyrics || '').replace(/\\n/g, '\n');
       lyricsEl.textContent = cleanLyrics;
     }
+
+    // Report Error button — build link with song context
+    const reportBtn = document.getElementById('btnReportError');
+    if (reportBtn) {
+      const params = new URLSearchParams({
+        song: song.slug || '',
+        title: song.title || '',
+        artist: song.artist_name || song.artist || '',
+      });
+      reportBtn.href = '/report?' + params.toString();
+    }
   },
 
   /** Update page title, meta tags, and JSON-LD. */

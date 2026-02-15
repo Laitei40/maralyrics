@@ -713,6 +713,192 @@ body::before {
   color: var(--text-muted);
 }
 
+/* ─── Report Error Button (Song Page) ───────────────────────── */
+.song-page__report {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn--report {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn--report:hover {
+  color: #f87171;
+  background: rgba(248,113,113,0.08);
+  border-color: rgba(248,113,113,0.2);
+}
+
+/* ─── Report Page ───────────────────────────────────────────── */
+.report-page {
+  padding-top: var(--space-md);
+  padding-bottom: var(--space-xxl);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.report-page__card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-top: var(--space-lg);
+}
+
+.report-page__title {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.report-page__subtitle {
+  color: var(--text-secondary);
+  margin-top: var(--space-xs);
+  font-size: var(--text-sm);
+}
+
+.report-page__song-info {
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  background: rgba(139,92,246,0.06);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: var(--radius-md);
+}
+
+.report-page__song-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-xs);
+}
+
+.report-page__song-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.report-page__song-icon {
+  font-size: 1.5rem;
+}
+
+.report-page__song-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.report-page__song-artist {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.report-page__form {
+  margin-top: var(--space-lg);
+}
+
+.report-page__form .form-group {
+  margin-bottom: var(--space-md);
+}
+
+.report-page__form .form-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.form-required {
+  color: #f87171;
+}
+
+.report-page__form .form-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.report-page__form .form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.15);
+}
+
+.report-page__form .form-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.report-page__actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  align-items: center;
+}
+
+.report-page__message {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-top: var(--space-md);
+}
+
+.report-page__message--error {
+  background: rgba(248,113,113,0.1);
+  color: #f87171;
+  border: 1px solid rgba(248,113,113,0.2);
+}
+
+.report-page__success {
+  text-align: center;
+  padding: var(--space-xxl) var(--space-xl);
+}
+
+.report-page__success-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+}
+
+.report-page__success-title {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.report-page__success-text {
+  color: var(--text-secondary);
+  margin-top: var(--space-sm);
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* ─── Pagination ────────────────────────────────────────────── */
 .pagination {
   display: flex;
