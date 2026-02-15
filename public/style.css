@@ -896,13 +896,19 @@ body::before {
   word-break: break-word;
 }
 
-.song-page__copyright {
+/* ─── Song Footer (Copyright + Feedback) ─────────────────────── */
+.song-page__footer {
   margin-top: var(--space-lg);
-  padding-top: var(--space-sm);
+  padding-top: var(--space-md);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.song-page__copyright {
   font-size: var(--text-xs);
   color: var(--text-tertiary, var(--text-secondary));
-  text-align: right;
 }
 
 .song-page__copyright a {
@@ -922,13 +928,8 @@ body::before {
   }
 }
 
-/* ─── Feedback Button (Song Page) ────────────────────────────── */
 .song-page__report {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-md);
-  border-top: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .btn--report {
