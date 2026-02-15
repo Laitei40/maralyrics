@@ -3,7 +3,7 @@
 // ║       Stale-While-Revalidate · Offline-First                ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const CACHE_VERSION = 'ml-v2';
+const CACHE_VERSION = 'ml-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -78,8 +78,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   // ── SPA page routes (e.g. /song/slug, /artist/slug) ──
+  // Network-first: let Pages Functions / Worker handle routing,
+  // fall back to cached shell HTML when offline.
   if (isSpaRoute(url.pathname)) {
-    event.respondWith(serveSpaShell(url.pathname));
+    event.respondWith(serveSpaShell(request, url.pathname));
     return;
   }
 
@@ -165,9 +167,10 @@ async function staleWhileRevalidate(request, cacheName) {
 
 /**
  * Serve the correct SPA shell for dynamic routes.
- * e.g. /song/slug → songview.html, /artist/slug → artistview.html
+ * Network-first: let the server handle the request (Pages Function / Worker),
+ * cache the shell response, and fall back to cache when offline.
  */
-async function serveSpaShell(pathname) {
+async function serveSpaShell(request, pathname) {
   let shellPath;
   if (pathname.startsWith('/song/')) shellPath = '/songview.html';
   else if (pathname.startsWith('/artist/')) shellPath = '/artistview.html';
@@ -175,18 +178,18 @@ async function serveSpaShell(pathname) {
   else if (pathname.startsWith('/copyright-owner/')) shellPath = '/copyrightownerview.html';
   else shellPath = '/index.html';
 
-  // Try cache first, then network
-  const cached = await caches.match(shellPath);
-  if (cached) return cached;
-
+  // Network-first: try the actual request first
   try {
-    const response = await fetch(shellPath);
+    const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(PAGE_CACHE);
       cache.put(shellPath, response.clone());
     }
     return response;
   } catch {
+    // Offline: serve cached shell HTML
+    const cached = await caches.match(shellPath);
+    if (cached) return cached;
     return (await caches.match('/404.html')) || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
   }
 }

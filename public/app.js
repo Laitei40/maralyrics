@@ -503,13 +503,6 @@ const HomePage = {
         debouncedSearch(e);
       });
 
-      // Save to history only on Enter
-      this.searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && this.searchInput.value.trim()) {
-          SearchHistory.add(this.searchInput.value.trim());
-        }
-      });
-
       // Show search history on focus when input is empty
       this.searchInput.addEventListener('focus', () => {
         if (!this.searchInput.value.trim()) {
@@ -708,8 +701,7 @@ const HomePage = {
         UI.setOfflineMode(true);
       }
 
-      // Save to search history
-      // (only saved on Enter key or history item click, not on every keystroke)
+      // Search history is saved when a result card is clicked (see below)
 
       this.searchCount.textContent = I18n.t('common.found', { count: results.length });
       const sugBox = document.getElementById('searchSuggestions');
@@ -734,6 +726,15 @@ const HomePage = {
       this.searchGrid.innerHTML = results
         .map((s, i) => UI.createSongCard(s, i))
         .join('');
+
+      // Save search term to history when a result card is clicked
+      if (this.searchGrid) {
+        this.searchGrid.querySelectorAll('.song-card').forEach(card => {
+          card.addEventListener('click', () => {
+            SearchHistory.add(q);
+          });
+        });
+      }
     } catch (err) {
       console.warn('Search failed:', err);
       const cached = Cache.get('search_' + q.toLowerCase());
