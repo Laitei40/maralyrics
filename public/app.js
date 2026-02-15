@@ -838,6 +838,13 @@ const ProfilePage = {
     const nameEl = document.getElementById('profileName');
     if (nameEl) nameEl.textContent = data.name;
 
+    // Update "Songs by {name}" section title
+    const songsTitleEl = document.getElementById('songsSectionTitle');
+    if (songsTitleEl && data.name) {
+      const prefix = songsTitleEl.getAttribute('data-prefix') || 'Songs by';
+      songsTitleEl.textContent = `${prefix} ${data.name}`;
+    }
+
     // Breadcrumb
     const breadcrumbEl = document.getElementById('breadcrumbName');
     if (breadcrumbEl) breadcrumbEl.textContent = data.name;

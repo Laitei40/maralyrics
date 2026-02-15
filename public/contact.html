@@ -64,9 +64,9 @@
   <main class="static-page container">
 
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/" class="breadcrumb__link">Home</a>
+      <a href="/" class="breadcrumb__link" data-i18n="breadcrumb.home">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current">Contact Us</span>
+      <span class="breadcrumb__current" data-i18n="contact.breadcrumb">Contact Us</span>
     </nav>
 
     <div class="static-page__card">
@@ -75,11 +75,11 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;color:var(--accent);" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
         </svg>
-        Contact Us
+        <span data-i18n="contact.title">Contact Us</span>
       </h1>
 
       <section class="static-page__section">
-        <p>Have a question, suggestion, or want to contribute to MaraLyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.</p>
+        <p data-i18n="contact.intro">Have a question, suggestion, or want to contribute to MaraLyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.</p>
         <p class="contact-email">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           <a href="mailto:contact@maralyrics.com">contact@maralyrics.com</a>
@@ -90,23 +90,23 @@
       <form id="contactForm" class="report-page__form">
 
         <div class="form-group">
-          <label class="form-label" for="contactName">Your Name <span class="form-required">*</span></label>
-          <input type="text" id="contactName" class="form-input" placeholder="Enter your name" required />
+          <label class="form-label" for="contactName" data-i18n="contact.name_label">Your Name <span class="form-required">*</span></label>
+          <input type="text" id="contactName" class="form-input" placeholder="Enter your name" data-i18n-placeholder="contact.name_placeholder" required />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="contactEmail">Your Email <span class="form-required">*</span></label>
-          <input type="email" id="contactEmail" class="form-input" placeholder="you@example.com" required />
+          <label class="form-label" for="contactEmail" data-i18n="contact.email_label">Your Email <span class="form-required">*</span></label>
+          <input type="email" id="contactEmail" class="form-input" placeholder="you@example.com" data-i18n-placeholder="contact.email_placeholder" required />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="contactSubject">Subject</label>
-          <input type="text" id="contactSubject" class="form-input" placeholder="What is this about?" />
+          <label class="form-label" for="contactSubject" data-i18n="contact.subject_label">Subject</label>
+          <input type="text" id="contactSubject" class="form-input" placeholder="What is this about?" data-i18n-placeholder="contact.subject_placeholder" />
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="contactMessage">Message <span class="form-required">*</span></label>
-          <textarea id="contactMessage" class="form-input form-textarea" rows="6" placeholder="Write your message here..." required></textarea>
+          <label class="form-label" for="contactMessage" data-i18n="contact.message_label">Message <span class="form-required">*</span></label>
+          <textarea id="contactMessage" class="form-input form-textarea" rows="6" placeholder="Write your message here..." data-i18n-placeholder="contact.message_placeholder" required></textarea>
         </div>
 
         <div id="contactMsg" class="report-page__message" style="display:none;"></div>
@@ -121,9 +121,9 @@
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>
             </span>
-            <span class="btn-send-feedback__text">Send Message</span>
+            <span class="btn-send-feedback__text" data-i18n="contact.submit_btn">Send Message</span>
           </button>
-          <a href="/" class="btn btn--ghost">← Back</a>
+          <a href="/" class="btn btn--ghost" data-i18n="contact.back_btn">← Back</a>
         </div>
       </form>
 
@@ -132,9 +132,9 @@
     <!-- Success State -->
     <div id="contactSuccess" class="static-page__card report-page__success" style="display:none;">
       <div class="report-page__success-icon">✅</div>
-      <h2 class="report-page__success-title">Message Sent!</h2>
-      <p class="report-page__success-text">Thank you for reaching out. We'll get back to you as soon as possible.</p>
-      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);">← Back to Home</a>
+      <h2 class="report-page__success-title" data-i18n="contact.success_title">Message Sent!</h2>
+      <p class="report-page__success-text" data-i18n="contact.success_text">Thank you for reaching out. We'll get back to you as soon as possible.</p>
+      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);" data-i18n="contact.success_back_home">← Back to Home</a>
     </div>
 
   </main>
