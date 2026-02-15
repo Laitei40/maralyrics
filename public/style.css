@@ -1652,7 +1652,10 @@ body::before {
   background: rgba(124, 58, 237, 0.06);
 }
 [data-theme="light"] .category-btn.active {
-  color: #fff;
+  color: var(--text-primary);
+  background: rgba(124, 58, 237, 0.12);
+  border-color: var(--accent);
+  box-shadow: none;
 }
 
 /* Song cards */
