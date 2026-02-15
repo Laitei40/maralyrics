@@ -1544,10 +1544,21 @@ body::before {
   padding-top: var(--space-lg);
   text-align: center;
   color: var(--text-muted);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .footer__bottom p {
-  margin-bottom: var(--space-xs);
+  margin: 0;
+}
+
+.footer__bottom p:first-child::after {
+  content: '·';
+  margin-left: var(--space-sm);
+  color: var(--text-muted);
 }
 
 .footer__heart {
@@ -1722,6 +1733,19 @@ body::before {
 
   .footer__brand {
     justify-content: center;
+  }
+
+  .footer__bottom {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .footer__bottom p:first-child::after {
+    display: none;
+  }
+
+  .footer__bottom p {
+    margin-bottom: var(--space-xs);
   }
 
   .static-page__card {
