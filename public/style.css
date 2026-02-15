@@ -857,9 +857,79 @@ body::before {
 
 .report-page__actions {
   display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
   align-items: center;
+}
+
+/* ─── Send Feedback Button ──────────────────────────────────── */
+.btn-send-feedback {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--neon-pink) 100%);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  z-index: 1;
+}
+
+.btn-send-feedback::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--neon-pink) 0%, var(--accent) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+.btn-send-feedback:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.45), 0 0 40px rgba(236, 72, 153, 0.15);
+}
+
+.btn-send-feedback:hover::before {
+  opacity: 1;
+}
+
+.btn-send-feedback:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+}
+
+.btn-send-feedback__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.btn-send-feedback:hover .btn-send-feedback__icon {
+  transform: translate(2px, -2px);
+}
+
+.btn-send-feedback__text {
+  line-height: 1;
+}
+
+.btn-send-feedback:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .report-page__message {
