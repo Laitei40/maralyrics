@@ -960,6 +960,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize i18n first
   await I18n.init();
 
+  // Initialize theme
+  Theme.init();
+
+  // Settings panel toggle
+  const settingsBtn = document.querySelector('.settings-toggle__btn');
+  const settingsWrap = document.querySelector('.settings-toggle');
+  if (settingsBtn && settingsWrap) {
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsWrap.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!settingsWrap.contains(e.target)) settingsWrap.classList.remove('open');
+    });
+  }
+
   initOfflineDetection();
 
   // Detect which page we're on
