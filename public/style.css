@@ -897,28 +897,23 @@ body::before {
 }
 
 .song-page__copyright {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
   margin-top: var(--space-lg);
-  padding: var(--space-md) var(--space-lg);
-  background: rgba(139, 92, 246, 0.06);
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary, var(--text-secondary));
+  text-align: right;
+}
+
+.song-page__copyright a {
   color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-.song-page__copyright-icon {
-  font-size: var(--text-lg);
+.song-page__copyright a:hover {
   color: var(--accent);
-  font-weight: 700;
-}
-
-.song-page__copyright-text {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+  text-decoration: underline;
 }
 
 @media (max-width: 640px) {

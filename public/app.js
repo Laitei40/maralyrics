@@ -706,8 +706,9 @@ const SongPage = {
     const coEl = document.getElementById('songCopyrightOwner');
     if (coWrap && coEl) {
       if (song.copyright_owner_name) {
-        coEl.innerHTML = Utils.renderNameLink(song.copyright_owner_name, song.copyright_owner_slug, 'copyright-owner');
-        coWrap.style.display = 'flex';
+        const link = Utils.renderNameLink(song.copyright_owner_name, song.copyright_owner_slug, 'copyright-owner');
+        coEl.innerHTML = `© ${link}`;
+        coWrap.style.display = 'block';
       } else {
         coWrap.style.display = 'none';
       }
