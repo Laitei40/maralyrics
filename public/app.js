@@ -701,7 +701,7 @@ const SongPage = {
     if (categoryEl) categoryEl.textContent = song.category || I18n.t('common.uncategorized');
     if (viewsEl) viewsEl.textContent = Utils.formatViews(song.views);
 
-    // Copyright owner (only show if present)
+    // Copyright owner (only show if present — displayed at footer of song card)
     const coWrap = document.getElementById('songCopyrightOwnerWrap');
     const coEl = document.getElementById('songCopyrightOwner');
     if (coWrap && coEl) {

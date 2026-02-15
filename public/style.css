@@ -896,7 +896,26 @@ body::before {
   word-break: break-word;
 }
 
-.song-page__meta-item--copyright {
+.song-page__copyright {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.song-page__copyright-icon {
+  font-size: var(--text-lg);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.song-page__copyright-text {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
