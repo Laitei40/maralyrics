@@ -10,7 +10,7 @@ const I18n = (() => {
   const DEFAULT_LANG = 'en';
   const SUPPORTED_LANGS = [
     { code: 'en',  name: 'English' },
-    { code: 'mra', name: 'Mara' },
+    { code: 'mrh', name: 'Mara' },
     { code: 'my',  name: 'မြန်မာ' },
   ];
 
