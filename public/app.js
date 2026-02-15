@@ -503,6 +503,13 @@ const HomePage = {
         debouncedSearch(e);
       });
 
+      // Save to history only on Enter
+      this.searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && this.searchInput.value.trim()) {
+          SearchHistory.add(this.searchInput.value.trim());
+        }
+      });
+
       // Show search history on focus when input is empty
       this.searchInput.addEventListener('focus', () => {
         if (!this.searchInput.value.trim()) {
@@ -702,7 +709,7 @@ const HomePage = {
       }
 
       // Save to search history
-      SearchHistory.add(q);
+      // (only saved on Enter key or history item click, not on every keystroke)
 
       this.searchCount.textContent = I18n.t('common.found', { count: results.length });
       const sugBox = document.getElementById('searchSuggestions');
