@@ -3,24 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title id="pageTitle">Song — MaraLyrics</title>
+  <title id="pageTitle">Artist — MaraLyrics</title>
 
   <!-- SEO Meta (dynamically updated by JS) -->
-  <meta name="description" id="metaDesc" content="Read song lyrics on MaraLyrics." />
+  <meta name="description" id="metaDesc" content="Explore artist profile and songs on MaraLyrics." />
   <meta name="theme-color" content="#0a0e1a" />
 
   <!-- Open Graph -->
-  <meta property="og:type" content="article" />
-  <meta property="og:title" id="ogTitle" content="Song — MaraLyrics" />
-  <meta property="og:description" id="ogDesc" content="Read song lyrics on MaraLyrics." />
+  <meta property="og:type" content="profile" />
+  <meta property="og:title" id="ogTitle" content="Artist — MaraLyrics" />
+  <meta property="og:description" id="ogDesc" content="Explore artist profile and songs on MaraLyrics." />
 
   <!-- JSON-LD (populated by JS) -->
   <script type="application/ld+json" id="jsonLd">
   {
     "@context": "https://schema.org",
-    "@type": "MusicComposition",
-    "name": "Song",
-    "description": "Mara song lyrics"
+    "@type": "MusicGroup",
+    "name": "Artist"
   }
   </script>
 
@@ -51,27 +50,23 @@
     </div>
   </header>
 
-  <!-- ═══ Song Content ═══ -->
-  <main class="song-page container" id="songPage">
+  <!-- ═══ Artist Content ═══ -->
+  <main class="profile-page container" id="profilePage">
 
-    <!-- Back Link -->
+    <!-- Breadcrumb -->
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/" class="breadcrumb__link">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current" id="breadcrumbTitle">Song</span>
+      <span class="breadcrumb__current" id="breadcrumbName">Artist</span>
     </nav>
 
     <!-- Loading Skeleton -->
-    <div id="songSkeleton">
+    <div id="profileSkeleton">
       <div class="skeleton" style="margin-bottom:var(--space-lg);">
         <div class="skeleton__line skeleton__line--title"></div>
         <div class="skeleton__line skeleton__line--short"></div>
       </div>
-      <div class="skeleton" style="min-height:300px;">
-        <div class="skeleton__line"></div>
-        <div class="skeleton__line skeleton__line--medium"></div>
-        <div class="skeleton__line"></div>
-        <div class="skeleton__line skeleton__line--short"></div>
+      <div class="skeleton" style="min-height:200px;">
         <div class="skeleton__line"></div>
         <div class="skeleton__line skeleton__line--medium"></div>
         <div class="skeleton__line"></div>
@@ -79,53 +74,41 @@
       </div>
     </div>
 
-    <!-- Song Detail (hidden until loaded) -->
-    <div id="songDetail" style="display:none;" class="fade-in">
+    <!-- Profile Detail (hidden until loaded) -->
+    <div id="profileDetail" style="display:none;" class="fade-in">
 
-      <!-- Unified Song Card -->
-      <div class="song-page__card">
-
-        <!-- Title -->
-        <h1 class="song-page__title" id="songTitle"></h1>
-
-        <!-- Meta Strip (horizontal) -->
-        <div class="song-page__meta">
-          <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">🎤</span>
-            <span class="song-page__meta-value" id="songArtist"></span>
-          </div>
-          <span class="song-page__meta-dot"></span>
-          <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">🎼</span>
-            <span class="song-page__meta-value" id="songComposer"></span>
-          </div>
-          <span class="song-page__meta-dot"></span>
-          <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">🏷️</span>
-            <span class="song-page__meta-value" id="songCategory"></span>
-          </div>
-          <span class="song-page__meta-dot"></span>
-          <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">👁️</span>
-            <span class="song-page__meta-value" id="songViews"></span>
-          </div>
+      <!-- Profile Header -->
+      <div class="profile-page__header">
+        <div class="profile-page__avatar" id="profileAvatar">
+          <span class="profile-page__avatar-fallback" id="avatarFallback"></span>
         </div>
-
-        <!-- Divider -->
-        <div class="song-page__divider"></div>
-
-        <!-- Lyrics -->
-        <div class="song-page__lyrics" id="songLyrics"></div>
-
+        <div class="profile-page__info">
+          <h1 class="profile-page__name" id="profileName"></h1>
+          <span class="profile-page__role">Artist</span>
+          <p class="profile-page__bio" id="profileBio"></p>
+        </div>
       </div>
+
+      <!-- Song List -->
+      <section class="profile-page__songs">
+        <h2 class="profile-page__section-title">
+          Songs by this Artist
+          <span class="profile-page__song-count" id="songCount"></span>
+        </h2>
+        <div class="song-grid" id="profileSongGrid"></div>
+        <div id="profileEmpty" class="empty-state" style="display:none;">
+          <div class="empty-state__icon">🎵</div>
+          <p class="empty-state__text">No songs found for this artist.</p>
+        </div>
+      </section>
 
     </div>
 
     <!-- Error State -->
-    <div id="songError" class="empty-state" style="display:none;">
+    <div id="profileError" class="empty-state" style="display:none;">
       <div class="empty-state__icon">😔</div>
-      <h3 class="empty-state__title">Song not found</h3>
-      <p class="empty-state__text">This song may have been removed or the link is incorrect.</p>
+      <h3 class="empty-state__title">Artist not found</h3>
+      <p class="empty-state__text">This artist may have been removed or the link is incorrect.</p>
       <a href="/" style="display:inline-block;margin-top:var(--space-lg);padding:var(--space-sm) var(--space-lg);background:var(--accent);color:#fff;border-radius:var(--radius-md);font-weight:600;">
         ← Go Home
       </a>

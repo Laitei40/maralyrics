@@ -52,8 +52,26 @@ const Utils = {
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
-    const match = path.match(/\/song\/([^/]+)/);
-    return match ? match[1] : null;
+    const match = path.match(/\/(song|artist|composer)\/([^/]+)/);
+    return match ? match[2] : null;
+  },
+
+  /** Get page type from current URL path. */
+  getPageType() {
+    const path = window.location.pathname;
+    if (path.startsWith('/song/')) return 'song';
+    if (path.startsWith('/artist/')) return 'artist';
+    if (path.startsWith('/composer/')) return 'composer';
+    return 'home';
+  },
+
+  /** Create a clickable name link or a disabled span for unknown. */
+  renderNameLink(name, slug, type) {
+    if (name && slug) {
+      const href = `/${type}/${this.escapeHtml(slug)}`;
+      return `<a href="${href}" class="meta-link">${this.escapeHtml(name)}</a>`;
+    }
+    return `<span class="meta-link meta-link--disabled">${this.escapeHtml(name || 'Unknown')}</span>`;
   },
 };
 
@@ -212,6 +230,16 @@ const API = {
       method: 'POST',
     });
   },
+
+  /** Get artist by slug. */
+  async getArtist(slug) {
+    return this.fetchJSON(`/artist/${encodeURIComponent(slug)}`);
+  },
+
+  /** Get composer by slug. */
+  async getComposer(slug) {
+    return this.fetchJSON(`/composer/${encodeURIComponent(slug)}`);
+  },
 };
 
 // ─── UI Rendering Module ───────────────────────────────────────
@@ -225,7 +253,7 @@ const UI = {
          style="animation-delay:${delay}ms"
          data-slug="${Utils.escapeHtml(song.slug)}">
         <h3 class="song-card__title">${Utils.escapeHtml(song.title)}</h3>
-        <p class="song-card__artist">${Utils.escapeHtml(song.artist || 'Unknown Artist')}</p>
+        <p class="song-card__artist">${Utils.escapeHtml(song.artist_name || song.artist || 'Unknown Artist')}</p>
         <div class="song-card__meta">
           ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
           <span class="song-card__views">👁 ${Utils.formatViews(song.views)}</span>
@@ -563,6 +591,7 @@ const HomePage = {
         const song = entry.data;
         if (
           song.title?.toLowerCase().includes(q) ||
+          song.artist_name?.toLowerCase().includes(q) ||
           song.artist?.toLowerCase().includes(q)
         ) {
           results.push(song);
@@ -643,9 +672,16 @@ const SongPage = {
     const lyricsEl = document.getElementById('songLyrics');
 
     if (titleEl) titleEl.textContent = song.title;
-    if (artistEl) artistEl.querySelector('span').textContent = song.artist || 'Unknown';
-    if (categoryEl) categoryEl.querySelector('span').textContent = song.category || 'Uncategorized';
-    if (viewsEl) viewsEl.querySelector('span').textContent = Utils.formatViews(song.views);
+    if (artistEl) artistEl.innerHTML = Utils.renderNameLink(song.artist_name || song.artist, song.artist_slug, 'artist');
+    const composerEl = document.getElementById('songComposer');
+    if (composerEl) composerEl.innerHTML = Utils.renderNameLink(song.composer_name || song.composer, song.composer_slug, 'composer');
+    if (categoryEl) categoryEl.textContent = song.category || 'Uncategorized';
+    if (viewsEl) viewsEl.textContent = Utils.formatViews(song.views);
+
+    // Update breadcrumb
+    const breadcrumbTitle = document.getElementById('breadcrumbTitle');
+    if (breadcrumbTitle) breadcrumbTitle.textContent = song.title;
+
     if (lyricsEl) {
       // Replace literal \n with actual newlines (D1 may store escaped newlines)
       const cleanLyrics = (song.lyrics || '').replace(/\\n/g, '\n');
@@ -656,7 +692,8 @@ const SongPage = {
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
     const title = `${song.title} — MaraLyrics`;
-    const desc = `Read lyrics of "${song.title}" by ${song.artist || 'Unknown'} on MaraLyrics.`;
+    const artistDisplay = song.artist_name || song.artist || 'Unknown';
+    const desc = `Read lyrics of "${song.title}" by ${artistDisplay} on MaraLyrics.`;
 
     document.title = title;
 
@@ -679,7 +716,8 @@ const SongPage = {
         '@context': 'https://schema.org',
         '@type': 'MusicComposition',
         name: song.title,
-        composer: song.artist || 'Unknown',
+        composer: song.composer_name || song.composer || 'Unknown',
+        lyricist: artistDisplay,
         genre: song.category || 'Mara',
         text: song.lyrics?.substring(0, 200),
         url: window.location.href,
@@ -711,6 +749,149 @@ const SongPage = {
   },
 };
 
+// ─── Profile Page Controller (Artist / Composer) ───────────────
+const ProfilePage = {
+  type: 'artist', // or 'composer'
+
+  async init(type) {
+    this.type = type;
+    const slug = Utils.getSlugFromUrl();
+    if (!slug) {
+      this.showError();
+      return;
+    }
+    await this.loadProfile(slug);
+  },
+
+  async loadProfile(slug) {
+    try {
+      let data;
+      const cacheKey = `${this.type}_${slug}`;
+
+      if (Utils.isOnline()) {
+        data = this.type === 'artist'
+          ? await API.getArtist(slug)
+          : await API.getComposer(slug);
+        Cache.set(cacheKey, data);
+      } else {
+        data = Cache.get(cacheKey);
+        if (!data) {
+          this.showError();
+          return;
+        }
+        UI.setOfflineMode(true);
+      }
+
+      this.renderProfile(data);
+      this.updateMeta(data);
+    } catch (err) {
+      console.warn(`Failed to load ${this.type}:`, err);
+      const cached = Cache.get(`${this.type}_${slug}`);
+      if (cached) {
+        this.renderProfile(cached);
+        this.updateMeta(cached);
+        UI.setOfflineMode(true);
+      } else {
+        this.showError();
+      }
+    }
+  },
+
+  renderProfile(data) {
+    const skeleton = document.getElementById('profileSkeleton');
+    const detail = document.getElementById('profileDetail');
+    const error = document.getElementById('profileError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (error) error.style.display = 'none';
+    if (detail) detail.style.display = 'block';
+
+    // Name
+    const nameEl = document.getElementById('profileName');
+    if (nameEl) nameEl.textContent = data.name;
+
+    // Breadcrumb
+    const breadcrumbEl = document.getElementById('breadcrumbName');
+    if (breadcrumbEl) breadcrumbEl.textContent = data.name;
+
+    // Avatar fallback (initials)
+    const avatarEl = document.getElementById('profileAvatar');
+    const fallbackEl = document.getElementById('avatarFallback');
+    if (data.image_url && avatarEl) {
+      avatarEl.innerHTML = `<img src="${Utils.escapeHtml(data.image_url)}" alt="${Utils.escapeHtml(data.name)}" class="profile-page__avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><span class="profile-page__avatar-fallback" style="display:none;">${Utils.escapeHtml(data.name?.charAt(0) || '?')}</span>`;
+    } else if (fallbackEl) {
+      fallbackEl.textContent = data.name?.charAt(0) || '?';
+    }
+
+    // Bio
+    const bioEl = document.getElementById('profileBio');
+    if (bioEl) {
+      bioEl.textContent = data.bio || '';
+      bioEl.style.display = data.bio ? 'block' : 'none';
+    }
+
+    // Songs
+    const songGrid = document.getElementById('profileSongGrid');
+    const emptyEl = document.getElementById('profileEmpty');
+    const countEl = document.getElementById('songCount');
+    const songs = data.songs || [];
+
+    if (countEl) countEl.textContent = `(${songs.length})`;
+
+    if (songs.length === 0) {
+      if (songGrid) songGrid.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = 'block';
+    } else {
+      if (emptyEl) emptyEl.style.display = 'none';
+      if (songGrid) {
+        songGrid.innerHTML = songs.map((s, i) => UI.createSongCard(s, i)).join('');
+      }
+    }
+  },
+
+  updateMeta(data) {
+    const typeLabel = this.type === 'artist' ? 'Artist' : 'Composer';
+    const title = `${data.name} — ${typeLabel} — MaraLyrics`;
+    const songCount = data.songs?.length || 0;
+    const desc = `${data.name} — ${typeLabel} on MaraLyrics. ${songCount} song${songCount !== 1 ? 's' : ''}.${data.bio ? ' ' + data.bio.substring(0, 120) : ''}`;
+
+    document.title = title;
+
+    const metaDesc = document.getElementById('metaDesc');
+    if (metaDesc) metaDesc.content = desc;
+
+    const ogTitle = document.getElementById('ogTitle');
+    if (ogTitle) ogTitle.content = title;
+
+    const ogDesc = document.getElementById('ogDesc');
+    if (ogDesc) ogDesc.content = desc;
+
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = title;
+
+    const jsonLd = document.getElementById('jsonLd');
+    if (jsonLd) {
+      jsonLd.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': this.type === 'artist' ? 'MusicGroup' : 'Person',
+        name: data.name,
+        description: data.bio || '',
+        url: window.location.href,
+      });
+    }
+  },
+
+  showError() {
+    const skeleton = document.getElementById('profileSkeleton');
+    const detail = document.getElementById('profileDetail');
+    const error = document.getElementById('profileError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (detail) detail.style.display = 'none';
+    if (error) error.style.display = 'block';
+  },
+};
+
 // ─── Offline Detection ─────────────────────────────────────────
 function initOfflineDetection() {
   window.addEventListener('online', () => {
@@ -732,11 +913,20 @@ document.addEventListener('DOMContentLoaded', () => {
   initOfflineDetection();
 
   // Detect which page we're on
-  const isSongPage = window.location.pathname.startsWith('/song/');
+  const pageType = Utils.getPageType();
 
-  if (isSongPage) {
-    SongPage.init();
-  } else {
-    HomePage.init();
+  switch (pageType) {
+    case 'song':
+      SongPage.init();
+      break;
+    case 'artist':
+      ProfilePage.init('artist');
+      break;
+    case 'composer':
+      ProfilePage.init('composer');
+      break;
+    default:
+      HomePage.init();
+      break;
   }
 });

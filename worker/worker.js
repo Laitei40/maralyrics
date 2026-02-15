@@ -16,6 +16,23 @@ import {
   handleAdminCreateSong,
   handleAdminUpdateSong,
   handleAdminDeleteSong,
+  // Artists
+  handleGetArtist,
+  handleGetComposer,
+  handleGetArtistsList,
+  handleGetComposersList,
+  // Admin Artists
+  handleAdminGetArtists,
+  handleAdminGetArtist,
+  handleAdminCreateArtist,
+  handleAdminUpdateArtist,
+  handleAdminDeleteArtist,
+  // Admin Composers
+  handleAdminGetComposers,
+  handleAdminGetComposer,
+  handleAdminCreateComposer,
+  handleAdminUpdateComposer,
+  handleAdminDeleteComposer,
 } from './routes.js';
 
 const assetManifest = JSON.parse(manifestJSON);
@@ -107,11 +124,107 @@ export default {
         return await handleAdminDeleteSong(id, env.DB);
       }
 
+      // ─── Artist Public API Routes ─────────────────────
+
+      // GET /api/artists
+      if (path === '/api/artists' && method === 'GET') {
+        return await handleGetArtistsList(env.DB);
+      }
+
+      // GET /api/artist/:slug
+      if (path.startsWith('/api/artist/') && method === 'GET') {
+        const slug = path.replace('/api/artist/', '').trim();
+        return await handleGetArtist(slug, env.DB);
+      }
+
+      // ─── Composer Public API Routes ────────────────────
+
+      // GET /api/composers
+      if (path === '/api/composers' && method === 'GET') {
+        return await handleGetComposersList(env.DB);
+      }
+
+      // GET /api/composer/:slug
+      if (path.startsWith('/api/composer/') && method === 'GET') {
+        const slug = path.replace('/api/composer/', '').trim();
+        return await handleGetComposer(slug, env.DB);
+      }
+
+      // ─── Admin Artist CRUD Routes ─────────────────────
+
+      // GET /api/admin/artists
+      if (path === '/api/admin/artists' && method === 'GET') {
+        return await handleAdminGetArtists(env.DB);
+      }
+
+      // POST /api/admin/artists
+      if (path === '/api/admin/artists' && method === 'POST') {
+        return await handleAdminCreateArtist(request, env.DB);
+      }
+
+      // GET /api/admin/artist/:id
+      if (path.match(/^\/api\/admin\/artist\/\d+$/) && method === 'GET') {
+        const id = path.split('/').pop();
+        return await handleAdminGetArtist(id, env.DB);
+      }
+
+      // PUT /api/admin/artist/:id
+      if (path.match(/^\/api\/admin\/artist\/\d+$/) && method === 'PUT') {
+        const id = path.split('/').pop();
+        return await handleAdminUpdateArtist(id, request, env.DB);
+      }
+
+      // DELETE /api/admin/artist/:id
+      if (path.match(/^\/api\/admin\/artist\/\d+$/) && method === 'DELETE') {
+        const id = path.split('/').pop();
+        return await handleAdminDeleteArtist(id, env.DB);
+      }
+
+      // ─── Admin Composer CRUD Routes ────────────────────
+
+      // GET /api/admin/composers
+      if (path === '/api/admin/composers' && method === 'GET') {
+        return await handleAdminGetComposers(env.DB);
+      }
+
+      // POST /api/admin/composers
+      if (path === '/api/admin/composers' && method === 'POST') {
+        return await handleAdminCreateComposer(request, env.DB);
+      }
+
+      // GET /api/admin/composer/:id
+      if (path.match(/^\/api\/admin\/composer\/\d+$/) && method === 'GET') {
+        const id = path.split('/').pop();
+        return await handleAdminGetComposer(id, env.DB);
+      }
+
+      // PUT /api/admin/composer/:id
+      if (path.match(/^\/api\/admin\/composer\/\d+$/) && method === 'PUT') {
+        const id = path.split('/').pop();
+        return await handleAdminUpdateComposer(id, request, env.DB);
+      }
+
+      // DELETE /api/admin/composer/:id
+      if (path.match(/^\/api\/admin\/composer\/\d+$/) && method === 'DELETE') {
+        const id = path.split('/').pop();
+        return await handleAdminDeleteComposer(id, env.DB);
+      }
+
       // ─── Static Files / SPA Routing ────────────────────
 
       // Song page (clean URLs): /song/some-slug → serve songview.html
       if (path.startsWith('/song/')) {
         return await serveAsset(request, env, ctx, '/songview.html');
+      }
+
+      // Artist page (clean URLs): /artist/some-slug → serve artistview.html
+      if (path.startsWith('/artist/')) {
+        return await serveAsset(request, env, ctx, '/artistview.html');
+      }
+
+      // Composer page (clean URLs): /composer/some-slug → serve composerview.html
+      if (path.startsWith('/composer/')) {
+        return await serveAsset(request, env, ctx, '/composerview.html');
       }
 
       // Try to serve the static asset directly

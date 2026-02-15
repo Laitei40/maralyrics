@@ -20,6 +20,38 @@
   padding-bottom: var(--space-2xl);
 }
 
+/* ─── Admin Tabs ────────────────────────────────────────────── */
+.admin__tabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: 0;
+}
+
+.admin__tab {
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-sans);
+  margin-bottom: -1px;
+}
+
+.admin__tab:hover {
+  color: var(--text-primary);
+}
+
+.admin__tab.active {
+  color: var(--accent-light);
+  border-bottom-color: var(--accent);
+}
+
 .admin__topbar {
   display: flex;
   align-items: center;
