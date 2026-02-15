@@ -442,8 +442,13 @@ const UI = {
     return html;
   },
 
-  /** Show/hide the offline badge. */
+  /** Show/hide the offline badge (header + legacy). */
   setOfflineMode(offline) {
+    // Use Toast module's badge manager if available
+    if (typeof Toast !== 'undefined') {
+      Toast.setBadge(offline);
+    }
+    // Fallback for legacy badge
     const badge = document.getElementById('offlineBadge');
     if (badge) {
       badge.classList.toggle('visible', offline);
@@ -1312,7 +1317,7 @@ if ('serviceWorker' in navigator) {
           newWorker.postMessage({ type: 'PRECACHE_API', apiBase: CONFIG.API_BASE });
           // Notify user of update if not first install
           if (navigator.serviceWorker.controller) {
-            showToast('✓ Content updated', 2500);
+            Toast.show('Content updated', { type: 'success', duration: 2500 });
           }
         }
       });
@@ -1321,40 +1326,11 @@ if ('serviceWorker' in navigator) {
 }
 
 // ─── Offline Detection ─────────────────────────────────────────
-function showToast(message, duration = 3000) {
-  let toast = document.getElementById('mlToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'mlToast';
-    toast.className = 'ml-toast';
-    document.body.appendChild(toast);
-  }
-  toast.textContent = message;
-  toast.classList.add('visible');
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove('visible'), duration);
-}
 
 function initOfflineDetection() {
-  let wasOffline = !Utils.isOnline();
-
-  window.addEventListener('online', () => {
-    UI.setOfflineMode(false);
-    if (wasOffline) {
-      showToast('✓ Back online');
-      wasOffline = false;
-    }
-  });
-
-  window.addEventListener('offline', () => {
-    UI.setOfflineMode(true);
-    wasOffline = true;
-    showToast('⚡ You are offline — cached content available', 4000);
-  });
-
-  // Initial check
-  if (!Utils.isOnline()) {
-    UI.setOfflineMode(true);
+  // Delegate to centralized Toast module
+  if (typeof Toast !== 'undefined') {
+    Toast.initOffline();
   }
 }
 

@@ -3,7 +3,7 @@
 // ║       Stale-While-Revalidate · Offline-First                ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const CACHE_VERSION = 'ml-v3';
+const CACHE_VERSION = 'ml-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -14,6 +14,7 @@ const PRECACHE_ASSETS = [
   '/index.html',
   '/style.css',
   '/consent.js',
+  '/toast.js',
   '/app.js',
   '/i18n.js',
   '/theme.js',

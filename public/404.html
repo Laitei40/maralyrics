@@ -135,6 +135,7 @@
   </footer>
 
   <script src="/consent.js"></script>
+  <script src="/toast.js"></script>
   <!-- i18n -->
   <script src="/i18n.js"></script>
   <!-- Theme -->
@@ -143,6 +144,7 @@
     CookieConsent.init();
     I18n.init();
     Theme.init();
+    Toast.initOffline();
     if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
 
     // Settings panel toggle

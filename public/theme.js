@@ -12,6 +12,7 @@ const Theme = (() => {
 
   let currentMode = DEFAULT_MODE;
   let systemQuery = null;
+  let initialized = false;
 
   // ─── SVG Icons ───────────────────────────────────────
   const ICONS = {
@@ -71,6 +72,10 @@ const Theme = (() => {
       localStorage.setItem(STORAGE_KEY, mode);
     }
     applyTheme();
+    // Show toast only after initialization (not on page load)
+    if (initialized && typeof Toast !== 'undefined') {
+      Toast.show('Theme changed to ' + LABELS[mode] + '.', { type: 'info', duration: 2500 });
+    }
   }
 
   /** Get saved mode. */
@@ -97,6 +102,8 @@ const Theme = (() => {
 
     // Bind buttons
     bindButtons();
+
+    initialized = true;
   }
 
   /** Bind theme switcher buttons. */

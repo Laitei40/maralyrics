@@ -17,6 +17,7 @@ const I18n = (() => {
   let currentLang = DEFAULT_LANG;
   let translations = {};
   let fallback = {};
+  let initialized = false;
 
   // ─── Helpers ─────────────────────────────────────────
 
@@ -129,6 +130,12 @@ const I18n = (() => {
     }
 
     applyToDOM();
+
+    // Show toast only after initialization (not on first page load)
+    if (initialized && typeof Toast !== 'undefined') {
+      const langName = SUPPORTED_LANGS.find(l => l.code === lang);
+      Toast.show('Language changed to ' + (langName ? langName.name : lang) + '.', { type: 'info', duration: 2500 });
+    }
   }
 
   /** Get saved language or detect from browser. */
@@ -148,6 +155,7 @@ const I18n = (() => {
     const lang = getSavedLanguage();
     await setLanguage(lang);
     bindSwitcher();
+    initialized = true;
   }
 
   /** Bind language switcher button clicks. */
