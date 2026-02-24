@@ -470,8 +470,19 @@ const HomePage = {
   async init() {
     this.bindElements();
     this.bindEvents();
+    // Restore previous page/category so refresh keeps the user's position
+    try {
+      const saved = sessionStorage.getItem('ml_home_state');
+      if (saved) {
+        const s = JSON.parse(saved);
+        this.currentPage = s.page || 1;
+        this.currentCategory = s.category || null;
+      }
+    } catch {}
+    // Load categories first so active button can be highlighted
+    await this.loadCategories();
+    if (this.currentCategory) this.updateCategoryButtons();
     await Promise.all([
-      this.loadCategories(),
       this.loadPopular(),
       this.loadSongs(),
     ]);
@@ -629,6 +640,13 @@ const HomePage = {
   // ─── Load All Songs (Paginated) ──────────────────────
   async loadSongs() {
     if (!this.songGrid) return;
+    // Save current state so refresh restores page + category
+    try {
+      sessionStorage.setItem('ml_home_state', JSON.stringify({
+        page: this.currentPage,
+        category: this.currentCategory || '',
+      }));
+    } catch {}
     this.songGrid.innerHTML = UI.createSkeletons(6);
     this.paginationEl.innerHTML = '';
 

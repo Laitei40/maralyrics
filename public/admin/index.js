@@ -21,6 +21,142 @@ let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report'
 let allReports = [];
 let allCopyrightOwners = [];
 
+// ═══════════════════════════════════════════════════
+// ═══ DRAFT MANAGEMENT (localStorage auto-save) ════
+// ═══════════════════════════════════════════════════
+
+const DRAFT_PREFIX = 'ml_admin_draft_';
+
+function draftKey(type, id) {
+  return DRAFT_PREFIX + type + '_' + (id || 'new');
+}
+function saveDraft(type, id, data) {
+  try { localStorage.setItem(draftKey(type, id), JSON.stringify({ data, savedAt: Date.now() })); } catch {}
+}
+function loadDraft(type, id) {
+  try {
+    const raw = localStorage.getItem(draftKey(type, id));
+    if (!raw) return null;
+    return JSON.parse(raw).data || null;
+  } catch { return null; }
+}
+function clearDraft(type, id) {
+  try { localStorage.removeItem(draftKey(type, id)); } catch {}
+}
+function showDraftBanner(bannerId) {
+  const banner = document.getElementById(bannerId);
+  if (banner) banner.style.display = 'flex';
+}
+function hideDraftBanner(bannerId, indicatorId) {
+  const banner = document.getElementById(bannerId);
+  if (banner) banner.style.display = 'none';
+  if (indicatorId) {
+    const ind = document.getElementById(indicatorId);
+    if (ind) ind.style.display = 'none';
+  }
+}
+function updateDraftIndicator(indicatorId) {
+  const ind = document.getElementById(indicatorId);
+  if (!ind) return;
+  const now = new Date();
+  ind.textContent = 'Draft saved at ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  ind.style.display = 'block';
+}
+
+// ─── Song Draft ─────────────────────────────────
+let _songDraftTimer = null;
+function autoSaveSongDraft() {
+  clearTimeout(_songDraftTimer);
+  _songDraftTimer = setTimeout(() => {
+    const id = document.getElementById('formSongId')?.value || null;
+    const data = {
+      title: document.getElementById('formTitle')?.value || '',
+      artist_id: document.getElementById('formArtist')?.value || '',
+      composer_id: document.getElementById('formComposer')?.value || '',
+      category: document.getElementById('formCategory')?.value || '',
+      copyright_owner_id: document.getElementById('formCopyrightOwner')?.value || '',
+      slug: document.getElementById('formSlug')?.value || '',
+      lyrics: document.getElementById('formLyrics')?.value || '',
+    };
+    if (data.title || data.lyrics) {
+      saveDraft('song', id, data);
+      updateDraftIndicator('songDraftIndicator');
+    }
+  }, 1500);
+}
+function restoreSongDraftData(draft) {
+  if (!draft) return;
+  if (draft.title !== undefined) document.getElementById('formTitle').value = draft.title;
+  if (draft.artist_id) document.getElementById('formArtist').value = draft.artist_id;
+  if (draft.composer_id) document.getElementById('formComposer').value = draft.composer_id;
+  if (draft.category) document.getElementById('formCategory').value = draft.category;
+  if (draft.copyright_owner_id) document.getElementById('formCopyrightOwner').value = draft.copyright_owner_id;
+  if (draft.slug !== undefined) {
+    document.getElementById('formSlug').value = draft.slug;
+    if (draft.slug) document.getElementById('formSlug').dataset.manual = '1';
+  }
+  if (draft.lyrics !== undefined) document.getElementById('formLyrics').value = draft.lyrics;
+}
+
+// ─── Person Draft ────────────────────────────────
+let _personDraftTimer = null;
+function autoSavePersonDraft() {
+  clearTimeout(_personDraftTimer);
+  _personDraftTimer = setTimeout(() => {
+    const type = document.getElementById('personFormType')?.value || 'artist';
+    const id = document.getElementById('personFormId')?.value || null;
+    const data = {
+      name: document.getElementById('personFormName')?.value || '',
+      slug: document.getElementById('personFormSlug')?.value || '',
+      bio: document.getElementById('personFormBio')?.value || '',
+    };
+    if (data.name || data.bio) {
+      saveDraft(type, id, data);
+      updateDraftIndicator('personDraftIndicator');
+    }
+  }, 1500);
+}
+function restorePersonDraftData(draft) {
+  if (!draft) return;
+  if (draft.name !== undefined) document.getElementById('personFormName').value = draft.name;
+  if (draft.slug !== undefined) {
+    document.getElementById('personFormSlug').value = draft.slug;
+    if (draft.slug) document.getElementById('personFormSlug').dataset.manual = '1';
+  }
+  if (draft.bio !== undefined) document.getElementById('personFormBio').value = draft.bio;
+}
+
+// ─── Copyright Owner Draft ───────────────────────
+let _coDraftTimer = null;
+function autoSaveCoDraft() {
+  clearTimeout(_coDraftTimer);
+  _coDraftTimer = setTimeout(() => {
+    const id = document.getElementById('coFormId')?.value || null;
+    const data = {
+      name: document.getElementById('coFormName')?.value || '',
+      slug: document.getElementById('coFormSlug')?.value || '',
+      full_legal_name: document.getElementById('coFormFullLegalName')?.value || '',
+      organization: document.getElementById('coFormOrganization')?.value || '',
+      territory: document.getElementById('coFormTerritory')?.value || '',
+    };
+    if (data.name) {
+      saveDraft('copyright-owner', id, data);
+      updateDraftIndicator('coDraftIndicator');
+    }
+  }, 1500);
+}
+function restoreCoDraftData(draft) {
+  if (!draft) return;
+  if (draft.name !== undefined) document.getElementById('coFormName').value = draft.name;
+  if (draft.slug !== undefined) {
+    document.getElementById('coFormSlug').value = draft.slug;
+    if (draft.slug) document.getElementById('coFormSlug').dataset.manual = '1';
+  }
+  if (draft.full_legal_name !== undefined) document.getElementById('coFormFullLegalName').value = draft.full_legal_name;
+  if (draft.organization !== undefined) document.getElementById('coFormOrganization').value = draft.organization;
+  if (draft.territory !== undefined) document.getElementById('coFormTerritory').value = draft.territory;
+}
+
 // Helpers
 function escapeHtml(str) {
   if (!str) return '';
@@ -235,6 +371,7 @@ function clearSongForm() {
   document.getElementById('songForm').reset();
   document.getElementById('formSongId').value = '';
   document.getElementById('formMessage').style.display = 'none';
+  hideDraftBanner('songDraftBanner', 'songDraftIndicator');
 }
 function showFormMessage(text, isError = false) {
   const el = document.getElementById('formMessage');
@@ -250,6 +387,11 @@ function openNewSong() {
   populateDropdowns();
   openSongModal();
   document.getElementById('formTitle').focus();
+  // Check for unsaved draft
+  const draft = loadDraft('song', null);
+  if (draft && (draft.title || draft.lyrics)) {
+    showDraftBanner('songDraftBanner');
+  }
 }
 
 async function editSong(id) {
@@ -269,6 +411,11 @@ async function editSong(id) {
     document.getElementById('formCopyrightOwner').value = song.copyright_owner_id || '';
     document.getElementById('formSlug').value = song.slug || '';
     document.getElementById('formLyrics').value = song.lyrics || '';
+    // Check for unsaved draft for this song
+    const draft = loadDraft('song', song.id);
+    if (draft && (draft.title || draft.lyrics)) {
+      showDraftBanner('songDraftBanner');
+    }
   } catch (err) {
     showFormMessage('Failed to load song: ' + err.message, true);
   }
@@ -303,6 +450,9 @@ async function saveSong(e) {
       await apiPost(`${ADMIN_API}/songs`, body);
       showFormMessage('Song created successfully!');
     }
+    // Clear draft on successful save
+    clearDraft('song', id || null);
+    hideDraftBanner('songDraftBanner', 'songDraftIndicator');
 
     setTimeout(() => {
       closeSongModal();
@@ -711,6 +861,7 @@ function clearPersonForm() {
   document.getElementById('personForm').reset();
   document.getElementById('personFormId').value = '';
   document.getElementById('personFormMessage').style.display = 'none';
+  hideDraftBanner('personDraftBanner', 'personDraftIndicator');
   clearImageUpload();
   loadSocialLinks(null);
 }
@@ -729,6 +880,11 @@ function openNewPerson(type) {
   document.getElementById('personFormType').value = type;
   openPersonModal();
   document.getElementById('personFormName').focus();
+  // Check for unsaved draft
+  const draft = loadDraft(type, null);
+  if (draft && draft.name) {
+    showDraftBanner('personDraftBanner');
+  }
 }
 
 async function editPerson(type, id) {
@@ -752,6 +908,11 @@ async function editPerson(type, id) {
     }
     // Load social links
     loadSocialLinks(item.social_links || null);
+    // Check for unsaved draft for this person
+    const personDraft = loadDraft(type, item.id);
+    if (personDraft && personDraft.name) {
+      showDraftBanner('personDraftBanner');
+    }
   } catch (err) {
     showPersonMessage('Failed to load: ' + err.message, true);
   }
@@ -786,6 +947,9 @@ async function savePerson(e) {
       await apiPost(`${ADMIN_API}/${plural}`, body);
       showPersonMessage(label + ' created successfully!');
     }
+    // Clear draft on successful save
+    clearDraft(type, id || null);
+    hideDraftBanner('personDraftBanner', 'personDraftIndicator');
 
     setTimeout(() => {
       closePersonModal();
@@ -826,24 +990,43 @@ function closeDeleteModal() {
 
 async function deleteItem() {
   if (!deleteTargetId) return;
+  const id = deleteTargetId;
+  const type = deleteTargetType;
 
-  const btn = document.getElementById('btnDeleteConfirm');
-  btn.disabled = true;
-  btn.textContent = 'Deleting...';
+  // 1. Close modal immediately for snappy UX
+  closeDeleteModal();
+
+  // 2. Remove row from DOM immediately (optimistic)
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) row.remove();
+
+  // 3. Update in-memory arrays immediately
+  if (type === 'song') allSongs = allSongs.filter(s => s.id !== id);
+  else if (type === 'artist') allArtists = allArtists.filter(a => a.id !== id);
+  else if (type === 'composer') allComposers = allComposers.filter(c => c.id !== id);
+  else if (type === 'copyright-owner') allCopyrightOwners = allCopyrightOwners.filter(co => co.id !== id);
+  else if (type === 'report') allReports = allReports.filter(r => r.id !== id);
 
   try {
-    await apiDelete(`${ADMIN_API}/${deleteTargetType}/${deleteTargetId}`);
-    closeDeleteModal();
-    if (deleteTargetType === 'song') loadSongs(currentPage);
-    else if (deleteTargetType === 'artist') loadArtists();
-    else if (deleteTargetType === 'report') loadReports();
-    else if (deleteTargetType === 'copyright-owner') loadCopyrightOwners();
-    else loadComposers();
+    await apiDelete(`${ADMIN_API}/${type}/${id}`);
+    // Reload for accurate counts/pagination
+    if (type === 'song') loadSongs(currentPage);
+    else if (type === 'artist') loadArtists();
+    else if (type === 'composer') loadComposers();
+    else if (type === 'report') loadReports();
+    else if (type === 'copyright-owner') loadCopyrightOwners();
   } catch (err) {
-    alert('Delete failed: ' + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Delete';
+    // Show error and restore list by reloading
+    if (typeof Toast !== 'undefined') {
+      Toast.show('Delete failed: ' + err.message, { type: 'error', duration: 4000 });
+    } else {
+      alert('Delete failed: ' + err.message);
+    }
+    if (type === 'song') loadSongs(currentPage);
+    else if (type === 'artist') loadArtists();
+    else if (type === 'composer') loadComposers();
+    else if (type === 'report') loadReports();
+    else if (type === 'copyright-owner') loadCopyrightOwners();
   }
 }
 
@@ -855,6 +1038,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load songs + populate dropdowns
   loadSongs();
   populateDropdowns();
+
+  // Restore saved tab (persists across page refresh)
+  const savedTab = (() => { try { return sessionStorage.getItem('admin_tab') || 'songs'; } catch { return 'songs'; } })();
+  switchTab(savedTab);
 
   // Tab switching
   document.querySelectorAll('.admin__tab').forEach(tab => {
@@ -920,6 +1107,57 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('coFormName').addEventListener('input', autoCOSlug);
   document.getElementById('coFormSlug').addEventListener('input', function () {
     this.dataset.manual = this.value ? '1' : '';
+  });
+
+  // ── Auto-save drafts while typing ─────────────────
+  ['formTitle', 'formLyrics', 'formCategory', 'formSlug'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', autoSaveSongDraft);
+  });
+  ['formArtist', 'formComposer', 'formCopyrightOwner'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', autoSaveSongDraft);
+  });
+  ['personFormName', 'personFormBio', 'personFormSlug'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', autoSavePersonDraft);
+  });
+  ['coFormName', 'coFormSlug', 'coFormFullLegalName', 'coFormOrganization', 'coFormTerritory', 'coFormNotes'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', autoSaveCoDraft);
+  });
+
+  // ── Draft banner: Restore / Discard buttons ────────
+  document.getElementById('btnRestoreSongDraft')?.addEventListener('click', () => {
+    const id = document.getElementById('formSongId').value || null;
+    const draft = loadDraft('song', id);
+    if (draft) restoreSongDraftData(draft);
+    hideDraftBanner('songDraftBanner', 'songDraftIndicator');
+  });
+  document.getElementById('btnDiscardSongDraft')?.addEventListener('click', () => {
+    const id = document.getElementById('formSongId').value || null;
+    clearDraft('song', id);
+    hideDraftBanner('songDraftBanner', 'songDraftIndicator');
+  });
+  document.getElementById('btnRestorePersonDraft')?.addEventListener('click', () => {
+    const type = document.getElementById('personFormType').value || 'artist';
+    const id = document.getElementById('personFormId').value || null;
+    const draft = loadDraft(type, id);
+    if (draft) restorePersonDraftData(draft);
+    hideDraftBanner('personDraftBanner', 'personDraftIndicator');
+  });
+  document.getElementById('btnDiscardPersonDraft')?.addEventListener('click', () => {
+    const type = document.getElementById('personFormType').value || 'artist';
+    const id = document.getElementById('personFormId').value || null;
+    clearDraft(type, id);
+    hideDraftBanner('personDraftBanner', 'personDraftIndicator');
+  });
+  document.getElementById('btnRestoreCoDraft')?.addEventListener('click', () => {
+    const id = document.getElementById('coFormId').value || null;
+    const draft = loadDraft('copyright-owner', id);
+    if (draft) restoreCoDraftData(draft);
+    hideDraftBanner('coDraftBanner', 'coDraftIndicator');
+  });
+  document.getElementById('btnDiscardCoDraft')?.addEventListener('click', () => {
+    const id = document.getElementById('coFormId').value || null;
+    clearDraft('copyright-owner', id);
+    hideDraftBanner('coDraftBanner', 'coDraftIndicator');
   });
 
   // Keyboard: Escape to close modals
@@ -995,6 +1233,7 @@ function clearCopyrightOwnerForm() {
   document.getElementById('copyrightOwnerForm').reset();
   document.getElementById('coFormId').value = '';
   document.getElementById('coFormMessage').style.display = 'none';
+  hideDraftBanner('coDraftBanner', 'coDraftIndicator');
 }
 function showCOMessage(text, isError = false) {
   const el = document.getElementById('coFormMessage');
@@ -1009,6 +1248,11 @@ function openNewCopyrightOwner() {
   document.getElementById('coBtnSubmit').textContent = 'Create Copyright Owner';
   openCopyrightOwnerModal();
   document.getElementById('coFormName').focus();
+  // Check for unsaved draft
+  const draft = loadDraft('copyright-owner', null);
+  if (draft && draft.name) {
+    showDraftBanner('coDraftBanner');
+  }
 }
 
 async function editCopyrightOwner(id) {
@@ -1032,6 +1276,11 @@ async function editCopyrightOwner(id) {
     document.getElementById('coFormISRC').value = item.isrc_prefix || '';
     document.getElementById('coFormPRO').value = item.pro_affiliation || '';
     document.getElementById('coFormNotes').value = item.notes || '';
+    // Check for unsaved draft for this copyright owner
+    const coDraft = loadDraft('copyright-owner', item.id);
+    if (coDraft && coDraft.name) {
+      showDraftBanner('coDraftBanner');
+    }
   } catch (err) {
     showCOMessage('Failed to load: ' + err.message, true);
   }
@@ -1070,6 +1319,9 @@ async function saveCopyrightOwner(e) {
       await apiPost(`${ADMIN_API}/copyright-owners`, body);
       showCOMessage('Copyright owner created successfully!');
     }
+    // Clear draft on successful save
+    clearDraft('copyright-owner', id || null);
+    hideDraftBanner('coDraftBanner', 'coDraftIndicator');
 
     setTimeout(() => {
       closeCopyrightOwnerModal();

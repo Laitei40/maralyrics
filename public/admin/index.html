@@ -274,6 +274,15 @@
       <form id="songForm" class="modal__form">
         <input type="hidden" id="formSongId" value="" />
 
+        <!-- Draft banner -->
+        <div id="songDraftBanner" class="draft-banner" style="display:none;">
+          <span class="draft-banner__text">📝 You have an unsaved draft</span>
+          <div class="draft-banner__actions">
+            <button type="button" id="btnRestoreSongDraft" class="btn btn--sm btn--primary">Restore</button>
+            <button type="button" id="btnDiscardSongDraft" class="btn btn--sm btn--ghost">Discard</button>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="formTitle">Title <span class="required">*</span></label>
           <input type="text" id="formTitle" class="form-input" required placeholder="Song title" />
@@ -364,6 +373,15 @@
         <input type="hidden" id="personFormId" value="" />
         <input type="hidden" id="personFormType" value="artist" />
 
+        <!-- Draft banner -->
+        <div id="personDraftBanner" class="draft-banner" style="display:none;">
+          <span class="draft-banner__text">📝 You have an unsaved draft</span>
+          <div class="draft-banner__actions">
+            <button type="button" id="btnRestorePersonDraft" class="btn btn--sm btn--primary">Restore</button>
+            <button type="button" id="btnDiscardPersonDraft" class="btn btn--sm btn--ghost">Discard</button>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="personFormName">Name <span class="required">*</span></label>
           <input type="text" id="personFormName" class="form-input" required placeholder="Full name" />
@@ -418,6 +436,8 @@
           <button type="button" class="btn btn--sm btn--ghost" id="btnAddSocial" style="margin-top:var(--space-xs);">+ Add Social Link</button>
         </div>
 
+        <div id="personDraftIndicator" class="draft-indicator" style="display:none;"></div>
+
         <div id="personFormMessage" class="form-message" style="display:none;"></div>
 
         <div class="modal__actions">
@@ -438,6 +458,15 @@
       </div>
       <form id="copyrightOwnerForm" class="modal__form">
         <input type="hidden" id="coFormId" value="" />
+
+        <!-- Draft banner -->
+        <div id="coDraftBanner" class="draft-banner" style="display:none;">
+          <span class="draft-banner__text">📝 You have an unsaved draft</span>
+          <div class="draft-banner__actions">
+            <button type="button" id="btnRestoreCoDraft" class="btn btn--sm btn--primary">Restore</button>
+            <button type="button" id="btnDiscardCoDraft" class="btn btn--sm btn--ghost">Discard</button>
+          </div>
+        </div>
 
         <div class="form-group">
           <label class="form-label" for="coFormName">Name <span class="required">*</span></label>
@@ -502,6 +531,8 @@
           <label class="form-label" for="coFormNotes">Notes</label>
           <textarea id="coFormNotes" class="form-input" rows="3" placeholder="Additional notes..."></textarea>
         </div>
+
+        <div id="coDraftIndicator" class="draft-indicator" style="display:none;"></div>
 
         <div id="coFormMessage" class="form-message" style="display:none;"></div>
 
