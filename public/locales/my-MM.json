@@ -27,7 +27,7 @@
   "song": {
     "breadcrumb": "Song",
     "feedback_btn": "Feedback",
-    "meta_desc": "Read lyrics of \"{title}\" by {artist} on MaraLyrics.",
+    "meta_desc": "Read lyrics of \"{title}\" by {artist} on Mara Lyrics.",
     "error_title": "Song not found",
     "error_text": "This song may have been removed or the link is incorrect.",
     "error_go_home": "← Go Home"
@@ -65,7 +65,7 @@
     "back_to_song": "← Back to Song",
     "sending": "Sending...",
     "success_title": "Feedback Sent!",
-    "success_text": "Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.",
+    "success_text": "Thank you for helping us improve Mara Lyrics. We'll review your feedback as soon as possible.",
     "success_back_home": "← Back to Home",
     "err_fill_all": "Please fill in all fields.",
     "err_turnstile": "Please complete the verification challenge.",
@@ -139,7 +139,7 @@
   "faq": {
     "breadcrumb": "FAQ",
     "title": "Frequently Asked Questions",
-    "q1": "How accurate are the song lyrics on MaraLyrics?",
+    "q1": "How accurate are the song lyrics on Mara Lyrics?",
     "a1": "<p>We strive for the highest level of accuracy. All lyrics are sourced from original recordings, official publications, or trusted community members. However, some variations may exist between different performances or regional dialects. If you notice an error, please use our <a href=\"/report\">Report Error</a> page to let us know.</p>",
     "q2": "How can I submit a song to MaraLyrics?",
     "a2": "<p>We welcome song submissions from the community! To submit lyrics, please <a href=\"/contact\">contact us</a> with the following information:</p><ul><li>Song title</li><li>Artist / composer name</li><li>Complete lyrics text</li><li>Category (Gospel, Love, Traditional, Patriotic, etc.)</li><li>Any additional context or notes</li></ul><p>Our editorial team will review the submission and publish it once verified.</p>",
