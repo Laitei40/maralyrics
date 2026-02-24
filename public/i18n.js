@@ -107,10 +107,8 @@ const I18n = (() => {
     }
 
     currentLang = lang;
-    // Only persist if user has accepted cookies
-    if (typeof CookieConsent === 'undefined' || CookieConsent.hasConsent()) {
-      localStorage.setItem(STORAGE_KEY, lang);
-    }
+    // Always persist language preference — it is a functional setting, not a tracking cookie
+    try { localStorage.setItem(STORAGE_KEY, lang); } catch (_) {}
 
     // Load requested language
     const data = await loadTranslations(lang);
