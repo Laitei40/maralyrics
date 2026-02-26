@@ -221,9 +221,7 @@ body::before {
 .mobile-drawer__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(3, 8, 18, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(5, 10, 20, 0.52);
   opacity: 0;
   transition: opacity var(--transition-base);
 }
@@ -287,37 +285,6 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-}
-
-.mobile-drawer__settings {
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: grid;
-  gap: var(--space-md);
-}
-
-.mobile-drawer__settings-group {
-  display: grid;
-  gap: 8px;
-}
-
-.mobile-drawer__settings-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.mobile-drawer .settings-panel__options {
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.mobile-drawer .lang-switcher__btn,
-.mobile-drawer .theme-switcher__btn {
-  min-height: 34px;
 }
 
 .mobile-drawer__link {
