@@ -181,6 +181,35 @@ export async function createSong(db, { title, slug, artist_id, composer_id, copy
   return { id: result.meta.last_row_id };
 }
 
+export async function setSongAssociations(db, songId, { artist_ids = [], composer_ids = [], copyright_owner_ids = [] } = {}) {
+  // Normalize to integers and limit to 40
+  const aIds = (artist_ids || []).slice(0, 40).map(id => parseInt(id, 10)).filter(Boolean);
+  const cIds = (composer_ids || []).slice(0, 40).map(id => parseInt(id, 10)).filter(Boolean);
+  const coIds = (copyright_owner_ids || []).slice(0, 40).map(id => parseInt(id, 10)).filter(Boolean);
+
+  // Clear existing links
+  await db.prepare('DELETE FROM song_artists WHERE song_id = ?').bind(songId).run();
+  await db.prepare('DELETE FROM song_composers WHERE song_id = ?').bind(songId).run();
+  await db.prepare('DELETE FROM song_copyright_owners WHERE song_id = ?').bind(songId).run();
+
+  for (const aid of aIds) {
+    await db.prepare('INSERT OR IGNORE INTO song_artists (song_id, artist_id) VALUES (?, ?)').bind(songId, aid).run();
+  }
+  for (const cid of cIds) {
+    await db.prepare('INSERT OR IGNORE INTO song_composers (song_id, composer_id) VALUES (?, ?)').bind(songId, cid).run();
+  }
+  for (const coid of coIds) {
+    await db.prepare('INSERT OR IGNORE INTO song_copyright_owners (song_id, copyright_owner_id) VALUES (?, ?)').bind(songId, coid).run();
+  }
+}
+
+export async function getAssociationsForSong(db, songId) {
+  const artists = await db.prepare('SELECT a.id, a.name FROM artists a JOIN song_artists sa ON a.id = sa.artist_id WHERE sa.song_id = ? ORDER BY a.name').bind(songId).all().then(r => r.results || []);
+  const composers = await db.prepare('SELECT c.id, c.name FROM composers c JOIN song_composers sc ON c.id = sc.composer_id WHERE sc.song_id = ? ORDER BY c.name').bind(songId).all().then(r => r.results || []);
+  const copyrightOwners = await db.prepare('SELECT co.id, co.name FROM copyright_owners co JOIN song_copyright_owners sco ON co.id = sco.copyright_owner_id WHERE sco.song_id = ? ORDER BY co.name').bind(songId).all().then(r => r.results || []);
+  return { artists, composers, copyrightOwners };
+}
+
 export async function updateSong(db, id, { title, slug, artist_id, composer_id, copyright_owner_id, category, lyrics }) {
   const result = await db
     .prepare(
