@@ -405,10 +405,23 @@ async function editSong(id) {
     const song = await apiGet(`${ADMIN_API}/song/${id}`);
     document.getElementById('formSongId').value = song.id;
     document.getElementById('formTitle').value = song.title || '';
-    document.getElementById('formArtist').value = song.artist_id || '';
-    document.getElementById('formComposer').value = song.composer_id || '';
+      // If API returns arrays of associated ids, select them; otherwise fall back to single id
+      const artistSel = document.getElementById('formArtist');
+      const composerSel = document.getElementById('formComposer');
+      const coSel = document.getElementById('formCopyrightOwner');
+      if (artistSel) {
+        const aIds = song.artist_ids || (song.artist_id ? [song.artist_id] : []);
+        Array.from(artistSel.options).forEach(opt => opt.selected = aIds.includes(parseInt(opt.value, 10)));
+      }
+      if (composerSel) {
+        const cIds = song.composer_ids || (song.composer_id ? [song.composer_id] : []);
+        Array.from(composerSel.options).forEach(opt => opt.selected = cIds.includes(parseInt(opt.value, 10)));
+      }
     document.getElementById('formCategory').value = song.category || '';
-    document.getElementById('formCopyrightOwner').value = song.copyright_owner_id || '';
+    if (coSel) {
+      const coIds = song.copyright_owner_ids || (song.copyright_owner_id ? [song.copyright_owner_id] : []);
+      Array.from(coSel.options).forEach(opt => opt.selected = coIds.includes(parseInt(opt.value, 10)));
+    }
     document.getElementById('formSlug').value = song.slug || '';
     document.getElementById('formLyrics').value = song.lyrics || '';
     // Check for unsaved draft for this song
@@ -426,15 +439,24 @@ async function saveSong(e) {
 
   const id = document.getElementById('formSongId').value;
   const title = document.getElementById('formTitle').value.trim();
-  const artist_id = document.getElementById('formArtist').value || null;
-  const composer_id = document.getElementById('formComposer').value || null;
-  const copyright_owner_id = document.getElementById('formCopyrightOwner').value || null;
+  // Collect multiple selections (limit to 40)
+  const artistSel = document.getElementById('formArtist');
+  const composerSel = document.getElementById('formComposer');
+  const coSel = document.getElementById('formCopyrightOwner');
+  const artist_id = artistSel ? Array.from(artistSel.selectedOptions).map(o => o.value).filter(v => v && v !== '') .slice(0,40) : null;
+  const composer_id = composerSel ? Array.from(composerSel.selectedOptions).map(o => o.value).filter(v => v && v !== '') .slice(0,40) : null;
+  const copyright_owner_id = coSel ? Array.from(coSel.selectedOptions).map(o => o.value).filter(v => v && v !== '') .slice(0,40) : null;
   const category = document.getElementById('formCategory').value.trim();
   const slug = document.getElementById('formSlug').value.trim();
   const lyrics = document.getElementById('formLyrics').value.trim();
 
   if (!title) { showFormMessage('Title is required.', true); return; }
   if (!lyrics) { showFormMessage('Lyrics are required.', true); return; }
+
+  // Enforce maximum selections
+  if (artist_id && artist_id.length > 40) { showFormMessage('Select up to 40 artists.', true); btn.disabled = false; btn.textContent = id ? 'Update Song' : 'Create Song'; return; }
+  if (composer_id && composer_id.length > 40) { showFormMessage('Select up to 40 composers.', true); btn.disabled = false; btn.textContent = id ? 'Update Song' : 'Create Song'; return; }
+  if (copyright_owner_id && copyright_owner_id.length > 40) { showFormMessage('Select up to 40 copyright owners.', true); btn.disabled = false; btn.textContent = id ? 'Update Song' : 'Create Song'; return; }
 
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true;
