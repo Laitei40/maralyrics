@@ -32,6 +32,7 @@ import {
   deleteComposer,
   // Copyright Owners
   setSongAssociations,
+  getAssociationsForSong,
   getCopyrightOwners,
   getCopyrightOwnerBySlug,
   getCopyrightOwnerById,

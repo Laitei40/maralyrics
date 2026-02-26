@@ -439,7 +439,6 @@ async function saveSong(e) {
 
   const id = document.getElementById('formSongId').value;
   const title = document.getElementById('formTitle').value.trim();
-  const artist_id = document.getElementById('formArtist').value || null;
   // Collect multiple selections (limit to 40)
   const artistSel = document.getElementById('formArtist');
   const composerSel = document.getElementById('formComposer');
@@ -453,6 +452,11 @@ async function saveSong(e) {
 
   if (!title) { showFormMessage('Title is required.', true); return; }
   if (!lyrics) { showFormMessage('Lyrics are required.', true); return; }
+
+  // Enforce maximum selections
+  if (artist_id && artist_id.length > 40) { showFormMessage('Select up to 40 artists.', true); btn.disabled = false; btn.textContent = id ? 'Update Song' : 'Create Song'; return; }
+  if (composer_id && composer_id.length > 40) { showFormMessage('Select up to 40 composers.', true); btn.disabled = false; btn.textContent = id ? 'Update Song' : 'Create Song'; return; }
+  if (copyright_owner_id && copyright_owner_id.length > 40) { showFormMessage('Select up to 40 copyright owners.', true); btn.disabled = false; btn.textContent = id ? 'Update Song' : 'Create Song'; return; }
 
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true;
