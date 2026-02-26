@@ -1386,46 +1386,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Mobile drawer toggle
-  const menuBtn = document.querySelector('.header__menu-btn');
-  const mobileDrawer = document.querySelector('.mobile-drawer');
-  const mobileDrawerClose = document.querySelector('.mobile-drawer__close');
-  const mobileDrawerBackdrop = document.querySelector('.mobile-drawer__backdrop');
-  const mobileDrawerLinks = document.querySelectorAll('.mobile-drawer__link');
+  // Ensure settings (language + theme) are available in the mobile drawer on small screens.
+  // We move the existing `.settings-toggle` element into the drawer when the header menu
+  // is visible (small screens), and restore it back on larger screens. Moving preserves
+  // event listeners and keeps behavior consistent.
+  (function attachSettingsToDrawer() {
+    const settingsToggle = document.querySelector('.settings-toggle');
+    const menuBtn = document.querySelector('.header__menu-btn');
+    const mobileDrawer = document.querySelector('.mobile-drawer');
+    const mobileDrawerContent = document.querySelector('.mobile-drawer__content');
 
-  const closeMobileDrawer = () => {
-    if (!mobileDrawer || !menuBtn) return;
-    mobileDrawer.classList.remove('open');
-    mobileDrawer.setAttribute('aria-hidden', 'true');
-    menuBtn.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-  };
+    if (!settingsToggle || !menuBtn || !mobileDrawer || !mobileDrawerContent) return;
 
-  const openMobileDrawer = () => {
-    if (!mobileDrawer || !menuBtn) return;
-    mobileDrawer.classList.add('open');
-    mobileDrawer.setAttribute('aria-hidden', 'false');
-    menuBtn.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden';
-  };
+    const originalParent = settingsToggle.parentElement;
+    const originalNext = settingsToggle.nextElementSibling;
+    let moved = false;
 
-  if (menuBtn && mobileDrawer) {
-    menuBtn.addEventListener('click', () => {
-      if (mobileDrawer.classList.contains('open')) {
-        closeMobileDrawer();
-      } else {
-        openMobileDrawer();
+    function updatePlacement() {
+      const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
+      if (menuVisible && !moved) {
+        mobileDrawerContent.appendChild(settingsToggle);
+        settingsToggle.classList.remove('open');
+        moved = true;
+      } else if (!menuVisible && moved) {
+        if (originalNext) originalParent.insertBefore(settingsToggle, originalNext);
+        else originalParent.appendChild(settingsToggle);
+        settingsToggle.classList.remove('open');
+        moved = false;
       }
-    });
+    }
 
-    if (mobileDrawerClose) mobileDrawerClose.addEventListener('click', closeMobileDrawer);
-    if (mobileDrawerBackdrop) mobileDrawerBackdrop.addEventListener('click', closeMobileDrawer);
-    mobileDrawerLinks.forEach((link) => link.addEventListener('click', closeMobileDrawer));
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && mobileDrawer.classList.contains('open')) closeMobileDrawer();
-    });
-  }
+    // Update on load and on resize
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
+  })();
 
   // Mobile drawer toggle
   const menuBtn = document.querySelector('.header__menu-btn');
