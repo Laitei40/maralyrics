@@ -31,8 +31,6 @@ import {
   updateComposer,
   deleteComposer,
   // Copyright Owners
-  setSongAssociations,
-  getAssociationsForSong,
   getCopyrightOwners,
   getCopyrightOwnerBySlug,
   getCopyrightOwnerById,
@@ -111,13 +109,7 @@ export async function handleGetSong(slug, db) {
   if (!slug) return badRequest('Slug is required');
   const song = await getSongBySlug(db, slug);
   if (!song) return notFound('Song not found');
-  // Include any many-to-many associations when available
-  try {
-    const assoc = await getAssociationsForSong(db, song.id);
-    return json({ ...song, artist_ids: assoc.artists.map(a => a.id), composer_ids: assoc.composers.map(c => c.id), copyright_owner_ids: assoc.copyrightOwners.map(co => co.id) }, 200, { 'Cache-Control': 'public, max-age=300' });
-  } catch (err) {
-    return json(song, 200, { 'Cache-Control': 'public, max-age=300' });
-  }
+  return json(song, 200, { 'Cache-Control': 'public, max-age=300' });
 }
 
 export async function handleSearch(request, db) {
@@ -183,17 +175,13 @@ export async function handleAdminGetSong(id, db) {
   if (!id) return badRequest('Song ID is required');
   const song = await getSongById(db, parseInt(id, 10));
   if (!song) return notFound('Song not found');
-  try {
-    const assoc = await getAssociationsForSong(db, song.id);
-    return json({ ...song, artist_ids: assoc.artists.map(a => a.id), composer_ids: assoc.composers.map(c => c.id), copyright_owner_ids: assoc.copyrightOwners.map(co => co.id) });
-  } catch (err) {
-    return json(song);
-  }
+  return json(song);
 }
 
 export async function handleAdminCreateSong(request, db) {
   let body;
   try { body = await request.json(); } catch { return badRequest('Invalid JSON body'); }
+
   const { title, artist_id, composer_id, copyright_owner_id, category, lyrics } = body;
   let { slug } = body;
 
@@ -208,20 +196,12 @@ export async function handleAdminCreateSong(request, db) {
   const result = await createSong(db, {
     title: title.trim(),
     slug,
-    artist_id: Array.isArray(artist_id) ? (artist_id[0] ? parseInt(artist_id[0], 10) : null) : (artist_id ? parseInt(artist_id, 10) : null),
-    composer_id: Array.isArray(composer_id) ? (composer_id[0] ? parseInt(composer_id[0], 10) : null) : (composer_id ? parseInt(composer_id, 10) : null),
-    copyright_owner_id: Array.isArray(copyright_owner_id) ? (copyright_owner_id[0] ? parseInt(copyright_owner_id[0], 10) : null) : (copyright_owner_id ? parseInt(copyright_owner_id, 10) : null),
+    artist_id: artist_id ? parseInt(artist_id, 10) : null,
+    composer_id: composer_id ? parseInt(composer_id, 10) : null,
+    copyright_owner_id: copyright_owner_id ? parseInt(copyright_owner_id, 10) : null,
     category: category?.trim() || null,
     lyrics: lyrics.trim(),
   });
-
-  // If caller provided arrays of associations, persist them in junction tables
-  if (result && result.id) {
-    const artist_ids = Array.isArray(body.artist_id) ? body.artist_id : (body.artist_id ? [body.artist_id] : []);
-    const composer_ids = Array.isArray(body.composer_id) ? body.composer_id : (body.composer_id ? [body.composer_id] : []);
-    const co_ids = Array.isArray(body.copyright_owner_id) ? body.copyright_owner_id : (body.copyright_owner_id ? [body.copyright_owner_id] : []);
-    await setSongAssociations(db, result.id, { artist_ids, composer_ids, copyright_owner_ids: co_ids });
-  }
 
   return json({ success: true, id: result.id, slug }, 201);
 }
@@ -247,18 +227,12 @@ export async function handleAdminUpdateSong(id, request, db) {
   const updated = await updateSong(db, parseInt(id, 10), {
     title: title.trim(),
     slug,
-    artist_id: Array.isArray(artist_id) ? (artist_id[0] ? parseInt(artist_id[0], 10) : null) : (artist_id ? parseInt(artist_id, 10) : null),
-    composer_id: Array.isArray(composer_id) ? (composer_id[0] ? parseInt(composer_id[0], 10) : null) : (composer_id ? parseInt(composer_id, 10) : null),
-    copyright_owner_id: Array.isArray(copyright_owner_id) ? (copyright_owner_id[0] ? parseInt(copyright_owner_id[0], 10) : null) : (copyright_owner_id ? parseInt(copyright_owner_id, 10) : null),
+    artist_id: artist_id ? parseInt(artist_id, 10) : null,
+    composer_id: composer_id ? parseInt(composer_id, 10) : null,
+    copyright_owner_id: copyright_owner_id ? parseInt(copyright_owner_id, 10) : null,
     category: category?.trim() || null,
     lyrics: lyrics.trim(),
   });
-
-  // Persist associations if provided
-  const artist_ids = Array.isArray(body.artist_id) ? body.artist_id : (body.artist_id ? [body.artist_id] : []);
-  const composer_ids = Array.isArray(body.composer_id) ? body.composer_id : (body.composer_id ? [body.composer_id] : []);
-  const co_ids = Array.isArray(body.copyright_owner_id) ? body.copyright_owner_id : (body.copyright_owner_id ? [body.copyright_owner_id] : []);
-  if (updated) await setSongAssociations(db, parseInt(id, 10), { artist_ids, composer_ids, copyright_owner_ids: co_ids });
 
   if (!updated) return notFound('Song not found');
   return json({ success: true, id: parseInt(id, 10), slug });

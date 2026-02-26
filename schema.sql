@@ -64,30 +64,6 @@ CREATE TABLE IF NOT EXISTS songs (
     FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE SET NULL,
     FOREIGN KEY (copyright_owner_id) REFERENCES copyright_owners(id) ON DELETE SET NULL
 );
--- Many-to-many links to support multiple artists/composers/copyright owners per song
-CREATE TABLE IF NOT EXISTS songs_artists (
-    song_id INTEGER NOT NULL,
-    artist_id INTEGER NOT NULL,
-    PRIMARY KEY (song_id, artist_id),
-    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
-    FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS songs_composers (
-    song_id INTEGER NOT NULL,
-    composer_id INTEGER NOT NULL,
-    PRIMARY KEY (song_id, composer_id),
-    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
-    FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS songs_copyright_owners (
-    song_id INTEGER NOT NULL,
-    copyright_owner_id INTEGER NOT NULL,
-    PRIMARY KEY (song_id, copyright_owner_id),
-    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
-    FOREIGN KEY (copyright_owner_id) REFERENCES copyright_owners(id) ON DELETE CASCADE
-);
 
 -- Reports table
 CREATE TABLE IF NOT EXISTS reports (
@@ -140,6 +116,7 @@ INSERT INTO artists (name, slug, bio) VALUES
 INSERT INTO composers (name, slug, bio) VALUES
 ('Mara Composer',       'mara-composer',       'A prolific composer of Mara traditional and contemporary songs.');
 
+-- Seed songs (linked by artist_id / composer_id)
 INSERT INTO songs (title, slug, artist_id, composer_id, category, lyrics) VALUES
 (
     'Mara Hlasak',
@@ -175,29 +152,4 @@ INSERT INTO songs (title, slug, artist_id, composer_id, category, lyrics) VALUES
     5, 1,
     'Gospel',
     'Rawl tha ei a that e...' || char(10) || 'Goodness overflows...' || char(10) || 'Blessing upon blessing...' || char(10) || char(10) || 'Bridge:' || char(10) || 'Forever grateful...' || char(10) || 'Songs of praise...'
-);
-
--- Junction tables to allow many-to-many relationships (songs ↔ artists/composers/copyright_owners)
-CREATE TABLE IF NOT EXISTS song_artists (
-  song_id INTEGER NOT NULL,
-  artist_id INTEGER NOT NULL,
-  PRIMARY KEY (song_id, artist_id),
-  FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
-  FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS song_composers (
-  song_id INTEGER NOT NULL,
-  composer_id INTEGER NOT NULL,
-  PRIMARY KEY (song_id, composer_id),
-  FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
-  FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS song_copyright_owners (
-  song_id INTEGER NOT NULL,
-  copyright_owner_id INTEGER NOT NULL,
-  PRIMARY KEY (song_id, copyright_owner_id),
-  FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
-  FOREIGN KEY (copyright_owner_id) REFERENCES copyright_owners(id) ON DELETE CASCADE
 );

@@ -380,24 +380,6 @@
   color: var(--text-muted);
 }
 
-/* Ensure native select dropdowns remain readable in dark modal — set option/bg colors */
-select.form-input,
-select.form-input[multiple] {
-  color: var(--text-primary);
-  background: rgba(255,255,255,0.03);
-}
-
-/* Most browsers honor option background/color; keep them dark for readability */
-select.form-input option {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-}
-
-/* optgroup label styling */
-select.form-input optgroup {
-  color: var(--text-secondary);
-}
-
 .form-textarea {
   min-height: 220px;
   resize: vertical;
