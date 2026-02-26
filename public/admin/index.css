@@ -385,6 +385,7 @@ select.form-input,
 select.form-input[multiple] {
   color: var(--text-primary);
   background: rgba(255,255,255,0.03);
+  color-scheme: dark;
 }
 
 /* Most browsers honor option background/color; keep them dark for readability */
@@ -393,9 +394,17 @@ select.form-input option {
   color: var(--text-primary);
 }
 
+select.form-input option:checked,
+select.form-input option:hover,
+select.form-input option:focus {
+  background: rgba(139, 92, 246, 0.28);
+  color: var(--text-primary);
+}
+
 /* optgroup label styling */
 select.form-input optgroup {
   color: var(--text-secondary);
+  background: #0b1220;
 }
 
 .form-textarea {
