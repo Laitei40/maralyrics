@@ -80,15 +80,6 @@ function generateSlug(text) {
     .replace(/^-|-$/g, '');
 }
 
-function normalizeAssociationIds(body, singularKey, pluralKey) {
-  const raw = body?.[pluralKey] ?? body?.[singularKey];
-  const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-  const ids = list
-    .map((id) => parseInt(id, 10))
-    .filter((id) => Number.isInteger(id) && id > 0);
-  return Array.from(new Set(ids)).slice(0, 40);
-}
-
 // ─── Rate limiter ────────────────────────────────────────────
 const viewRateMap = new Map();
 const RATE_LIMIT_MS = 60 * 60 * 1000;
@@ -209,20 +200,6 @@ export async function handleAdminCreateSong(request, db) {
   if (!title || !title.trim()) return badRequest('Title is required');
   if (!lyrics || !lyrics.trim()) return badRequest('Lyrics are required');
 
-  const artistIds = normalizeAssociationIds(body, 'artist_id', 'artist_ids');
-  const composerIds = normalizeAssociationIds(body, 'composer_id', 'composer_ids');
-  const copyrightOwnerIds = normalizeAssociationIds(body, 'copyright_owner_id', 'copyright_owner_ids');
-
-  if ((Array.isArray(body.artist_id) && body.artist_id.length > 40) || (Array.isArray(body.artist_ids) && body.artist_ids.length > 40)) {
-    return badRequest('Select up to 40 artists');
-  }
-  if ((Array.isArray(body.composer_id) && body.composer_id.length > 40) || (Array.isArray(body.composer_ids) && body.composer_ids.length > 40)) {
-    return badRequest('Select up to 40 composers');
-  }
-  if ((Array.isArray(body.copyright_owner_id) && body.copyright_owner_id.length > 40) || (Array.isArray(body.copyright_owner_ids) && body.copyright_owner_ids.length > 40)) {
-    return badRequest('Select up to 40 copyright owners');
-  }
-
   slug = (slug && slug.trim()) ? slug.trim() : generateSlug(title);
 
   const existing = await getSongBySlugRaw(db, slug);
@@ -231,20 +208,19 @@ export async function handleAdminCreateSong(request, db) {
   const result = await createSong(db, {
     title: title.trim(),
     slug,
-    artist_id: artistIds[0] || null,
-    composer_id: composerIds[0] || null,
-    copyright_owner_id: copyrightOwnerIds[0] || null,
+    artist_id: Array.isArray(artist_id) ? (artist_id[0] ? parseInt(artist_id[0], 10) : null) : (artist_id ? parseInt(artist_id, 10) : null),
+    composer_id: Array.isArray(composer_id) ? (composer_id[0] ? parseInt(composer_id[0], 10) : null) : (composer_id ? parseInt(composer_id, 10) : null),
+    copyright_owner_id: Array.isArray(copyright_owner_id) ? (copyright_owner_id[0] ? parseInt(copyright_owner_id[0], 10) : null) : (copyright_owner_id ? parseInt(copyright_owner_id, 10) : null),
     category: category?.trim() || null,
     lyrics: lyrics.trim(),
   });
 
   // If caller provided arrays of associations, persist them in junction tables
   if (result && result.id) {
-    await setSongAssociations(db, result.id, {
-      artist_ids: artistIds,
-      composer_ids: composerIds,
-      copyright_owner_ids: copyrightOwnerIds,
-    });
+    const artist_ids = Array.isArray(body.artist_id) ? body.artist_id : (body.artist_id ? [body.artist_id] : []);
+    const composer_ids = Array.isArray(body.composer_id) ? body.composer_id : (body.composer_id ? [body.composer_id] : []);
+    const co_ids = Array.isArray(body.copyright_owner_id) ? body.copyright_owner_id : (body.copyright_owner_id ? [body.copyright_owner_id] : []);
+    await setSongAssociations(db, result.id, { artist_ids, composer_ids, copyright_owner_ids: co_ids });
   }
 
   return json({ success: true, id: result.id, slug }, 201);
@@ -261,20 +237,6 @@ export async function handleAdminUpdateSong(id, request, db) {
   if (!title || !title.trim()) return badRequest('Title is required');
   if (!lyrics || !lyrics.trim()) return badRequest('Lyrics are required');
 
-  const artistIds = normalizeAssociationIds(body, 'artist_id', 'artist_ids');
-  const composerIds = normalizeAssociationIds(body, 'composer_id', 'composer_ids');
-  const copyrightOwnerIds = normalizeAssociationIds(body, 'copyright_owner_id', 'copyright_owner_ids');
-
-  if ((Array.isArray(body.artist_id) && body.artist_id.length > 40) || (Array.isArray(body.artist_ids) && body.artist_ids.length > 40)) {
-    return badRequest('Select up to 40 artists');
-  }
-  if ((Array.isArray(body.composer_id) && body.composer_id.length > 40) || (Array.isArray(body.composer_ids) && body.composer_ids.length > 40)) {
-    return badRequest('Select up to 40 composers');
-  }
-  if ((Array.isArray(body.copyright_owner_id) && body.copyright_owner_id.length > 40) || (Array.isArray(body.copyright_owner_ids) && body.copyright_owner_ids.length > 40)) {
-    return badRequest('Select up to 40 copyright owners');
-  }
-
   slug = (slug && slug.trim()) ? slug.trim() : generateSlug(title);
 
   const existing = await getSongBySlugRaw(db, slug);
@@ -285,21 +247,18 @@ export async function handleAdminUpdateSong(id, request, db) {
   const updated = await updateSong(db, parseInt(id, 10), {
     title: title.trim(),
     slug,
-    artist_id: artistIds[0] || null,
-    composer_id: composerIds[0] || null,
-    copyright_owner_id: copyrightOwnerIds[0] || null,
+    artist_id: Array.isArray(artist_id) ? (artist_id[0] ? parseInt(artist_id[0], 10) : null) : (artist_id ? parseInt(artist_id, 10) : null),
+    composer_id: Array.isArray(composer_id) ? (composer_id[0] ? parseInt(composer_id[0], 10) : null) : (composer_id ? parseInt(composer_id, 10) : null),
+    copyright_owner_id: Array.isArray(copyright_owner_id) ? (copyright_owner_id[0] ? parseInt(copyright_owner_id[0], 10) : null) : (copyright_owner_id ? parseInt(copyright_owner_id, 10) : null),
     category: category?.trim() || null,
     lyrics: lyrics.trim(),
   });
 
   // Persist associations if provided
-  if (updated) {
-    await setSongAssociations(db, parseInt(id, 10), {
-      artist_ids: artistIds,
-      composer_ids: composerIds,
-      copyright_owner_ids: copyrightOwnerIds,
-    });
-  }
+  const artist_ids = Array.isArray(body.artist_id) ? body.artist_id : (body.artist_id ? [body.artist_id] : []);
+  const composer_ids = Array.isArray(body.composer_id) ? body.composer_id : (body.composer_id ? [body.composer_id] : []);
+  const co_ids = Array.isArray(body.copyright_owner_id) ? body.copyright_owner_id : (body.copyright_owner_id ? [body.copyright_owner_id] : []);
+  if (updated) await setSongAssociations(db, parseInt(id, 10), { artist_ids, composer_ids, copyright_owner_ids: co_ids });
 
   if (!updated) return notFound('Song not found');
   return json({ success: true, id: parseInt(id, 10), slug });
