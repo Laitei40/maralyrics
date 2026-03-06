@@ -49,6 +49,7 @@ import {
   // Contact
   handleCreateContact,
 } from './routes.js';
+import { handleSitemap } from './sitemap.js';
 
 const assetManifest = JSON.parse(manifestJSON);
 
@@ -297,6 +298,12 @@ export default {
       // POST /api/contact — Submit contact form
       if (path === '/api/contact' && method === 'POST') {
         return await handleCreateContact(request, env.DB, env);
+      }
+
+
+      // GET /sitemap.xml and /sitemap-:page.xml
+      if ((path === '/sitemap.xml' || path.match(/^\/sitemap-\d+\.xml$/)) && method === 'GET') {
+        return await handleSitemap(request, env.DB);
       }
 
       // ─── Static Files / SPA Routing ────────────────────
