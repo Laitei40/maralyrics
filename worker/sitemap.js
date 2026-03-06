@@ -76,7 +76,9 @@ async function resolveTimestampColumn(db, tableName) {
 
 async function fetchEntities(db, tableName, pathPrefix, changefreq, priority) {
   const timestampColumn = await resolveTimestampColumn(db, tableName);
-  const query = `SELECT slug, ${timestampColumn} AS lastmod FROM ${tableName} WHERE slug IS NOT NULL ORDER BY id DESC`;
+  const query = timestampColumn === 'updated_at'
+    ? `SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM ${tableName} WHERE slug IS NOT NULL ORDER BY id DESC`
+    : `SELECT slug, ${timestampColumn} AS lastmod FROM ${tableName} WHERE slug IS NOT NULL ORDER BY id DESC`;
   const rows = await db.prepare(query).all().then((r) => r.results || []);
 
   return rows
@@ -92,7 +94,7 @@ async function fetchEntities(db, tableName, pathPrefix, changefreq, priority) {
 async function fetchCategoryEntries(db) {
   const timestampColumn = await resolveTimestampColumn(db, 'songs');
   const query = `
-    SELECT category, MAX(${timestampColumn}) AS lastmod
+    SELECT category, MAX(${timestampColumn === 'updated_at' ? 'COALESCE(updated_at, created_at)' : timestampColumn}) AS lastmod
     FROM songs
     WHERE category IS NOT NULL AND TRIM(category) != ''
     GROUP BY category

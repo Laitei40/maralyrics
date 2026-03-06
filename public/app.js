@@ -917,9 +917,9 @@ const SongPage = {
 
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
-    const title = `${song.title} — MaraLyrics`;
     const artistDisplay = song.artist_name || song.artist || I18n.t('common.unknown');
-    const desc = I18n.t('song.meta_desc', { title: song.title, artist: artistDisplay });
+    const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
+    const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on MaraLyrics.`;
 
     document.title = title;
 
@@ -940,13 +940,18 @@ const SongPage = {
     if (jsonLd) {
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
-        '@type': 'MusicComposition',
+        '@type': 'MusicRecording',
         name: song.title,
-        composer: song.composer_name || song.composer || I18n.t('common.unknown'),
-        lyricist: artistDisplay,
-        genre: song.category || 'Mara',
-        text: song.lyrics?.substring(0, 200),
-        url: window.location.href,
+        byArtist: {
+          '@type': 'MusicGroup',
+          name: artistDisplay,
+        },
+        inLanguage: 'mrh',
+        url: `https://maralyrics.com/song/${song.slug}`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'MaraLyrics',
+        },
       });
     }
   },
