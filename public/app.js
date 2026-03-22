@@ -1438,7 +1438,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileDrawer.classList.remove('open');
     mobileDrawer.setAttribute('aria-hidden', 'true');
     menuBtn.setAttribute('aria-expanded', 'false');
-    document.body.classList.remove('drawer-open');
   };
 
   const openMobileDrawer = () => {
@@ -1446,7 +1445,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileDrawer.classList.add('open');
     mobileDrawer.setAttribute('aria-hidden', 'false');
     menuBtn.setAttribute('aria-expanded', 'true');
-    document.body.classList.add('drawer-open');
   };
 
   if (menuBtn && mobileDrawer) {
