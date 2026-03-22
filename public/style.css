@@ -2822,8 +2822,8 @@ body::before {
 
 /* Mobile consent */
 @media (max-width: 600px) {
-  .cookie-consent { padding: var(--space-sm); }
-  .cookie-consent__inner { padding: var(--space-md); }
+  .cookie-consent { padding: var(--space-sm) var(--space-md); }
+  .cookie-consent__inner { padding: var(--space-md); max-width: 100%; }
   .cookie-consent__content { flex-direction: column; gap: var(--space-sm); }
   .cookie-consent__icon { width: 36px; height: 36px; }
   .cookie-consent__actions { flex-direction: column; }
