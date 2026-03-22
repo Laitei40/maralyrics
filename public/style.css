@@ -88,6 +88,7 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior-x: none;
 }
 
@@ -98,7 +99,7 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
-  overscroll-behavior: none;
+  overflow-y: visible;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -218,11 +219,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: 260;
-  pointer-events: none;
-  visibility: hidden;
-  /* Keep the closed drawer completely inert so it cannot swallow touch or
-     wheel gestures on mobile browsers while it sits off-screen. */
-  overflow: clip;
+  display: none;
 }
 
 .mobile-drawer__backdrop {
@@ -331,12 +328,7 @@ body::before {
 }
 
 .mobile-drawer.open {
-  pointer-events: auto;
-  visibility: visible;
-}
-
-body.drawer-open {
-  overflow: hidden;
+  display: block;
 }
 
 .mobile-drawer.open .mobile-drawer__backdrop {
