@@ -247,6 +247,7 @@ body::before {
   gap: var(--space-lg);
   transform: translateX(104%);
   transition: transform var(--transition-base);
+  overflow-y: auto;
 }
 
 .mobile-drawer__header {
@@ -289,6 +290,8 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  overflow-y: auto;
+  flex: 1;
 }
 
 .mobile-drawer__link {

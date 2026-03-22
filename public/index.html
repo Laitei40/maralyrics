@@ -105,29 +105,32 @@
       </nav>
     </div>
 
-    <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
-      <div class="mobile-drawer__backdrop"></div>
-      <aside class="mobile-drawer__panel" role="dialog" aria-label="Mobile navigation">
-        <div class="mobile-drawer__header">
-          <div class="mobile-drawer__title-wrap">
-            <p class="mobile-drawer__eyebrow">Navigation</p>
-            <h2 class="mobile-drawer__title">Explore</h2>
-          </div>
-          <button class="mobile-drawer__close" aria-label="Close navigation menu">&times;</button>
-        </div>
-        <div class="mobile-drawer__content">
-          <a href="/" class="mobile-drawer__link active" data-i18n="nav.home">
-            <span class="mobile-drawer__icon">🏠</span>
-            <span>Home</span>
-          </a>
-          <a href="/#popular" class="mobile-drawer__link" data-i18n="nav.popular">
-            <span class="mobile-drawer__icon">🔥</span>
-            <span>Popular</span>
-          </a>
-        </div>
-      </aside>
-    </div>
   </header>
+
+  <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
+       header does not create a containing block that clips position:fixed. -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <div class="mobile-drawer__backdrop"></div>
+    <aside class="mobile-drawer__panel" role="dialog" aria-label="Mobile navigation">
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__title-wrap">
+          <p class="mobile-drawer__eyebrow">Navigation</p>
+          <h2 class="mobile-drawer__title">Explore</h2>
+        </div>
+        <button class="mobile-drawer__close" aria-label="Close navigation menu">&times;</button>
+      </div>
+      <div class="mobile-drawer__content">
+        <a href="/" class="mobile-drawer__link active" data-i18n="nav.home">
+          <span class="mobile-drawer__icon">🏠</span>
+          <span>Home</span>
+        </a>
+        <a href="/#popular" class="mobile-drawer__link" data-i18n="nav.popular">
+          <span class="mobile-drawer__icon">🔥</span>
+          <span>Popular</span>
+        </a>
+      </div>
+    </aside>
+  </div>
 
   <!-- ═══ Hero ═══ -->
   <section class="hero">
