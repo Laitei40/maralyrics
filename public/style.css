@@ -219,11 +219,9 @@ body::before {
   inset: 0;
   z-index: 260;
   pointer-events: none;
-  /* overflow:clip clips the off-screen panel without creating a scroll
-     container, so touch-scroll events are not intercepted when the drawer
-     is closed. overflow:hidden would make this a scroll container and can
-     swallow touch-scroll events on mobile browsers (iOS Safari / Android)
-     even when pointer-events:none is set. */
+  visibility: hidden;
+  /* Keep the closed drawer completely inert so it cannot swallow touch or
+     wheel gestures on mobile browsers while it sits off-screen. */
   overflow: clip;
 }
 
@@ -334,6 +332,11 @@ body::before {
 
 .mobile-drawer.open {
   pointer-events: auto;
+  visibility: visible;
+}
+
+body.drawer-open {
+  overflow: hidden;
 }
 
 .mobile-drawer.open .mobile-drawer__backdrop {

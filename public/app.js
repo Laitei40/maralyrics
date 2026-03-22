@@ -1438,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileDrawer.classList.remove('open');
     mobileDrawer.setAttribute('aria-hidden', 'true');
     menuBtn.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
+    document.body.classList.remove('drawer-open');
   };
 
   const openMobileDrawer = () => {
@@ -1446,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileDrawer.classList.add('open');
     mobileDrawer.setAttribute('aria-hidden', 'false');
     menuBtn.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden';
+    document.body.classList.add('drawer-open');
   };
 
   if (menuBtn && mobileDrawer) {
@@ -1464,6 +1464,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && mobileDrawer.classList.contains('open')) closeMobileDrawer();
+    });
+
+    window.addEventListener('resize', () => {
+      const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
+      if (!menuVisible && mobileDrawer.classList.contains('open')) {
+        closeMobileDrawer();
+      }
     });
   }
 
