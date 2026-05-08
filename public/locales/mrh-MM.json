@@ -27,7 +27,7 @@
   "song": {
     "breadcrumb": "Hla",
     "feedback_btn": "Khokheina",
-    "meta_desc": "Read lyrics of \"{title}\" by {artist} on MaraLyrics.",
+    "meta_desc": "Mara Hlabie liata {title} kha {artist} ta reih la.",
     "error_title": "Hla hmôpa y vei",
     "error_text": "He hla he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
     "error_go_home": "← Hmiapi Lâ"
@@ -65,7 +65,7 @@
     "back_to_song": "← Hla lâ Kua",
     "sending": "Paphao hai...",
     "success_title": "Khokheina a sie haw!",
-    "success_text": "Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.",
+    "success_text": "Mara Hlabie pakiathy sa awpa ta miah na baopa vâta eima châ ly kaw. Pachâna miah na piepa he eima theina chhôh ta eima vaw moh aw.",
     "success_back_home": "← Hmiapi lâ Kua",
     "err_fill_all": "Kao zydua pathla khai bei teh.",
     "err_turnstile": "Pasiana pahaopa kha patlô tua bei ta.",
@@ -76,9 +76,9 @@
     "code": "404",
     "title": "Hmia Hmô Vei",
     "text_line1": "Na tlua haipa hmia cha y vei chvk thy hawpa a châ.",
-    "text_line2": "Let's get you back to the music.",
-    "back_home": "← Back to Home",
-    "go_back": "Go Back"
+    "text_line2": "Hla lâ kua suh vy.",
+    "back_home": "← Hmiapi lâ Kua",
+    "go_back": "Kua"
   },
   "common": {
     "all": "All",
