@@ -7,5 +7,5 @@ files:
     type: json
     languages_mapping:
       locale:
-        mrh-MM: mrh
-        my-MM: my
+        mrh: mrh
+        my: my
