@@ -1,0 +1,155 @@
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║           MaraLyrics — Cloudflare D1 Schema                ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
+-- Drop existing tables to ensure clean schema migration
+DROP TABLE IF EXISTS songs;
+DROP TABLE IF EXISTS composers;
+DROP TABLE IF EXISTS artists;
+DROP TABLE IF EXISTS copyright_owners;
+
+-- Artists table
+CREATE TABLE IF NOT EXISTS artists (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    slug        TEXT UNIQUE NOT NULL,
+    bio         TEXT,
+    image_url   TEXT,
+    social_links TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Composers table
+CREATE TABLE IF NOT EXISTS composers (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    slug        TEXT UNIQUE NOT NULL,
+    bio         TEXT,
+    image_url   TEXT,
+    social_links TEXT,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Copyright Owners table (international standard fields)
+CREATE TABLE IF NOT EXISTS copyright_owners (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL,
+    slug            TEXT UNIQUE NOT NULL,
+    full_legal_name TEXT,
+    organization    TEXT,
+    territory       TEXT,
+    email           TEXT,
+    website         TEXT,
+    address         TEXT,
+    ipi_number      TEXT,
+    isrc_prefix     TEXT,
+    pro_affiliation TEXT,
+    notes           TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Songs table
+CREATE TABLE IF NOT EXISTS songs (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    title               TEXT NOT NULL,
+    slug                TEXT UNIQUE NOT NULL,
+    artist_id           INTEGER,
+    composer_id         INTEGER,
+    copyright_owner_id  INTEGER,
+    category            TEXT,
+    lyrics              TEXT NOT NULL,
+    views               INTEGER DEFAULT 0,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE SET NULL,
+    FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE SET NULL,
+    FOREIGN KEY (copyright_owner_id) REFERENCES copyright_owners(id) ON DELETE SET NULL
+);
+
+-- Reports table
+CREATE TABLE IF NOT EXISTS reports (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_slug       TEXT,
+    song_title      TEXT,
+    song_artist     TEXT,
+    reporter_name   TEXT NOT NULL,
+    reporter_email  TEXT NOT NULL,
+    body            TEXT NOT NULL,
+    status          TEXT DEFAULT 'pending',
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS contacts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    email      TEXT NOT NULL,
+    subject    TEXT DEFAULT 'General',
+    message    TEXT NOT NULL,
+    status     TEXT DEFAULT 'unread',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Performance indexes
+CREATE INDEX IF NOT EXISTS idx_songs_slug       ON songs(slug);
+CREATE INDEX IF NOT EXISTS idx_songs_title      ON songs(title);
+CREATE INDEX IF NOT EXISTS idx_songs_category   ON songs(category);
+CREATE INDEX IF NOT EXISTS idx_songs_views      ON songs(views DESC);
+CREATE INDEX IF NOT EXISTS idx_songs_artist_id  ON songs(artist_id);
+CREATE INDEX IF NOT EXISTS idx_songs_composer_id ON songs(composer_id);
+CREATE INDEX IF NOT EXISTS idx_songs_copyright_owner_id ON songs(copyright_owner_id);
+CREATE INDEX IF NOT EXISTS idx_artists_slug     ON artists(slug);
+CREATE INDEX IF NOT EXISTS idx_composers_slug   ON composers(slug);
+CREATE INDEX IF NOT EXISTS idx_copyright_owners_slug ON copyright_owners(slug);
+
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║                    Sample Seed Data                         ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
+-- Seed artists
+INSERT INTO artists (name, slug, bio) VALUES
+('Mara Artist',         'mara-artist',         'A renowned Mara vocalist known for traditional melodies.'),
+('Mara Singer',         'mara-singer',         'A gifted singer from the Mara community.'),
+('Mara Choir',          'mara-choir',          'An acclaimed Mara choral group performing hymns and patriotic songs.'),
+('Traditional Singers', 'traditional-singers', 'A collective preserving Mara traditional music.'),
+('Youth Choir',         'youth-choir',         'A vibrant youth choir from the Mara community.');
+
+-- Seed composers
+INSERT INTO composers (name, slug, bio) VALUES
+('Mara Composer',       'mara-composer',       'A prolific composer of Mara traditional and contemporary songs.');
+
+-- Seed songs (linked by artist_id / composer_id)
+INSERT INTO songs (title, slug, artist_id, composer_id, category, lyrics) VALUES
+(
+    'Mara Hlasa',
+    'mara-hlasa',
+    1, 1,
+    'Traditional',
+    'Line 1 of Mara Hlasa lyrics...' || char(10) || 'Line 2 of the song...' || char(10) || 'Line 3 continues here...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'More lyrics follow...' || char(10) || 'Beautiful melody...'
+),
+(
+    'Kei Daonô',
+    'kei-daonô',
+    2, NULL,
+    'Love',
+    'Kei daonô a ei cha vâ...' || char(10) || 'Heartfelt words flow...' || char(10) || 'Melody of the hills...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Singing together...' || char(10) || 'Voices of Mara...'
+),
+(
+    'Thlah Pha Hla',
+    'thlah-pha-hla',
+    3, 1,
+    'Patriotic',
+    'Thla tha ta a pha...' || char(10) || 'New season dawns...' || char(10) || 'Gratitude fills the heart...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'Joyful celebration...' || char(10) || 'Together we sing...'
+),
+(
+    'Mara Râh Hla',
+    'mara-rah-hla',
+    4, NULL,
+    'Traditional',
+    'Mararâh cha â ngia...' || char(10) || 'Our homeland forever...' || char(10) || 'Mountains and valleys...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Mararâh, Mararâh...' || char(10) || 'Beautiful land of ours...'
+),
+(
+    'Abeipa phazie',
+    'abeipa-phazie',
+    5, 1,
+    'Gospel',
+    'Abeipa phazie a that e...' || char(10) || 'Goodness overflows...' || char(10) || 'Blessing upon blessing...' || char(10) || char(10) || 'Bridge:' || char(10) || 'Forever grateful...' || char(10) || 'Songs of praise...'
+);
