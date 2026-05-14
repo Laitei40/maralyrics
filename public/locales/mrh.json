@@ -5,7 +5,25 @@
   },
   "footer": {
     "made_with": "Marasaw châta <span class=\"footer__heart\">♥</span> ta taopa",
-    "copyright": "© 2026 MaraLyrics"
+    "tagline": "Preserving Mara music for future generations.",
+    "copyright": "© 2026 MaraLyrics",
+    "cols": {
+      "information": "Information",
+      "legal": "Legal",
+      "support": "Support"
+    },
+    "links": {
+      "about": "About Us",
+      "faq": "FAQ",
+      "privacy": "Privacy Policy",
+      "terms": "Terms & Conditions",
+      "copyright": "Copyright",
+      "contact": "Contact Us",
+      "report": "Report Error"
+    }
+  },
+  "brand": {
+    "name": "Mara Lyrics"
   },
   "offline": {
     "badge": "Offline Dâh",
