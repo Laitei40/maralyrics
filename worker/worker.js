@@ -450,10 +450,10 @@ async function serveAsset(request, env, ctx, overridePath = null) {
 
   } catch (e) {
     if (e instanceof NotFoundError) {
-      // Serve 404.html page
+      // Serve extensionless 404 shell (avoids *.html redirect rules on some zones)
       try {
         const url = new URL(request.url);
-        url.pathname = '/404.html';
+        url.pathname = '/404/page';
         const notFoundReq = new Request(url.toString(), request);
         const notFoundResp = await getAssetFromKV(
           { request: notFoundReq, waitUntil: ctx.waitUntil.bind(ctx) },
@@ -466,10 +466,26 @@ async function serveAsset(request, env, ctx, overridePath = null) {
           headers: nfHeaders,
         });
       } catch {
-        return new Response('Page not found', {
-          status: 404,
-          headers: { 'Content-Type': 'text/plain' },
-        });
+        try {
+          const url = new URL(request.url);
+          url.pathname = '/404.html';
+          const notFoundReq = new Request(url.toString(), request);
+          const notFoundResp = await getAssetFromKV(
+            { request: notFoundReq, waitUntil: ctx.waitUntil.bind(ctx) },
+            options
+          );
+          const nfHeaders = new Headers(notFoundResp.headers);
+          return new Response(notFoundResp.body, {
+            status: 404,
+            statusText: notFoundResp.statusText,
+            headers: nfHeaders,
+          });
+        } catch {
+          return new Response('Page not found', {
+            status: 404,
+            headers: { 'Content-Type': 'text/plain' },
+          });
+        }
       }
     }
     throw e;

@@ -1,16 +1,6 @@
-// Catch-all Pages Function for /artist/* — serve SPA shell from ASSETS.
-import { html404Response } from '../html404.js';
-
+// /artist/* → SPA shell (slug read by client JS from the URL)
 export async function onRequest(context) {
-  try {
-    const url = new URL(context.request.url);
-    url.pathname = '/artistview.html';
-    const res = await context.env.ASSETS.fetch(new Request(url.toString(), context.request));
-    if (res.status >= 400 && res.status < 500) {
-      return html404Response(context);
-    }
-    return res;
-  } catch {
-    return html404Response(context);
-  }
+  const url = new URL(context.request.url);
+  url.pathname = '/artistview.html';
+  return context.env.ASSETS.fetch(new Request(url.toString(), context.request));
 }

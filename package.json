@@ -8,7 +8,8 @@
     "deploy": "wrangler deploy",
     "db:create": "wrangler d1 create maralyrics-db",
     "db:migrate": "wrangler d1 execute maralyrics-db --remote --file=./schema.sql",
-    "db:migrate:local": "wrangler d1 execute maralyrics-db --local --file=./schema.sql"
+    "db:migrate:local": "wrangler d1 execute maralyrics-db --local --file=./schema.sql",
+    "test:routes": "node scripts/test-routes.mjs"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4"
