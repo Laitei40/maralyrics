@@ -1,7 +1,16 @@
-// Catch-all Pages Function for /composer/* routes
-// Serves composerview.html while preserving the original URL (so JS can extract the slug)
+// Catch-all Pages Function for /composer/* — serve SPA shell from ASSETS.
+import { html404Response } from '../html404.js';
+
 export async function onRequest(context) {
-  const url = new URL(context.request.url);
-  url.pathname = '/composerview.html';
-  return context.env.ASSETS.fetch(url);
+  try {
+    const url = new URL(context.request.url);
+    url.pathname = '/composerview.html';
+    const res = await context.env.ASSETS.fetch(new Request(url.toString(), context.request));
+    if (res.status >= 400 && res.status < 500) {
+      return html404Response(context);
+    }
+    return res;
+  } catch {
+    return html404Response(context);
+  }
 }
