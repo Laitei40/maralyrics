@@ -917,13 +917,10 @@ const SongPage = {
 
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
-<<<<<<< HEAD
-    const title = `${song.title} — Mara Lyrics`;
-=======
->>>>>>> f29bd5040ecc6de8a721e7afac72c2a8a465ee20
     const artistDisplay = song.artist_name || song.artist || I18n.t('common.unknown');
-    const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
-    const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on MaraLyrics.`;
+    const brandName = I18n.t('brand.name');
+    const title = `${song.title} — ${brandName}`;
+    const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on ${brandName}.`;
 
     document.title = title;
 
@@ -954,7 +951,7 @@ const SongPage = {
         url: `https://maralyrics.com/song/${song.slug}`,
         publisher: {
           '@type': 'Organization',
-          name: 'MaraLyrics',
+          name: brandName,
         },
       });
     }
