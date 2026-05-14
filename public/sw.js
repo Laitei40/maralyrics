@@ -3,7 +3,7 @@
 // ║       Stale-While-Revalidate · Offline-First                ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const CACHE_VERSION = 'ml-v12';
+const CACHE_VERSION = 'ml-v13';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -78,7 +78,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── SPA page routes (e.g. /song/slug, /artist/slug) ──
+  // ── SPA page routes (e.g. /song/slug, /artists/slug) ──
   // Network-first: let Pages Functions / Worker handle routing,
   // fall back to cached shell HTML when offline.
   if (isSpaRoute(url.pathname)) {
@@ -174,8 +174,8 @@ async function staleWhileRevalidate(request, cacheName) {
 async function serveSpaShell(request, pathname) {
   let shellPath;
   if (pathname.startsWith('/song/')) shellPath = '/songview.html';
-  else if (pathname.startsWith('/artist/')) shellPath = '/artistview.html';
-  else if (pathname.startsWith('/composer/')) shellPath = '/composerview.html';
+  else if (pathname.startsWith('/artists/')) shellPath = '/artistview.html';
+  else if (pathname.startsWith('/composers/')) shellPath = '/composerview.html';
   else if (pathname.startsWith('/copyright-owner/')) shellPath = '/copyrightownerview.html';
   else shellPath = '/index.html';
 
@@ -198,7 +198,7 @@ async function serveSpaShell(request, pathname) {
 // ─── Helpers ──────────────────────────────────────────────────
 
 function isSpaRoute(path) {
-  return /^\/(song|artist|composer|copyright-owner)\//.test(path);
+  return /^\/(song|artists|composers|copyright-owner)\//.test(path);
 }
 
 function isStaticAsset(path) {

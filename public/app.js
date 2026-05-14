@@ -53,7 +53,7 @@ const Utils = {
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
-    const match = path.match(/\/(song|artist|composer|copyright-owner)\/([^/]+)/);
+    const match = path.match(/\/(song|artists|composers|copyright-owner)\/([^/]+)/);
     return match ? match[2] : null;
   },
 
@@ -61,8 +61,8 @@ const Utils = {
   getPageType() {
     const path = window.location.pathname;
     if (path.startsWith('/song/')) return 'song';
-    if (path.startsWith('/artist/')) return 'artist';
-    if (path.startsWith('/composer/')) return 'composer';
+    if (path.startsWith('/artists/')) return 'artist';
+    if (path.startsWith('/composers/')) return 'composer';
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
     return 'home';
   },
@@ -70,7 +70,9 @@ const Utils = {
   /** Create a clickable name link or a disabled span for unknown. */
   renderNameLink(name, slug, type) {
     if (name && slug) {
-      const href = `/${type}/${this.escapeHtml(slug)}`;
+      const pathPrefix =
+        type === 'artist' ? 'artists' : type === 'composer' ? 'composers' : type;
+      const href = `/${pathPrefix}/${this.escapeHtml(slug)}`;
       return `<a href="${href}" class="meta-link">${this.escapeHtml(name)}</a>`;
     }
     return `<span class="meta-link meta-link--disabled">${this.escapeHtml(name || I18n.t('common.unknown'))}</span>`;

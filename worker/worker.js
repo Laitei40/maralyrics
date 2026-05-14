@@ -375,13 +375,31 @@ export default {
         return await serveSongPage(request, env, ctx);
       }
 
-      // Artist page (clean URLs): /artist/some-slug → serve artistview.html
-      if (path.startsWith('/artist/')) {
+      // Legacy profile URLs → plural paths (canonical HTML routes)
+      if (path === '/artist' || path.startsWith('/artist/')) {
+        const u = new URL(request.url);
+        const slug = path.startsWith('/artist/')
+          ? path.slice('/artist/'.length).replace(/\/$/, '').split('/')[0]
+          : '';
+        u.pathname = slug ? `/artists/${encodeURIComponent(slug)}` : '/artists';
+        return Response.redirect(u.toString(), 301);
+      }
+      if (path === '/composer' || path.startsWith('/composer/')) {
+        const u = new URL(request.url);
+        const slug = path.startsWith('/composer/')
+          ? path.slice('/composer/'.length).replace(/\/$/, '').split('/')[0]
+          : '';
+        u.pathname = slug ? `/composers/${encodeURIComponent(slug)}` : '/composers';
+        return Response.redirect(u.toString(), 301);
+      }
+
+      // Artist profile (clean URLs): /artists → shell; /artists/some-slug → serve artistview.html
+      if (path === '/artists' || path.startsWith('/artists/')) {
         return await serveAsset(request, env, ctx, '/artistview.html');
       }
 
-      // Composer page (clean URLs): /composer/some-slug → serve composerview.html
-      if (path.startsWith('/composer/')) {
+      // Composer profile (clean URLs): /composers → shell; /composers/some-slug → serve composerview.html
+      if (path === '/composers' || path.startsWith('/composers/')) {
         return await serveAsset(request, env, ctx, '/composerview.html');
       }
 
