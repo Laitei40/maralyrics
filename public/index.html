@@ -40,7 +40,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
+  
   <!-- Styles -->
   <link rel="stylesheet" href="/style.css" />
 </head>
@@ -53,6 +53,11 @@
         <img src="/icon.svg" alt="Mara Lyrics" class="header__logo-icon" />
         Mara Lyrics
       </a>
+      <button class="header__menu-btn" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
       <nav class="header__nav">
         <a href="/" class="header__nav-link active" data-i18n="nav.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
@@ -99,7 +104,33 @@
         </div>
       </nav>
     </div>
+
   </header>
+
+  <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
+       header does not create a containing block that clips position:fixed. -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <div class="mobile-drawer__backdrop"></div>
+    <aside class="mobile-drawer__panel" role="dialog" aria-label="Mobile navigation">
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__title-wrap">
+          <p class="mobile-drawer__eyebrow">Navigation</p>
+          <h2 class="mobile-drawer__title">Explore</h2>
+        </div>
+        <button class="mobile-drawer__close" aria-label="Close navigation menu">&times;</button>
+      </div>
+      <div class="mobile-drawer__content">
+        <a href="/" class="mobile-drawer__link active" data-i18n="nav.home">
+          <span class="mobile-drawer__icon">🏠</span>
+          <span>Home</span>
+        </a>
+        <a href="/#popular" class="mobile-drawer__link" data-i18n="nav.popular">
+          <span class="mobile-drawer__icon">🔥</span>
+          <span>Popular</span>
+        </a>
+      </div>
+    </aside>
+  </div>
 
   <!-- ═══ Hero ═══ -->
   <section class="hero">

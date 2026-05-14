@@ -49,8 +49,58 @@ import {
   // Contact
   handleCreateContact,
 } from './routes.js';
+import { handleSitemap } from './sitemap.js';
 
 const assetManifest = JSON.parse(manifestJSON);
+
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildSongSeo(song) {
+  const artist = song.artist_name || song.artist || 'Unknown Artist';
+  const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
+  const description = `Read the full lyrics of ${song.title}, a Mara song by ${artist}. Discover Mara music on MaraLyrics.`;
+
+  return {
+    title,
+    description,
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'MusicRecording',
+      name: song.title,
+      byArtist: {
+        '@type': 'MusicGroup',
+        name: artist,
+      },
+      inLanguage: 'mrh',
+      url: `https://maralyrics.com/song/${song.slug}`,
+      publisher: {
+        '@type': 'Organization',
+        name: 'MaraLyrics',
+      },
+    },
+  };
+}
+
+async function fetchSongSeoData(db, slug) {
+  return db
+    .prepare(
+      `SELECT s.title, s.slug, a.name AS artist_name
+       FROM songs s
+       LEFT JOIN artists a ON s.artist_id = a.id
+       WHERE s.slug = ?`
+    )
+    .bind(slug)
+    .first();
+}
+
 
 export default {
   /**
@@ -299,6 +349,12 @@ export default {
         return await handleCreateContact(request, env.DB, env);
       }
 
+
+      // GET /sitemap.xml and /sitemap-:page.xml
+      if ((path === '/sitemap.xml' || path.match(/^\/sitemap-\d+\.xml$/)) && method === 'GET') {
+        return await handleSitemap(request, env.DB);
+      }
+
       // ─── Static Files / SPA Routing ────────────────────
 
       // Static info pages
@@ -314,9 +370,9 @@ export default {
         return await serveAsset(request, env, ctx, '/report.html');
       }
 
-      // Song page (clean URLs): /song/some-slug → serve songview.html
+      // Song page (clean URLs): /song/some-slug → server-render song SEO + serve songview.html
       if (path.startsWith('/song/')) {
-        return await serveAsset(request, env, ctx, '/songview.html');
+        return await serveSongPage(request, env, ctx);
       }
 
       // Artist page (clean URLs): /artist/some-slug → serve artistview.html
@@ -414,4 +470,31 @@ async function serveAsset(request, env, ctx, overridePath = null) {
     }
     throw e;
   }
+}
+
+
+async function serveSongPage(request, env, ctx) {
+  const url = new URL(request.url);
+  const slug = url.pathname.replace(/^\/song\//, '').replace(/\/$/, '');
+
+  const baseResponse = await serveAsset(request, env, ctx, '/songview.html');
+  if (!slug || baseResponse.status !== 200) return baseResponse;
+
+  const song = await fetchSongSeoData(env.DB, slug);
+  if (!song) return baseResponse;
+
+  const { title, description, schema } = buildSongSeo(song);
+  const html = await baseResponse.text();
+
+  const injected = html
+    .replace(/<title id="pageTitle">[\s\S]*?<\/title>/, `<title id="pageTitle">${escapeHtml(title)}</title>`)
+    .replace(/<meta name="description" id="metaDesc" content="[^"]*"\s*\/>/, `<meta name="description" id="metaDesc" content="${escapeHtml(description)}" />`)
+    .replace(/<meta property="og:title" id="ogTitle" content="[^"]*"\s*\/>/, `<meta property="og:title" id="ogTitle" content="${escapeHtml(title)}" />`)
+    .replace(/<meta property="og:description" id="ogDesc" content="[^"]*"\s*\/>/, `<meta property="og:description" id="ogDesc" content="${escapeHtml(description)}" />`)
+    .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2)}\n</script>`);
+
+  const headers = new Headers(baseResponse.headers);
+  headers.set('Content-Type', 'text/html; charset=UTF-8');
+  headers.set('Cache-Control', 'public, max-age=300');
+  return new Response(injected, { status: baseResponse.status, headers });
 }

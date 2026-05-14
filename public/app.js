@@ -917,9 +917,13 @@ const SongPage = {
 
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
+<<<<<<< HEAD
     const title = `${song.title} — Mara Lyrics`;
+=======
+>>>>>>> f29bd5040ecc6de8a721e7afac72c2a8a465ee20
     const artistDisplay = song.artist_name || song.artist || I18n.t('common.unknown');
-    const desc = I18n.t('song.meta_desc', { title: song.title, artist: artistDisplay });
+    const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
+    const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on MaraLyrics.`;
 
     document.title = title;
 
@@ -940,13 +944,18 @@ const SongPage = {
     if (jsonLd) {
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
-        '@type': 'MusicComposition',
+        '@type': 'MusicRecording',
         name: song.title,
-        composer: song.composer_name || song.composer || I18n.t('common.unknown'),
-        lyricist: artistDisplay,
-        genre: song.category || 'Mara',
-        text: song.lyrics?.substring(0, 200),
-        url: window.location.href,
+        byArtist: {
+          '@type': 'MusicGroup',
+          name: artistDisplay,
+        },
+        inLanguage: 'mrh',
+        url: `https://maralyrics.com/song/${song.slug}`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'MaraLyrics',
+        },
       });
     }
   },
@@ -1364,16 +1373,106 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize theme
   Theme.init();
 
-  // Settings panel toggle
-  const settingsBtn = document.querySelector('.settings-toggle__btn');
-  const settingsWrap = document.querySelector('.settings-toggle');
-  if (settingsBtn && settingsWrap) {
-    settingsBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      settingsWrap.classList.toggle('open');
+  // Settings panel toggle(s)
+  const settingsToggles = document.querySelectorAll('.settings-toggle');
+  if (settingsToggles.length) {
+    settingsToggles.forEach((wrap) => {
+      const btn = wrap.querySelector('.settings-toggle__btn');
+      if (!btn) return;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsToggles.forEach((other) => {
+          if (other !== wrap) other.classList.remove('open');
+        });
+        wrap.classList.toggle('open');
+      });
     });
+
     document.addEventListener('click', (e) => {
-      if (!settingsWrap.contains(e.target)) settingsWrap.classList.remove('open');
+      settingsToggles.forEach((wrap) => {
+        if (!wrap.contains(e.target)) wrap.classList.remove('open');
+      });
+    });
+  }
+
+  // Ensure settings (language + theme) are available in the mobile drawer on small screens.
+  // We move the existing `.settings-toggle` element into the drawer when the header menu
+  // is visible (small screens), and restore it back on larger screens. Moving preserves
+  // event listeners and keeps behavior consistent.
+  (function attachSettingsToDrawer() {
+    const settingsToggle = document.querySelector('.settings-toggle');
+    const menuBtn = document.querySelector('.header__menu-btn');
+    const mobileDrawer = document.querySelector('.mobile-drawer');
+    const mobileDrawerContent = document.querySelector('.mobile-drawer__content');
+
+    if (!settingsToggle || !menuBtn || !mobileDrawer || !mobileDrawerContent) return;
+
+    const originalParent = settingsToggle.parentElement;
+    const originalNext = settingsToggle.nextElementSibling;
+    let moved = false;
+
+    function updatePlacement() {
+      const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
+      if (menuVisible && !moved) {
+        mobileDrawerContent.appendChild(settingsToggle);
+        settingsToggle.classList.remove('open');
+        moved = true;
+      } else if (!menuVisible && moved) {
+        if (originalNext) originalParent.insertBefore(settingsToggle, originalNext);
+        else originalParent.appendChild(settingsToggle);
+        settingsToggle.classList.remove('open');
+        moved = false;
+      }
+    }
+
+    // Update on load and on resize
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
+  })();
+
+  // Mobile drawer toggle
+  const menuBtn = document.querySelector('.header__menu-btn');
+  const mobileDrawer = document.querySelector('.mobile-drawer');
+  const mobileDrawerClose = document.querySelector('.mobile-drawer__close');
+  const mobileDrawerBackdrop = document.querySelector('.mobile-drawer__backdrop');
+  const mobileDrawerLinks = document.querySelectorAll('.mobile-drawer__link');
+
+  const closeMobileDrawer = () => {
+    if (!mobileDrawer || !menuBtn) return;
+    mobileDrawer.classList.remove('open');
+    mobileDrawer.setAttribute('aria-hidden', 'true');
+    menuBtn.setAttribute('aria-expanded', 'false');
+  };
+
+  const openMobileDrawer = () => {
+    if (!mobileDrawer || !menuBtn) return;
+    mobileDrawer.classList.add('open');
+    mobileDrawer.setAttribute('aria-hidden', 'false');
+    menuBtn.setAttribute('aria-expanded', 'true');
+  };
+
+  if (menuBtn && mobileDrawer) {
+    menuBtn.addEventListener('click', () => {
+      if (mobileDrawer.classList.contains('open')) {
+        closeMobileDrawer();
+      } else {
+        openMobileDrawer();
+      }
+    });
+
+    if (mobileDrawerClose) mobileDrawerClose.addEventListener('click', closeMobileDrawer);
+    if (mobileDrawerBackdrop) mobileDrawerBackdrop.addEventListener('click', closeMobileDrawer);
+    mobileDrawerLinks.forEach((link) => link.addEventListener('click', closeMobileDrawer));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mobileDrawer.classList.contains('open')) closeMobileDrawer();
+    });
+
+    window.addEventListener('resize', () => {
+      const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
+      if (!menuVisible && mobileDrawer.classList.contains('open')) {
+        closeMobileDrawer();
+      }
     });
   }
 
