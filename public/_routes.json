@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "include": [
+    "/song/*",
+    "/artist/*",
+    "/composer/*",
+    "/copyright-owner",
+    "/copyright-owner/*",
+    "/sitemap.xml",
+    "/about",
+    "/about/*",
+    "/contact",
+    "/contact/*",
+    "/faq",
+    "/faq/*",
+    "/privacy",
+    "/privacy/*",
+    "/terms",
+    "/terms/*",
+    "/copyright",
+    "/copyright/*",
+    "/report",
+    "/report/*"
+  ],
+  "exclude": []
+}
