@@ -10,168 +10,49 @@
     "cols": {
       "information": "Information",
       "legal": "Legal",
-      "support": "Support"
-    },
-    "links": {
       {
-        "nav": {
-          "home": "Home",
-          "popular": "Popular"
-        },
+        "brand": { "name": "Mara Lyrics" },
+        "nav": { "home": "Home", "popular": "Popular" },
         "footer": {
           "made_with": "Made with <span class=\"footer__heart\">♥</span> for the Mara community",
           "tagline": "Preserving Mara music for future generations.",
           "copyright": "© 2026 Mara Lyrics",
-          "cols": {
-            "information": "Information",
-            "legal": "Legal",
-            "support": "Support"
-          },
-          "links": {
-            "about": "About Us",
-            "faq": "FAQ",
-            "privacy": "Privacy Policy",
-            "terms": "Terms & Conditions",
-            "copyright": "Copyright",
-            "contact": "Contact Us",
-            "report": "Report Error"
-          {
-            "brand": { "name": "Mara Lyrics" },
-            "nav": { "home": "Home", "popular": "Popular" },
-            "footer": {
-              "made_with": "Made with <span class=\"footer__heart\">♥</span> for the Mara community",
-              "tagline": "Preserving Mara music for future generations.",
-              "copyright": "© 2026 Mara Lyrics",
-              "cols": { "information": "Information", "legal": "Legal", "support": "Support" },
-              "links": {
-                "about": "About Us",
-                "faq": "FAQ",
-                "privacy": "Privacy Policy",
-                "terms": "Terms & Conditions",
-                "copyright": "Copyright",
-                "contact": "Contact Us",
-                "report": "Report Error"
-              }
-            },
-            "offline": { "badge": "Offline Mode", "badge_text": "Offline" },
-            "breadcrumb": { "home": "Home" },
-            "home": {
-              "hero_title": "Mara Song Lyrics",
-              "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
-              "search_placeholder": "Search songs by title or artist...",
-              "search_results": "Search Results",
-              "popular_songs": "Popular Songs",
-              "all_songs": "All Songs",
-              "no_songs_title": "No songs found",
-              "no_songs_text": "Try a different search term or browse categories above."
-            },
-            "song": {
-              "breadcrumb": "Song",
-              "feedback_btn": "Feedback",
-              "meta_desc": "Read lyrics of \"{title}\" by {artist} on Mara Lyrics.",
-              "error_title": "Song not found",
-              "error_text": "This song may have been removed or the link is incorrect.",
-              "error_go_home": "← Go Home"
-            },
-            "artist": { "breadcrumb": "Artist", "role": "Artist", "songs_title": "Songs by this Artist", "no_songs": "No songs found for this artist.", "error_title": "Artist not found", "error_text": "This artist may have been removed or the link is incorrect.", "error_go_home": "← Go Home" },
-            "composer": { "breadcrumb": "Composer", "role": "Composer", "songs_title": "Songs by this Composer", "no_songs": "No songs found for this composer.", "error_title": "Composer not found", "error_text": "This composer may have been removed or the link is incorrect.", "error_go_home": "← Go Home" },
-            "feedback": {
-              "title": "Feedback",
-              "subtitle": "Have feedback about this song? Let us know and we'll look into it.",
-              "about_label": "Feedback about:",
-              "name_label": "Your Name",
-              "name_placeholder": "Enter your name",
-              "email_label": "Your Email",
-              "email_placeholder": "you@example.com",
-              "body_label": "Your Feedback",
-              "body_placeholder": "Tell us what you think — corrections, suggestions, or anything else about this song.",
-              "submit_btn": "Send Feedback",
-              "back_btn": "← Back",
-              "back_to_song": "← Back to Song",
-              "sending": "Sending...",
-              "success_title": "Feedback Sent!",
-              "success_text": "Thank you for helping us improve Mara Lyrics. We'll review your feedback as soon as possible.",
-              "success_back_home": "← Back to Home",
-              "err_fill_all": "Please fill in all fields.",
-              "err_turnstile": "Please complete the verification challenge.",
-              "err_send_failed": "Failed to send report",
-              "err_generic": "Something went wrong. Please try again."
-            },
-            "error_page": { "code": "404", "title": "Page Not Found", "text_line1": "The page you're looking for doesn't exist or has been moved.", "text_line2": "Let's get you back to the music.", "back_home": "← Back to Home", "go_back": "Go Back" },
-            "common": { "all": "All", "unknown": "Unknown", "unknown_artist": "Unknown Artist", "uncategorized": "Uncategorized", "loading": "Loading...", "views": "views", "prev": "← Prev", "next": "Next →", "found": "({count} found)", "cached": "({count} cached)", "website": "Website" },
-            "about": {
-              "breadcrumb": "About Us",
-              "title": "About Mara Lyrics",
-              "mission_heading": "Our Mission",
-              "mission_p1": "Mara Lyrics is dedicated to preserving, documenting, and sharing the rich musical heritage of the Mara people.",
-              "mission_p2": "Our platform serves as a bridge between generations — making it easy for anyone, anywhere, to discover, learn, and enjoy Mara songs in their original language.",
-              "why_heading": "Why We Exist",
-              "why_p1": "The Mara language and its musical traditions are an integral part of our cultural identity.",
-              "why_p2": "Mara Lyrics exists to:",
-              "why_li1": "Provide a free, accessible, and centralized collection of Mara song lyrics",
-              "why_li2": "Support the preservation of the Mara language through music",
-              "why_li3": "Celebrate the work of Mara artists and composers",
-              "why_li4": "Create a community-driven cultural archive",
-              "vision_heading": "Our Vision",
-              "vision_p1": "We envision Mara Lyrics as the definitive digital archive of Mara music.",
-              "vision_p2": "Our long-term goals include:",
-              "vision_li1": "Building the largest collection of Mara song lyrics online",
-              "vision_li2": "Adding song audio and video references where available",
-              "vision_li3": "Supporting multilingual translations of lyrics",
-              "vision_li4": "Collaborating with cultural organizations and educational institutions",
-              "vision_li5": "Empowering community members to contribute and curate content",
-              "community_heading": "Community First",
-              "community_p1": "Mara Lyrics is built by and for the Mara community.",
-              "community_p2": "Want to get involved? <a href=\"/contact\">Get in touch with us</a> or <a href=\"/report\">send us feedback</a>."
-            },
-            "contact": { "breadcrumb": "Contact Us", "title": "Contact Us", "intro": "Have a question, suggestion, or want to contribute to Mara Lyrics? We'd love to hear from you.", "name_label": "Your Name <span class=\"form-required\">*</span>", "name_placeholder": "Enter your name", "email_label": "Your Email <span class=\"form-required\">*</span>", "email_placeholder": "you@example.com", "subject_label": "Subject", "subject_placeholder": "What is this about?", "message_label": "Message <span class=\"form-required\">*</span>", "message_placeholder": "Write your message here...", "submit_btn": "Send Message", "back_btn": "← Back", "success_title": "Message Sent!", "success_text": "Thank you for reaching out. We'll get back to you as soon as possible.", "success_back_home": "← Back to Home" },
-            "faq": { "breadcrumb": "FAQ", "title": "Frequently Asked Questions" },
-            "privacy": { "breadcrumb": "Privacy Policy", "title": "Privacy Policy", "date": "Last updated: February 15, 2026" },
-            "terms": { "breadcrumb": "Terms & Conditions", "title": "Terms & Conditions", "date": "Last updated: February 15, 2026" },
-            "copyright_page": { "breadcrumb": "Copyright & Removal Request", "title": "Copyright & Removal Request" },
-            "toast": { "content_updated": "Content updated", "back_online": "Back online.", "offline_message": "No internet connection. You are viewing offline mode.", "theme_changed": "Theme changed to {theme}.", "language_changed": "Language changed to {language}." },
-            "theme": { "dark": "Dark", "light": "Light", "system": "System", "auto_time": "Auto Time" },
-            "search_history": { "recent": "Recent", "clear_all": "Clear all", "remove": "Remove" },
-            "search": { "did_you_mean": "Did you mean:" },
-            "copyright_owner": { "role": "Copyright Owner", "full_legal_name": "Full Legal Name" },
-            "consent": { "aria_label": "Cookie consent", "title": "We use cookies", "desc": "This site uses cookies and local storage to save your language, theme, and search history for a better experience.", "learn_more": "Learn more", "accept_all": "Accept All", "essential_only": "Essential Only" }
-          }
+          "cols": { "information": "Information", "legal": "Legal", "support": "Support" },
+          "links": { "about": "About Us", "faq": "FAQ", "privacy": "Privacy Policy", "terms": "Terms & Conditions", "copyright": "Copyright", "contact": "Contact Us", "report": "Report Error" }
         },
-        "theme": {
-          "dark": "Dark",
-          "light": "Light",
-          "system": "System",
-          "auto_time": "Auto Time"
+        "offline": { "badge": "Offline Mode", "badge_text": "Offline" },
+        "breadcrumb": { "home": "Home" },
+        "home": {
+          "hero_title": "Mara Song Lyrics",
+          "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
+          "search_placeholder": "Search songs by title or artist...",
+          "search_results": "Search Results",
+          "popular_songs": "Popular Songs",
+          "all_songs": "All Songs",
+          "no_songs_title": "No songs found",
+          "no_songs_text": "Try a different search term or browse categories above."
         },
-        "search_history": {
-          "recent": "Recent",
-          "clear_all": "Clear all",
-          "remove": "Remove"
+        "song": {
+          "breadcrumb": "Song",
+          "feedback_btn": "Feedback",
+          "meta_desc": "Read lyrics of \"{title}\" by {artist} on Mara Lyrics.",
+          "error_title": "Song not found",
+          "error_text": "This song may have been removed or the link is incorrect.",
+          "error_go_home": "← Go Home"
         },
-        "search": {
-          "did_you_mean": "Did you mean:"
+        "common": {
+          "all": "All",
+          "unknown": "Unknown",
+          "unknown_artist": "Unknown Artist",
+          "uncategorized": "Uncategorized",
+          "loading": "Loading...",
+          "views": "views",
+          "prev": "← Prev",
+          "next": "Next →",
+          "found": "({count} found)",
+          "cached": "({count} cached)",
+          "website": "Website"
         },
-        "copyright_owner": {
-          "role": "Copyright Owner",
-          "full_legal_name": "Full Legal Name",
-          "organization": "Organization / Publisher",
-          "territory": "Territory / Jurisdiction",
-          "email": "Email",
-          "website": "Website",
-          "address": "Address",
-          "ipi_number": "IPI Number",
-          "isrc_prefix": "ISRC Prefix",
-          "pro_affiliation": "PRO Affiliation",
-          "notes": "Notes",
-          "songs_claimed_by": "Songs claimed by {name}",
-          "no_songs": "No songs claimed by this copyright owner."
-        },
-        "consent": {
-          "aria_label": "Cookie consent",
-          "title": "We use cookies",
-          "desc": "This site uses cookies and local storage to save your language, theme, and search history for a better experience.",
-          "learn_more": "Learn more",
-          "accept_all": "Accept All",
-          "essential_only": "Essential Only"
-        }
+        "toast": { "language_changed": "Language changed to {language}.", "content_updated": "Content updated" }
       }
+            "home": {
