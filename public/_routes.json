@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "include": [
+    "/song/*",
+    "/artist/*",
+    "/composer/*",
+    "/copyright-owner/*",
+    "/sitemap.xml"
+  ],
+  "exclude": []
+}
