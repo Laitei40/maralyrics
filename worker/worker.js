@@ -358,16 +358,16 @@ export default {
       // ─── Static Files / SPA Routing ────────────────────
 
       // Static info pages
-      if (path === '/about') return await serveAsset(request, env, ctx, '/about/index.html');
-      if (path === '/contact') return await serveAsset(request, env, ctx, '/contact/index.html');
-      if (path === '/faq') return await serveAsset(request, env, ctx, '/faq/index.html');
-      if (path === '/privacy') return await serveAsset(request, env, ctx, '/privacy/index.html');
-      if (path === '/terms') return await serveAsset(request, env, ctx, '/terms/index.html');
-      if (path === '/copyright') return await serveAsset(request, env, ctx, '/copyright/index.html');
+      if (path === '/about') return await serveAsset(request, env, ctx, '/about/page');
+      if (path === '/contact') return await serveAsset(request, env, ctx, '/contact/page');
+      if (path === '/faq') return await serveAsset(request, env, ctx, '/faq/page');
+      if (path === '/privacy') return await serveAsset(request, env, ctx, '/privacy/page');
+      if (path === '/terms') return await serveAsset(request, env, ctx, '/terms/page');
+      if (path === '/copyright') return await serveAsset(request, env, ctx, '/copyright/page');
 
-      // Report page: /report → serve report.html
+      // Report page: /report → serve report shell (extensionless; matches Pages Functions)
       if (path === '/report') {
-        return await serveAsset(request, env, ctx, '/report/index.html');
+        return await serveAsset(request, env, ctx, '/report/page');
       }
 
       // Song page (clean URLs): /song/some-slug → server-render song SEO + serve songview.html
