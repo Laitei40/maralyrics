@@ -1,7 +1,0 @@
-// /composers/:slug → /arrangers/:slug (older canonical; zone rules match *composer* in path).
-export async function onRequest(context) {
-  const u = new URL(context.request.url);
-  const slug = (context.params.slug || '').replace(/\/+$/, '');
-  u.pathname = slug ? `/arrangers/${slug}` : '/arrangers';
-  return Response.redirect(u.toString(), 301);
-}
