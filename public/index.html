@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MaraLyrics — Mara Song Lyrics Collection</title>
+
+  <!-- SEO Meta -->
+  <meta name="description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
+  <meta name="keywords" content="Mara, lyrics, songs, Mara songs, traditional, gospel, love, patriotic, Mara lyrics" />
+  <meta name="author" content="MaraLyrics" />
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="MaraLyrics — Mara Song Lyrics Collection" />
+  <meta property="og:description" content="Explore and discover beautiful Mara song lyrics." />
+  <meta property="og:url" content="https://maralyrics.com" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "MaraLyrics",
+    "url": "https://maralyrics.com",
+    "description": "A collection of Mara song lyrics — traditional, love, gospel, and patriotic.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://maralyrics.com/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <button class="header__menu-btn" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobileDrawer">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link active" data-i18n="nav.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+
+        <!-- Settings Dropdown -->
+        <div class="settings-toggle">
+          <button class="settings-toggle__btn" aria-label="Settings" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </button>
+          <div class="settings-panel">
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                Language
+              </div>
+              <div class="settings-panel__options">
+                <button class="lang-switcher__btn active" data-lang="en">EN</button>
+                <button class="lang-switcher__btn" data-lang="mrh">Mara</button>
+                <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+              </div>
+            </div>
+            <div class="settings-panel__divider"></div>
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                Theme
+              </div>
+              <div class="settings-panel__options">
+                <button class="theme-switcher__btn" data-theme="dark" title="Dark">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="light" title="Light">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="system" title="Follow System">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="time" title="Follow Time">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+  </header>
+
+  <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
+       header does not create a containing block that clips position:fixed. -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <div class="mobile-drawer__backdrop"></div>
+    <aside class="mobile-drawer__panel" role="dialog" aria-label="Mobile navigation">
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__title-wrap">
+          <p class="mobile-drawer__eyebrow">Navigation</p>
+          <h2 class="mobile-drawer__title">Explore</h2>
+        </div>
+        <button class="mobile-drawer__close" aria-label="Close navigation menu">&times;</button>
+      </div>
+      <div class="mobile-drawer__content">
+        <a href="/" class="mobile-drawer__link active" data-i18n="nav.home">
+          <span class="mobile-drawer__icon">🏠</span>
+          <span>Home</span>
+        </a>
+        <a href="/#popular" class="mobile-drawer__link" data-i18n="nav.popular">
+          <span class="mobile-drawer__icon">🔥</span>
+          <span>Popular</span>
+        </a>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ═══ Hero ═══ -->
+  <section class="hero">
+    <div class="container">
+      <h1 class="hero__title" data-i18n="home.hero_title">Mara Song Lyrics</h1>
+      <p class="hero__subtitle" data-i18n="home.hero_subtitle">Discover and explore beautiful lyrics from the Mara community</p>
+
+      <!-- Search -->
+      <div class="search" role="search">
+        <span class="search__icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search__input"
+          placeholder="Search by title, artist, or lyrics..."
+          data-i18n-placeholder="home.search_placeholder"
+          autocomplete="off"
+          aria-label="Search songs"
+        />
+        <button id="searchClear" class="search__clear" aria-label="Clear search">&times;</button>
+      </div>
+
+      <!-- Categories -->
+      <div id="categories" class="categories" role="tablist" aria-label="Filter by category">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Main Content ═══ -->
+  <main class="container">
+
+    <!-- Search Results (hidden by default) -->
+    <section id="searchResults" style="display:none;" class="fade-in">
+      <h2 class="section-title">
+        <span class="section-title__icon">🔎</span>
+        <span data-i18n="home.search_results">Search Results</span>
+        <span id="searchCount" style="font-weight:400;color:var(--text-muted);font-size:var(--text-sm);"></span>
+      </h2>
+      <div id="searchGrid" class="song-grid"></div>
+      <div id="searchSuggestions" class="search-suggestions" style="display:none;"></div>
+    </section>
+
+    <!-- Popular Songs -->
+    <section id="popularSection" class="fade-in">
+      <h2 class="section-title" id="popular">
+        <span class="section-title__icon">🔥</span>
+        <span data-i18n="home.popular_songs">Popular Songs</span>
+      </h2>
+      <div id="popularGrid" class="song-grid"></div>
+    </section>
+
+    <!-- All Songs -->
+    <section id="allSongsSection" class="fade-in">
+      <h2 class="section-title">
+        <span class="section-title__icon">🎵</span>
+        <span data-i18n="home.all_songs">All Songs</span>
+      </h2>
+      <div id="songGrid" class="song-grid"></div>
+
+      <!-- Pagination -->
+      <div id="pagination" class="pagination"></div>
+    </section>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div class="empty-state__icon">🎵</div>
+      <h3 class="empty-state__title" data-i18n="home.no_songs_title">No songs found</h3>
+      <p class="empty-state__text" data-i18n="home.no_songs_text">Try a different search term or browse categories above.</p>
+    </div>
+
+  </main>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a href="/" class="footer__brand"><img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" /> MaraLyrics</a>
+          <p class="footer__tagline">Preserving Mara music for future generations.</p>
+          <div class="footer__social">
+            <a href="https://www.youtube.com/@haoleimrh" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--youtube" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+            <a href="https://www.facebook.com/maralyrics/" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--facebook" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Information</h4>
+          <ul class="footer__links"><li><a href="/about">About Us</a></li><li><a href="/faq">FAQ</a></li></ul>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Legal</h4>
+          <ul class="footer__links"><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms &amp; Conditions</a></li><li><a href="/copyright">Copyright</a></li></ul>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Support</h4>
+          <ul class="footer__links"><li><a href="/contact">Contact Us</a></li><li><a href="/report">Report Error</a></li></ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
+        <p>&copy; 2026 MaraLyrics. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Consent -->
+  <script src="/consent.js"></script>
+  <!-- Toast -->
+  <script src="/toast.js"></script>
+  <!-- i18n -->
+  <script src="/i18n.js"></script>
+  <!-- Theme -->
+  <script src="/theme.js"></script>
+  <!-- App Script -->
+  <script src="/app.js"></script>
+</body>
+</html>

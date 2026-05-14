@@ -119,37 +119,37 @@ INSERT INTO composers (name, slug, bio) VALUES
 -- Seed songs (linked by artist_id / composer_id)
 INSERT INTO songs (title, slug, artist_id, composer_id, category, lyrics) VALUES
 (
-    'Mara Hlasak',
-    'mara-hlasak',
+    'Mara Hlasa',
+    'mara-hlasa',
     1, 1,
     'Traditional',
-    'Line 1 of Mara Hlasak lyrics...' || char(10) || 'Line 2 of the song...' || char(10) || 'Line 3 continues here...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'More lyrics follow...' || char(10) || 'Beautiful melody...'
+    'Line 1 of Mara Hlasa lyrics...' || char(10) || 'Line 2 of the song...' || char(10) || 'Line 3 continues here...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'More lyrics follow...' || char(10) || 'Beautiful melody...'
 ),
 (
-    'Ka Lunglen',
-    'ka-lunglen',
+    'Ei ly kaw',
+    'ei-ly-kaw',
     2, NULL,
     'Love',
-    'Ka lunglen a nasa e...' || char(10) || 'Heartfelt words flow...' || char(10) || 'Melody of the hills...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Singing together...' || char(10) || 'Voices of Mara...'
+    'Ei ly kaw a nasa e...' || char(10) || 'Heartfelt words flow...' || char(10) || 'Melody of the hills...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Singing together...' || char(10) || 'Voices of Mara...'
 ),
 (
-    'Thla Thar Hla',
-    'thla-thar-hla',
+    'Thlahpa Pathaih',
+    'thlahpa-pathaih',
     3, 1,
     'Patriotic',
-    'Thla thar a lo thleng ta...' || char(10) || 'New season dawns...' || char(10) || 'Gratitude fills the heart...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'Joyful celebration...' || char(10) || 'Together we sing...'
+    'Hla a pha ngaita...' || char(10) || 'New season dawns...' || char(10) || 'Gratitude fills the heart...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'Joyful celebration...' || char(10) || 'Together we sing...'
 ),
 (
-    'Mara Ram Hla',
-    'mara-ram-hla',
+    'Mara Râh Hla',
+    'mara-râh-hla',
     4, NULL,
     'Traditional',
-    'Mara ram chu a ngai...' || char(10) || 'Our homeland forever...' || char(10) || 'Mountains and valleys...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Mara ram, Mara ram...' || char(10) || 'Beautiful land of ours...'
+    'Mararâh chu a pha...' || char(10) || 'Our homeland forever...' || char(10) || 'Mountains and valleys...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Mararâh, Mararâh...' || char(10) || 'Beautiful land of ours...'
 ),
 (
-    'Rawl Tha Ei',
-    'rawl-tha-ei',
+    'Abeipa pha zie',
+    'abeipa-pha-zie',
     5, 1,
     'Gospel',
-    'Rawl tha ei a that e...' || char(10) || 'Goodness overflows...' || char(10) || 'Blessing upon blessing...' || char(10) || char(10) || 'Bridge:' || char(10) || 'Forever grateful...' || char(10) || 'Songs of praise...'
+    'Abeipa pha zie a that e...' || char(10) || 'Goodness overflows...' || char(10) || 'Blessing upon blessing...' || char(10) || char(10) || 'Bridge:' || char(10) || 'Forever grateful...' || char(10) || 'Songs of praise...'
 );

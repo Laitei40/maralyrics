@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feedback — MaraLyrics</title>
+
+  <meta name="description" content="Send us your feedback about song lyrics on MaraLyrics." />
+  <meta name="theme-color" content="#0a0e1a" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+
+  <!-- Cloudflare Turnstile -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        MaraLyrics
+      </a>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+
+        <!-- Settings Dropdown -->
+        <div class="settings-toggle">
+          <button class="settings-toggle__btn" aria-label="Settings" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </button>
+          <div class="settings-panel">
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                Language
+              </div>
+              <div class="settings-panel__options">
+                <button class="lang-switcher__btn active" data-lang="en">EN</button>
+                <button class="lang-switcher__btn" data-lang="mrh">Mara</button>
+                <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+              </div>
+            </div>
+            <div class="settings-panel__divider"></div>
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                Theme
+              </div>
+              <div class="settings-panel__options">
+                <button class="theme-switcher__btn" data-theme="dark" title="Dark">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="light" title="Light">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="system" title="Follow System">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="time" title="Follow Time">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ═══ Report Content ═══ -->
+  <main class="report-page container">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/" class="breadcrumb__link">Home</a>
+      <span class="breadcrumb__sep">›</span>
+      <span class="breadcrumb__current" data-i18n="feedback.title">Feedback</span>
+    </nav>
+
+    <div class="report-page__card">
+
+      <h1 class="report-page__title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;color:var(--accent);">
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+        </svg>
+        <span data-i18n="feedback.title">Feedback</span>
+      </h1>
+      <p class="report-page__subtitle" data-i18n="feedback.subtitle">Have feedback about this song? Let us know and we'll look into it.</p>
+
+      <!-- Song Info (auto-populated from URL params) -->
+      <div class="report-page__song-info" id="songInfo" style="display:none;">
+        <div class="report-page__song-label" data-i18n="feedback.about_label">Feedback about:</div>
+        <div class="report-page__song-detail">
+          <span class="report-page__song-icon">🎵</span>
+          <div>
+            <div class="report-page__song-title" id="reportSongTitle"></div>
+            <div class="report-page__song-artist" id="reportSongArtist"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Form -->
+      <form id="reportForm" class="report-page__form">
+        <input type="hidden" id="reportSongSlug" />
+
+        <div class="form-group">
+          <label class="form-label" for="reporterName" data-i18n="feedback.name_label">Your Name <span class="form-required">*</span></label>
+          <input type="text" id="reporterName" class="form-input" placeholder="Enter your name" data-i18n-placeholder="feedback.name_placeholder" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reporterEmail" data-i18n="feedback.email_label">Your Email <span class="form-required">*</span></label>
+          <input type="email" id="reporterEmail" class="form-input" placeholder="you@example.com" data-i18n-placeholder="feedback.email_placeholder" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reportBody" data-i18n="feedback.body_label">Your Feedback <span class="form-required">*</span></label>
+          <textarea id="reportBody" class="form-input form-textarea" rows="6" placeholder="Tell us what you think — corrections, suggestions, or anything else about this song." data-i18n-placeholder="feedback.body_placeholder" required></textarea>
+        </div>
+
+        <div id="reportMessage" class="report-page__message" style="display:none;"></div>
+
+        <!-- Cloudflare Turnstile -->
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAABjildkegfR6T0sd" data-theme="dark"></div>
+
+        <div class="report-page__actions">
+          <button type="submit" class="btn-send-feedback" id="btnSubmitReport">
+            <span class="btn-send-feedback__icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </span>
+            <span class="btn-send-feedback__text" data-i18n="feedback.submit_btn">Send Feedback</span>
+          </button>
+          <a href="/" class="btn btn--ghost" id="btnBackHome" data-i18n="feedback.back_btn">← Back</a>
+        </div>
+      </form>
+
+    </div>
+
+    <!-- Success State (hidden by default) -->
+    <div id="reportSuccess" class="report-page__card report-page__success" style="display:none;">
+      <div class="report-page__success-icon">✅</div>
+      <h2 class="report-page__success-title" data-i18n="feedback.success_title">Feedback Sent!</h2>
+      <p class="report-page__success-text" data-i18n="feedback.success_text">Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.</p>
+      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);" data-i18n="feedback.success_back_home">← Back to Home</a>
+    </div>
+
+  </main>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a href="/" class="footer__brand"><img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" /> MaraLyrics</a>
+          <p class="footer__tagline">Preserving Mara music for future generations.</p>
+          <div class="footer__social">
+            <a href="https://www.youtube.com/@haoleimrh" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--youtube" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+            <a href="https://www.facebook.com/maralyrics/" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--facebook" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Information</h4>
+          <ul class="footer__links"><li><a href="/about">About Us</a></li><li><a href="/faq">FAQ</a></li></ul>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Legal</h4>
+          <ul class="footer__links"><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms &amp; Conditions</a></li><li><a href="/copyright">Copyright</a></li></ul>
+        </div>
+        <div class="footer__col">
+          <h4 class="footer__heading">Support</h4>
+          <ul class="footer__links"><li><a href="/contact">Contact Us</a></li><li><a href="/report">Report Error</a></li></ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
+        <p>&copy; 2026 MaraLyrics. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/consent.js"></script>
+  <!-- Toast -->
+  <script src="/toast.js"></script>
+  <!-- i18n -->
+  <script src="/i18n.js"></script>
+  <!-- Theme -->
+  <script src="/theme.js"></script>
+  <script>
+    // Initialize consent, i18n, and theme
+    CookieConsent.init();
+    I18n.init();
+    Theme.init();
+    Toast.initOffline();
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
+
+    // Settings panel toggle
+    (function() {
+      const togBtn = document.querySelector('.settings-toggle__btn');
+      const togWrap = document.querySelector('.settings-toggle');
+      if (togBtn && togWrap) {
+        togBtn.addEventListener('click', (e) => { e.stopPropagation(); togWrap.classList.toggle('open'); });
+        document.addEventListener('click', (e) => { if (!togWrap.contains(e.target)) togWrap.classList.remove('open'); });
+      }
+    })();
+
+    // ─── Report Page Logic ──────────────────────────
+    (function () {
+      const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost'))
+        ? 'https://maralyrics.teiteipara.workers.dev'
+        : '';
+
+      // Parse URL params: ?song=slug&title=...&artist=...
+      const params = new URLSearchParams(window.location.search);
+      const songSlug = params.get('song') || '';
+      const songTitle = params.get('title') || '';
+      const songArtist = params.get('artist') || '';
+
+      if (songSlug) {
+        document.getElementById('reportSongSlug').value = songSlug;
+      }
+      if (songTitle || songArtist) {
+        document.getElementById('songInfo').style.display = 'block';
+        document.getElementById('reportSongTitle').textContent = songTitle || 'Unknown Song';
+        document.getElementById('reportSongArtist').textContent = songArtist ? 'by ' + songArtist : '';
+      }
+
+      // Set back button to song page if came from one
+      if (songSlug) {
+        document.getElementById('btnBackHome').href = '/song/' + songSlug;
+        document.getElementById('btnBackHome').textContent = I18n.t('feedback.back_to_song');
+      }
+
+      // Form submission
+      document.getElementById('reportForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById('reporterName').value.trim();
+        const email = document.getElementById('reporterEmail').value.trim();
+        const body = document.getElementById('reportBody').value.trim();
+        const msgEl = document.getElementById('reportMessage');
+
+        if (!name || !email || !body) {
+          msgEl.textContent = I18n.t('feedback.err_fill_all');
+          msgEl.className = 'report-page__message report-page__message--error';
+          msgEl.style.display = 'block';
+          return;
+        }
+
+        const btn = document.getElementById('btnSubmitReport');
+        btn.disabled = true;
+        btn.textContent = I18n.t('feedback.sending');
+
+        // Get Turnstile token
+        const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+        if (!turnstileToken) {
+          msgEl.textContent = I18n.t('feedback.err_turnstile');
+          msgEl.className = 'report-page__message report-page__message--error';
+          msgEl.style.display = 'block';
+          btn.disabled = false;
+          btn.innerHTML = '<span class="btn-send-feedback__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span><span class="btn-send-feedback__text">Send Feedback</span>';
+          return;
+        }
+
+        try {
+          const res = await fetch(API_BASE + '/api/report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              song_slug: songSlug,
+              song_title: songTitle,
+              song_artist: songArtist,
+              reporter_name: name,
+              reporter_email: email,
+              body: body,
+              turnstile_token: turnstileToken,
+            }),
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || I18n.t('feedback.err_send_failed'));
+          }
+
+          // Show success state
+          document.querySelector('.report-page__card:not(.report-page__success)').style.display = 'none';
+          document.getElementById('reportSuccess').style.display = 'block';
+
+          // Also update back link in success
+          if (songSlug) {
+            document.querySelector('#reportSuccess .btn').href = '/song/' + songSlug;
+            document.querySelector('#reportSuccess .btn').textContent = I18n.t('feedback.back_to_song');
+          }
+
+        } catch (err) {
+          msgEl.textContent = err.message || I18n.t('feedback.err_generic');
+          msgEl.className = 'report-page__message report-page__message--error';
+          msgEl.style.display = 'block';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="btn-send-feedback__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span><span class="btn-send-feedback__text">Send Feedback</span>';
+          // Reset Turnstile
+          if (window.turnstile) turnstile.reset();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
