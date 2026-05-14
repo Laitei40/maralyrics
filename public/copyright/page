@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terms &amp; Conditions — MaraLyrics</title>
-  <meta name="description" content="MaraLyrics Terms and Conditions — rules governing your use of our website." />
+    <title>Copyright &amp; Removal Request — Mara Lyrics</title>
+    <meta name="description" content="Mara Lyrics Copyright Policy — how to request content removal and our copyright procedures." />
   <meta name="theme-color" content="#0a0e1a" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,8 +18,8 @@
   <header class="header">
     <div class="header__inner">
       <a href="/" class="header__logo">
-        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
-        MaraLyrics
+          <img src="/icon.svg" alt="Mara Lyrics" class="header__logo-icon" />
+          Mara Lyrics
       </a>
       <nav class="header__nav">
         <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
@@ -53,123 +53,105 @@
     </div>
   </header>
 
-  <!-- ═══ Terms Content ═══ -->
+  <!-- ═══ Copyright Content ═══ -->
   <main class="static-page container">
 
     <nav class="breadcrumb" aria-label="Breadcrumb">
       <a href="/" class="breadcrumb__link" data-i18n="breadcrumb.home">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current" data-i18n="terms.breadcrumb">Terms &amp; Conditions</span>
+      <span class="breadcrumb__current" data-i18n="copyright_page.breadcrumb">Copyright &amp; Removal Request</span>
     </nav>
 
     <div class="static-page__card">
 
-      <h1 class="static-page__title" data-i18n="terms.title">Terms &amp; Conditions</h1>
-      <p class="static-page__date" data-i18n="terms.date">Last updated: February 15, 2026</p>
+      <h1 class="static-page__title" data-i18n="copyright_page.title">Copyright &amp; Removal Request</h1>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h1">1. Acceptance of Terms</h2>
-        <div data-i18n="terms.s1_content">
-        <p>By accessing and using MaraLyrics (the "Site"), you agree to be bound by these Terms &amp; Conditions ("Terms"). If you do not agree to these Terms, please do not use the Site. We reserve the right to modify these Terms at any time, and your continued use of the Site constitutes acceptance of any changes.</p>
+        <h2 class="static-page__heading" data-i18n="copyright_page.h1">Our Commitment</h2>
+        <div data-i18n="copyright_page.s1_content">
+        <p>MaraLyrics respects the intellectual property rights of songwriters, composers, and artists. Our platform exists to preserve and celebrate Mara musical heritage, and we are committed to handling all copyright matters responsibly and promptly.</p>
         </div>
       </section>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h2">2. Purpose of the Site</h2>
-        <div data-i18n="terms.s2_content">
-        <p>MaraLyrics is an open, non-commercial cultural archive dedicated to preserving Mara song lyrics. The Site serves educational, cultural, and archival purposes. All lyrics are provided for personal, non-commercial use, to promote the appreciation and preservation of Mara musical heritage.</p>
+        <h2 class="static-page__heading" data-i18n="copyright_page.h2">Copyright Notice</h2>
+        <div data-i18n="copyright_page.s2_content">
+        <p>All song lyrics displayed on this Site are the intellectual property of their respective songwriters, composers, and rights holders. Mara Lyrics does not claim ownership of any song lyrics. Lyrics are provided for personal, cultural, educational, and archival purposes only.</p>
+        <p>The website design, code, branding, and original content (excluding lyrics) are &copy; 2026 Mara Lyrics. All rights reserved.</p>
         </div>
       </section>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h3">3. Intellectual Property</h2>
-        <div data-i18n="terms.s3_content">
+        <h2 class="static-page__heading" data-i18n="copyright_page.h3">Removal Request Process</h2>
+        <div data-i18n="copyright_page.s3_content">
+        <p>If you are a copyright holder (or authorized to act on behalf of one) and believe that your copyrighted work has been posted on MaraLyrics without authorization, you may submit a removal request. Please follow the steps below:</p>
+
+        <div class="static-page__steps">
+          <div class="static-page__step">
+            <span class="static-page__step-number">1</span>
+            <div>
+              <h3 class="static-page__subheading">Identify the Content</h3>
+              <p>Provide the specific URL(s) of the page(s) containing the copyrighted material you wish to have removed.</p>
+            </div>
+          </div>
+
+          <div class="static-page__step">
+            <span class="static-page__step-number">2</span>
+            <div>
+              <h3 class="static-page__subheading">Provide Your Identity</h3>
+              <p>Include your full legal name, relationship to the copyrighted work (songwriter, composer, publisher, authorized agent), and contact information.</p>
+            </div>
+          </div>
+
+          <div class="static-page__step">
+            <span class="static-page__step-number">3</span>
+            <div>
+              <h3 class="static-page__subheading">Include a Statement</h3>
+              <p>Provide a statement that you have a good faith belief that the use of the material is not authorized by the copyright owner, its agent, or the law.</p>
+            </div>
+          </div>
+
+          <div class="static-page__step">
+            <span class="static-page__step-number">4</span>
+            <div>
+              <h3 class="static-page__subheading">Send Your Request</h3>
+              <p>Email your complete removal request to:</p>
+              <p class="contact-email"><a href="mailto:contact@maralyrics.com">contact@maralyrics.com</a></p>
+            </div>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <section class="static-page__section">
+        <h2 class="static-page__heading" data-i18n="copyright_page.h4">What Happens Next</h2>
+        <div data-i18n="copyright_page.s4_content">
         <ul class="static-page__list">
-          <li><strong>Song Lyrics:</strong> All song lyrics displayed on the Site are the intellectual property of their respective songwriters, composers, and rights holders. MaraLyrics does not claim ownership of any lyrics.</li>
-          <li><strong>Site Content:</strong> The website design, code, branding, logos, and original written content (such as descriptions, UI text, and about pages) are the intellectual property of MaraLyrics and may not be reproduced without permission.</li>
-          <li><strong>User Contributions:</strong> By submitting lyrics, corrections, or other content to the Site, you grant MaraLyrics a non-exclusive, royalty-free license to display and archive such content on the Site.</li>
+          <li>We will acknowledge receipt of your request within <strong>48 hours</strong>.</li>
+          <li>We will review and verify the claim promptly.</li>
+          <li>If the claim is valid, the identified content will be removed within <strong>7 business days</strong>.</li>
+          <li>You will be notified once the content has been removed.</li>
         </ul>
         </div>
       </section>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h4">4. Permitted Use</h2>
-        <div data-i18n="terms.s4_content">
-        <p>You may use the Site for the following purposes:</p>
+        <h2 class="static-page__heading" data-i18n="copyright_page.h5">Important Notes</h2>
+        <div data-i18n="copyright_page.s5_content">
         <ul class="static-page__list">
-          <li>Personal, non-commercial viewing and reading of song lyrics</li>
-          <li>Educational or research purposes (with proper attribution)</li>
-          <li>Sharing links to the Site</li>
-          <li>Submitting corrections or feedback</li>
-        </ul>
-        <p>You may <strong>not</strong>:</p>
-        <ul class="static-page__list">
-          <li>Reproduce, distribute, or commercially exploit lyrics from the Site without permission from the rights holders</li>
-          <li>Use automated tools to scrape or harvest content from the Site</li>
-          <li>Attempt to interfere with, compromise, or disrupt the Site's infrastructure</li>
-          <li>Upload malicious content, spam, or offensive material</li>
+          <li>Fraudulent or bad-faith removal requests may be subject to legal consequences.</li>
+          <li>We may reach out for additional information or clarification before processing a request.</li>
+          <li>If you believe content was removed in error, you may contact us to file a counter-notification.</li>
         </ul>
         </div>
       </section>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h5">5. User Submissions</h2>
-        <div data-i18n="terms.s5_content">
-        <p>When submitting content (feedback, error reports, contact messages, or lyric contributions), you represent that:</p>
-        <ul class="static-page__list">
-          <li>The information you provide is accurate and truthful</li>
-          <li>You have the right to submit such content</li>
-          <li>Your submission does not violate any third-party rights</li>
-        </ul>
-        <p>We reserve the right to remove any user submission that violates these Terms or is otherwise objectionable.</p>
-        </div>
-      </section>
-
-      <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h6">6. Disclaimer of Warranties</h2>
-        <div data-i18n="terms.s6_content">
-        <p>The Site is provided on an "as is" and "as available" basis. MaraLyrics makes no warranties, expressed or implied, regarding:</p>
-        <ul class="static-page__list">
-          <li>The accuracy, completeness, or currency of the lyrics or information on the Site</li>
-          <li>The uninterrupted or error-free availability of the Site</li>
-          <li>The fitness of the Site for any particular purpose</li>
-        </ul>
-        </div>
-      </section>
-
-      <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h7">7. Limitation of Liability</h2>
-        <div data-i18n="terms.s7_content">
-        <p>To the fullest extent permitted by law, MaraLyrics and its contributors shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of or inability to use the Site, even if we have been advised of the possibility of such damages.</p>
-        </div>
-      </section>
-
-      <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h8">8. Third-Party Links</h2>
-        <div data-i18n="terms.s8_content">
-        <p>The Site may contain links to third-party websites or services (e.g., social media profiles, music platforms). We are not responsible for the content, privacy practices, or availability of these external sites.</p>
-        </div>
-      </section>
-
-      <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h9">9. Termination</h2>
-        <div data-i18n="terms.s9_content">
-        <p>We reserve the right to restrict or terminate your access to the Site at any time, without notice, for any reason, including but not limited to violation of these Terms.</p>
-        </div>
-      </section>
-
-      <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h10">10. Governing Law</h2>
-        <div data-i18n="terms.s10_content">
-        <p>These Terms shall be governed by and construed in accordance with the applicable laws. Any disputes arising from these Terms or your use of the Site shall be resolved through good-faith negotiation.</p>
-        </div>
-      </section>
-
-      <section class="static-page__section">
-        <h2 class="static-page__heading" data-i18n="terms.h11">11. Contact</h2>
-        <div data-i18n="terms.s11_content">
-        <p>If you have any questions about these Terms, please contact us at:</p>
-        <p><a href="mailto:info@maralyrics.com">info@maralyrics.com</a></p>
+        <h2 class="static-page__heading" data-i18n="copyright_page.h6">Contact</h2>
+        <div data-i18n="copyright_page.s6_content">
+        <p>For copyright-related inquiries, please email:</p>
+        <p class="contact-email"><a href="mailto:contact@maralyrics.com">contact@maralyrics.com</a></p>
+        <p>For general inquiries, visit our <a href="/contact">Contact Us</a> page.</p>
         </div>
       </section>
 
@@ -181,29 +163,29 @@
     <div class="container">
       <div class="footer__grid">
         <div class="footer__col">
-          <a href="/" class="footer__brand"><img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" /> MaraLyrics</a>
-          <p class="footer__tagline">Preserving Mara music for future generations.</p>
+          <a href="/" class="footer__brand"><img src="/icon.svg" alt="Mara Lyrics" class="footer__brand-icon" /> Mara Lyrics</a>
+          <p class="footer__tagline" data-i18n="footer.tagline">Preserving Mara music for future generations.</p>
           <div class="footer__social">
             <a href="https://www.youtube.com/@haoleimrh" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--youtube" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
             <a href="https://www.facebook.com/maralyrics/" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--facebook" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
           </div>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading">Information</h4>
-          <ul class="footer__links"><li><a href="/about">About Us</a></li><li><a href="/faq">FAQ</a></li></ul>
+          <h4 class="footer__heading" data-i18n="footer.cols.information">Information</h4>
+          <ul class="footer__links"><li><a href="/about" data-i18n="footer.links.about">About Us</a></li><li><a href="/faq" data-i18n="footer.links.faq">FAQ</a></li></ul>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading">Legal</h4>
-          <ul class="footer__links"><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms &amp; Conditions</a></li><li><a href="/copyright">Copyright</a></li></ul>
+          <h4 class="footer__heading" data-i18n="footer.cols.legal">Legal</h4>
+          <ul class="footer__links"><li><a href="/privacy" data-i18n="footer.links.privacy">Privacy Policy</a></li><li><a href="/terms" data-i18n="footer.links.terms">Terms &amp; Conditions</a></li><li><a href="/copyright" data-i18n="footer.links.copyright">Copyright</a></li></ul>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading">Support</h4>
-          <ul class="footer__links"><li><a href="/contact">Contact Us</a></li><li><a href="/report">Report Error</a></li></ul>
+          <h4 class="footer__heading" data-i18n="footer.cols.support">Support</h4>
+          <ul class="footer__links"><li><a href="/contact" data-i18n="footer.links.contact">Contact Us</a></li><li><a href="/report" data-i18n="footer.links.report">Report Error</a></li></ul>
         </div>
       </div>
       <div class="footer__bottom">
-        <p>Made with <span class="footer__heart">♥</span> for the Mara community</p>
-        <p>&copy; 2026 MaraLyrics. All rights reserved.</p>
+        <p data-i18n="footer.made_with">Made with <span class="footer__heart">♥</span> for the Mara community</p>
+        <p data-i18n="footer.copyright">&copy; 2026 Mara Lyrics. All rights reserved.</p>
       </div>
     </div>
   </footer>

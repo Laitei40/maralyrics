@@ -371,6 +371,26 @@
   transition: all var(--transition-fast);
 }
 
+.form-input option {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.form-input option:checked {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+.form-input option:hover {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
+.report-status-select option {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
 .form-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);

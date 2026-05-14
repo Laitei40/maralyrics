@@ -5,7 +5,25 @@
   },
   "footer": {
     "made_with": "Made with <span class=\"footer__heart\">♥</span> for the Mara community",
-    "copyright": "© 2026 MaraLyrics"
+    "tagline": "Preserving Mara music for future generations.",
+    "copyright": "© 2026 Mara Lyrics. All rights reserved.",
+    "cols": {
+      "information": "Information",
+      "legal": "Legal",
+      "support": "Support"
+    },
+    "links": {
+      "about": "About Us",
+      "faq": "FAQ",
+      "privacy": "Privacy Policy",
+      "terms": "Terms & Conditions",
+      "copyright": "Copyright",
+      "contact": "Contact Us",
+      "report": "Report Error"
+    }
+  },
+  "brand": {
+    "name": "Mara Lyrics"
   },
   "offline": {
     "badge": "Offline Mode",
@@ -27,7 +45,7 @@
   "song": {
     "breadcrumb": "Song",
     "feedback_btn": "Feedback",
-    "meta_desc": "Read lyrics of \"{title}\" by {artist} on MaraLyrics.",
+    "meta_desc": "Read lyrics of \"{title}\" by {artist} on Mara Lyrics.",
     "error_title": "Song not found",
     "error_text": "This song may have been removed or the link is incorrect.",
     "error_go_home": "← Go Home"
@@ -35,7 +53,7 @@
   "artist": {
     "breadcrumb": "Artist",
     "role": "Artist",
-    "songs_title": "Songs by this Artist",
+    "songs_title": "Songs by this artist",
     "no_songs": "No songs found for this artist.",
     "error_title": "Artist not found",
     "error_text": "This artist may have been removed or the link is incorrect.",
@@ -44,7 +62,7 @@
   "composer": {
     "breadcrumb": "Composer",
     "role": "Composer",
-    "songs_title": "Songs by this Composer",
+    "songs_title": "Songs by this composer",
     "no_songs": "No songs found for this composer.",
     "error_title": "Composer not found",
     "error_text": "This composer may have been removed or the link is incorrect.",
@@ -54,22 +72,22 @@
     "title": "Feedback",
     "subtitle": "Have feedback about this song? Let us know and we'll look into it.",
     "about_label": "Feedback about:",
-    "name_label": "Your Name",
+    "name_label": "Your Name <span class=\"form-required\">*</span>",
     "name_placeholder": "Enter your name",
-    "email_label": "Your Email",
+    "email_label": "Your Email <span class=\"form-required\">*</span>",
     "email_placeholder": "you@example.com",
-    "body_label": "Your Feedback",
+    "body_label": "Your Feedback <span class=\"form-required\">*</span>",
     "body_placeholder": "Tell us what you think — corrections, suggestions, or anything else about this song.",
     "submit_btn": "Send Feedback",
     "back_btn": "← Back",
-    "back_to_song": "← Back to Song",
+    "back_to_song": "← Back to song",
     "sending": "Sending...",
     "success_title": "Feedback Sent!",
-    "success_text": "Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.",
+    "success_text": "Thank you for helping us improve Mara Lyrics. We'll review your feedback as soon as possible.",
     "success_back_home": "← Back to Home",
-    "err_fill_all": "Please fill in all fields.",
-    "err_turnstile": "Please complete the verification challenge.",
-    "err_send_failed": "Failed to send report",
+    "err_fill_all": "Please fill in all required fields.",
+    "err_turnstile": "Please complete the security verification.",
+    "err_send_failed": "Failed to send",
     "err_generic": "Something went wrong. Please try again."
   },
   "error_page": {
@@ -95,7 +113,7 @@
   },
   "about": {
     "breadcrumb": "About Us",
-    "title": "About MaraLyrics",
+    "title": "About Mara Lyrics",
     "mission_heading": "Our Mission",
     "mission_p1": "MaraLyrics is dedicated to preserving, documenting, and sharing the rich musical heritage of the Mara people. We believe that music is one of the most powerful expressions of culture, and every lyric tells a story that deserves to be remembered.",
     "mission_p2": "Our platform serves as a bridge between generations — making it easy for anyone, anywhere, to discover, learn, and enjoy Mara songs in their original language.",
@@ -121,7 +139,7 @@
   "contact": {
     "breadcrumb": "Contact Us",
     "title": "Contact Us",
-    "intro": "Have a question, suggestion, or want to contribute to MaraLyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.",
+    "intro": "Have a question, suggestion, or want to contribute to Mara Lyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.",
     "name_label": "Your Name <span class=\"form-required\">*</span>",
     "name_placeholder": "Enter your name",
     "email_label": "Your Email <span class=\"form-required\">*</span>",
@@ -139,19 +157,19 @@
   "faq": {
     "breadcrumb": "FAQ",
     "title": "Frequently Asked Questions",
-    "q1": "How accurate are the song lyrics on MaraLyrics?",
+    "q1": "How accurate are the song lyrics on Mara Lyrics?",
     "a1": "<p>We strive for the highest level of accuracy. All lyrics are sourced from original recordings, official publications, or trusted community members. However, some variations may exist between different performances or regional dialects. If you notice an error, please use our <a href=\"/report\">Report Error</a> page to let us know.</p>",
-    "q2": "How can I submit a song to MaraLyrics?",
+    "q2": "How can I submit a song to Mara Lyrics?",
     "a2": "<p>We welcome song submissions from the community! To submit lyrics, please <a href=\"/contact\">contact us</a> with the following information:</p><ul><li>Song title</li><li>Artist / composer name</li><li>Complete lyrics text</li><li>Category (Gospel, Love, Traditional, Patriotic, etc.)</li><li>Any additional context or notes</li></ul><p>Our editorial team will review the submission and publish it once verified.</p>",
     "q3": "Is MaraLyrics free to use?",
-    "a3": "<p>Yes! MaraLyrics is completely free. Our mission is to make Mara song lyrics accessible to everyone. The platform may display advertisements to support operational costs, but access to lyrics will always remain free.</p>",
+    "a3": "<p>Yes! Mara Lyrics is completely free. Our mission is to make Mara song lyrics accessible to everyone. The platform may display advertisements to support operational costs, but access to lyrics will always remain free.</p>",
     "q4": "Who owns the copyright to the lyrics?",
-    "a4": "<p>The copyright of all lyrics belongs to their respective artists, composers, and rights holders. MaraLyrics displays lyrics for cultural, educational, and personal use only. We do not claim ownership of any song content. If you are a copyright owner and wish to request a removal, please visit our <a href=\"/copyright\">Copyright</a> page.</p>",
+    "a4": "<p>The copyright of all lyrics belongs to their respective artists, composers, and rights holders. Mara Lyrics displays lyrics for cultural, educational, and personal use only. We do not claim ownership of any song content. If you are a copyright owner and wish to request a removal, please visit our <a href=\"/copyright\">Copyright</a> page.</p>",
     "q5": "How do I report an error in the lyrics?",
     "a5": "<p>You can report errors directly from the song page by clicking the \"Send Feedback\" button, or visit our <a href=\"/report\">Report Error</a> page. Please include the song title and a description of the issue. Our team will review and correct it promptly.</p>",
     "q6": "Can I use lyrics from MaraLyrics for my project?",
-    "a6": "<p>Lyrics on MaraLyrics are shared for cultural and educational purposes. For personal, non-commercial use (such as learning, singing, or study), you are welcome to reference the content. For any commercial use, please contact the original rights holders. Please see our <a href=\"/terms\">Terms &amp; Conditions</a> for full details.</p>",
-    "q7": "Does MaraLyrics collect my personal data?",
+    "a6": "<p>Lyrics on Mara Lyrics are shared for cultural and educational purposes. For personal, non-commercial use (such as learning, singing, or study), you are welcome to reference the content. For any commercial use, please contact the original rights holders. Please see our <a href=\"/terms\">Terms &amp; Conditions</a> for full details.</p>",
+    "q7": "Does Mara Lyrics collect my personal data?",
     "a7": "<p>We collect minimal data necessary to operate the platform. This includes basic analytics (page views) and information you voluntarily submit through our forms (name, email). We never sell your data. For full details, please read our <a href=\"/privacy\">Privacy Policy</a>.</p>",
     "q8": "How can I support MaraLyrics?",
     "a8": "<p>You can support us by:</p><ul><li>Sharing MaraLyrics with friends and family</li><li>Submitting song lyrics or corrections</li><li>Providing feedback through our <a href=\"/contact\">Contact</a> page</li><li>Spreading the word about Mara music and culture</li></ul>"
