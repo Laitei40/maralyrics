@@ -438,12 +438,15 @@ async function serveAsset(request, env, ctx, overridePath = null) {
       options
     );
 
-    // Add security headers
-    const headers = new Response(response.body, response);
-    headers.headers.set('X-Content-Type-Options', 'nosniff');
-    headers.headers.set('X-Frame-Options', 'DENY');
-    headers.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    return headers;
+    const headers = new Headers(response.headers);
+    headers.set('X-Content-Type-Options', 'nosniff');
+    headers.set('X-Frame-Options', 'DENY');
+    headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
 
   } catch (e) {
     if (e instanceof NotFoundError) {
@@ -456,10 +459,11 @@ async function serveAsset(request, env, ctx, overridePath = null) {
           { request: notFoundReq, waitUntil: ctx.waitUntil.bind(ctx) },
           options
         );
+        const nfHeaders = new Headers(notFoundResp.headers);
         return new Response(notFoundResp.body, {
-          ...notFoundResp,
           status: 404,
-          headers: notFoundResp.headers,
+          statusText: notFoundResp.statusText,
+          headers: nfHeaders,
         });
       } catch {
         return new Response('Page not found', {

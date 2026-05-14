@@ -1,1 +1,8 @@
-
+# Map extensionless URLs to static HTML (200 = rewrite; keeps the browser URL)
+/about /about.html 200
+/contact /contact.html 200
+/faq /faq.html 200
+/privacy /privacy.html 200
+/terms /terms.html 200
+/copyright /copyright.html 200
+/report /report.html 200
