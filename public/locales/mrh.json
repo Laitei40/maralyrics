@@ -1,29 +1,29 @@
 {
   "nav": {
     "home": "Hmiapi",
-    "popular": "Mo Hluhpazy"
+    "popular": "Moh Hluhpazy"
   },
   "footer": {
     "made_with": "Marasaw châta <span class=\"footer__heart\">♥</span> ta taopa",
-    "tagline": "Preserving Mara music for future generations.",
-    "copyright": "© 2026 Mara Lyrics. All rights reserved.",
+    "tagline": "Chhâtlia sawzy châta Mara hla khâsiana.",
+    "copyright": "© 2026 Mara Hlabie. Biehneina zydua a pyhpa.",
     "cols": {
-      "information": "Information",
-      "legal": "Legal",
-      "support": "Support"
+      "information": "Chhichâna",
+      "legal": "Ryhpa",
+      "support": "Baokhâ"
     },
     "links": {
-      "about": "About Us",
-      "faq": "FAQ",
-      "privacy": "Privacy Policy",
-      "terms": "Terms & Conditions",
-      "copyright": "Copyright",
-      "contact": "Contact Us",
-      "report": "Report Error"
+      "about": "Keimo Thâtih",
+      "faq": "HHH",
+      "privacy": "Pôhpa Thlalôhna Pawlisi",
+      "terms": "Ruzy & Dâhzy",
+      "copyright": "Azipachâna",
+      "contact": "Azaona",
+      "report": "Pâna Chho"
     }
   },
   "brand": {
-    "name": "Mara Lyrics"
+    "name": "Mara Hlabie"
   },
   "offline": {
     "badge": "Offline Dâh",
@@ -45,7 +45,7 @@
   "song": {
     "breadcrumb": "Hla",
     "feedback_btn": "Khokheina",
-    "meta_desc": "Read lyrics of \"{title}\" by {artist} on Mara Lyrics.",
+    "meta_desc": "Mara Lyrics liata \"{title}\" kha \"{artist}\" ta reih la.",
     "error_title": "Hla hmôpa y vei",
     "error_text": "He hla he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
     "error_go_home": "← Hmiapi Lâ"
@@ -53,7 +53,7 @@
   "artist": {
     "breadcrumb": "Hlasatuhpa",
     "role": "Hlasatuhpa",
-    "songs_title": "Songs by this artist",
+    "songs_title": "He Hlasatuhpa hlazy",
     "no_songs": "He hlasatuhpa hla hmôpa y vei.",
     "error_title": "Hlasatuhpa hmôpa châ vei",
     "error_text": "He hlasatuhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
@@ -62,7 +62,7 @@
   "composer": {
     "breadcrumb": "Hlaphituhpa",
     "role": "Hlaphituhpa",
-    "songs_title": "Songs by this composer",
+    "songs_title": "He Hlaphituhpa Hlazy",
     "no_songs": "He hlaphituhpa hla hmôpa y vei.",
     "error_title": "Hlaphituhpa hmôpa châ vei",
     "error_text": "He hlaphituhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
@@ -72,22 +72,22 @@
     "title": "Khokheina",
     "subtitle": "He hla nata azaopa khokheina na hnei ma? Mia vaw chho bei la, eima vaw moh bei aw.",
     "about_label": "Khokheina kyh:",
-    "name_label": "Your Name <span class=\"form-required\">*</span>",
+    "name_label": "Na Moh <span class=\"form-required\">*</span>",
     "name_placeholder": "Na moh khô la",
-    "email_label": "Your Email <span class=\"form-required\">*</span>",
+    "email_label": "Na Email <span class=\"form-required\">*</span>",
     "email_placeholder": "namoh@pamosana.com",
-    "body_label": "Your Feedback <span class=\"form-required\">*</span>",
+    "body_label": "Na Khokheina <span class=\"form-required\">*</span>",
     "body_placeholder": "Na pachâpa miah chho la — paraih khohpazy, pachâna piepazy, chvk he hla nata azaopa kheih hawhpa rai châ se.",
     "submit_btn": "Khokheina Paphao",
     "back_btn": "← Kua",
-    "back_to_song": "← Back to song",
+    "back_to_song": "← Hla lâ kua",
     "sending": "Paphao hai...",
     "success_title": "Khokheina a sie haw!",
-    "success_text": "Thank you for helping us improve Mara Lyrics. We'll review your feedback as soon as possible.",
+    "success_text": "Mara Hlabie pakiathysa via awpa ta mia na baopa vâta eima châ ly. Eima theina chhôh ta na khokheina he eima vaw moh aw.",
     "success_back_home": "← Hmiapi lâ Kua",
-    "err_fill_all": "Please fill in all required fields.",
-    "err_turnstile": "Please complete the security verification.",
-    "err_send_failed": "Failed to send",
+    "err_fill_all": "Abyuhpa kao zydua pathla khai bei teh.",
+    "err_turnstile": "Thlalôhna pasiana kha patlô tua bei teh.",
+    "err_send_failed": "Apaphao thei vei",
     "err_generic": "Sâkha kha a sie chhei haw. Azao heih la."
   },
   "error_page": {
@@ -112,8 +112,8 @@
     "website": "Website"
   },
   "about": {
-    "breadcrumb": "Keim Thâtih",
-    "title": "About Mara Lyrics",
+    "breadcrumb": "Keimo Thâtih",
+    "title": "Mara Hlabie Thâtih",
     "mission_heading": "Eima Chakaona",
     "mission_p1": "Mara Hlabie cha Mara chipha ta a hneipa hneiroh kawpa Hla nata Aony ryuzy he paso awpa, khâsia awpa nata hie awpa he â chhuah. Hla cha phoryhpa palâsana kyh liata a lai chaipazy hry liata sâ kha a châ tahpa angiapâ pih ta, hlabie to he a thei thlâh ha awpa phôhpa sâ kha miah a chho.",
     "mission_p2": "Eima platform he chhâ nata chhâ likah lia hleidy a châ — Ahyrai, khataih su tawhta Mara hlazy he ama reih kakuapa tlaita tlua awpa nata achu, awpa a panaosa.",
@@ -133,18 +133,18 @@
     "vision_li4": "Phoryh pyzy nata Pachuna pyzy nata raihria khoh awpa",
     "vision_li5": "Eima sahlaozy hnohta hlabie dopa ta ama deichhy thei nawpa ta thapatlô awpa",
     "community_heading": "Vaitlâh Hmiapasah",
-    "community_p1": "MaraLyrics is built by and for the Mara community. We welcome feedback, song submissions, and corrections from anyone who shares our passion for preserving Mara music. Together, we can ensure that our songs continue to inspire for generations to come.",
-    "community_p2": "Want to get involved? <a href=\"/contact\">Get in touch with us</a> or <a href=\"/report\">send us feedback</a>."
+    "community_p1": "MaraLyrics ကို မရာအသိုင်းအဝိုင်းအတွက် တည်ဆောက်ထားခြင်း ဖြစ်ပါသည်။ မရာဂီတ ထိန်းသိမ်းစောင့်ရှောက်ရေးကို စိတ်ပါဝင်စားသူ မည်သူ့ထံမှမဆို အကြံပြုချက်များ၊ တေးသီချင်း ပေးပို့မှုများနှင့် ပြင်ဆင်ချက်များကို ကြိုဆိုပါသည်။\n\n\nMara Hlabie he Marasawzy ta Marasawzy châta ama taopa a châ. Mara Hla khâsiana liata ahlao khohpa moto zydua tawhta pachâna piepa, hlabie paphaopa, nata paraihna zydua eima ly ngaita kaw. Hmaohkha ta chhâtliasawzy châta eima hlazy he eima thyu thei awpa eimâ ngiapâ.",
+    "community_p2": "Nâ hlao khoh hra ma? <a href=\"/contact\">Miah Azao</a> chvk<a href=\"/report\">pachâna miah pie</a>. teh"
   },
   "contact": {
-    "breadcrumb": "Contact Us",
-    "title": "Contact Us",
-    "intro": "Have a question, suggestion, or want to contribute to Mara Lyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.",
-    "name_label": "Your Name <span class=\"form-required\">*</span>",
-    "name_placeholder": "Enter your name",
-    "email_label": "Your Email <span class=\"form-required\">*</span>",
-    "email_placeholder": "you@example.com",
-    "subject_label": "Subject",
+    "breadcrumb": "Azaona",
+    "title": "Azaona",
+    "intro": "Mara Hlabie nata azaopa ta na hiahri khohpa, pachâna na pie khohpa chvk ahlaona hnei khohna na hnei ma? Ary liata form he pathla teh chvk email ta miah a vaw zao teh.",
+    "name_label": "Na Moh <span class=\"form-required\">*</span>",
+    "name_placeholder": "Na moh khô la",
+    "email_label": "Na Email <span class=\"form-required\">*</span>",
+    "email_placeholder": "namoh@pamosana.com",
+    "subject_label": "Athâtih",
     "subject_placeholder": "What is this about?",
     "message_label": "Message <span class=\"form-required\">*</span>",
     "message_placeholder": "Write your message here...",
