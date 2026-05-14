@@ -50,22 +50,47 @@ export async function onRequest(context) {
 
   const assetUrl = new URL(context.request.url);
   assetUrl.pathname = '/songview.html';
-  const assetResponse = await context.env.ASSETS.fetch(assetUrl);
+  let assetResponse;
+  try {
+    assetResponse = await context.env.ASSETS.fetch(assetUrl);
+  } catch {
+    return new Response('Song page unavailable', { status: 503 });
+  }
 
   if (!slug) return assetResponse;
 
-  const song = await fetchSong(context.env.DB, slug);
+  const db = context.env.DB;
+  if (!db) {
+    return assetResponse;
+  }
+
+  let song;
+  try {
+    song = await fetchSong(db, slug);
+  } catch {
+    return assetResponse;
+  }
   if (!song) return assetResponse;
 
-  const html = await assetResponse.text();
-  const { title, description, schema } = buildSongSeo(song);
+  let html;
+  try {
+    html = await assetResponse.text();
+  } catch {
+    return assetResponse;
+  }
 
-  const injected = html
-    .replace(/<title id="pageTitle">[\s\S]*?<\/title>/, `<title id="pageTitle">${escapeHtml(title)}</title>`)
-    .replace(/<meta name="description" id="metaDesc" content="[^"]*"\s*\/>/, `<meta name="description" id="metaDesc" content="${escapeHtml(description)}" />`)
-    .replace(/<meta property="og:title" id="ogTitle" content="[^"]*"\s*\/>/, `<meta property="og:title" id="ogTitle" content="${escapeHtml(title)}" />`)
-    .replace(/<meta property="og:description" id="ogDesc" content="[^"]*"\s*\/>/, `<meta property="og:description" id="ogDesc" content="${escapeHtml(description)}" />`)
-    .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2)}\n</script>`);
+  let injected;
+  try {
+    const { title, description, schema } = buildSongSeo(song);
+    injected = html
+      .replace(/<title id="pageTitle">[\s\S]*?<\/title>/, `<title id="pageTitle">${escapeHtml(title)}</title>`)
+      .replace(/<meta name="description" id="metaDesc" content="[^"]*"\s*\/>/, `<meta name="description" id="metaDesc" content="${escapeHtml(description)}" />`)
+      .replace(/<meta property="og:title" id="ogTitle" content="[^"]*"\s*\/>/, `<meta property="og:title" id="ogTitle" content="${escapeHtml(title)}" />`)
+      .replace(/<meta property="og:description" id="ogDesc" content="[^"]*"\s*\/>/, `<meta property="og:description" id="ogDesc" content="${escapeHtml(description)}" />`)
+      .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2)}\n</script>`);
+  } catch {
+    return assetResponse;
+  }
 
   return new Response(injected, {
     headers: {
