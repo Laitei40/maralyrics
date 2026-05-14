@@ -1,5 +1,5 @@
 // ╔══════════════════════════════════════════════════════════════╗
-// ║        MaraLyrics — Client-Side Application                 ║
+// ║        Mara Lyrics — Client-Side Application                ║
 // ║        Vanilla JS · Modular · Offline-Ready                 ║
 // ╚══════════════════════════════════════════════════════════════╝
 
@@ -917,7 +917,7 @@ const SongPage = {
 
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
-    const title = `${song.title} — MaraLyrics`;
+    const title = `${song.title} — Mara Lyrics`;
     const artistDisplay = song.artist_name || song.artist || I18n.t('common.unknown');
     const desc = I18n.t('song.meta_desc', { title: song.title, artist: artistDisplay });
 
@@ -1103,9 +1103,9 @@ const ProfilePage = {
 
   updateMeta(data) {
     const typeLabel = I18n.t(`${this.type}.role`);
-    const title = `${data.name} — ${typeLabel} — MaraLyrics`;
+    const title = `${data.name} — ${typeLabel} — Mara Lyrics`;
     const songCount = data.songs?.length || 0;
-    const desc = `${data.name} — ${typeLabel} on MaraLyrics. ${songCount} song${songCount !== 1 ? 's' : ''}.${data.bio ? ' ' + data.bio.substring(0, 120) : ''}`;
+    const desc = `${data.name} — ${typeLabel} on Mara Lyrics. ${songCount} song${songCount !== 1 ? 's' : ''}.${data.bio ? ' ' + data.bio.substring(0, 120) : ''}`;
 
     document.title = title;
 
@@ -1283,9 +1283,9 @@ const CopyrightOwnerPage = {
   updateMeta(data) {
     const owner = data.owner || data;
     const coRole = I18n.t('copyright_owner.role');
-    const title = `${owner.name} — ${coRole} — MaraLyrics`;
+    const title = `${owner.name} — ${coRole} — Mara Lyrics`;
     const songCount = data.songs?.length || 0;
-    const desc = `${owner.name} — ${coRole} on MaraLyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
+    const desc = `${owner.name} — ${coRole} on Mara Lyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
 
     document.title = title;
     const metaDesc = document.getElementById('metaDesc');

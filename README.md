@@ -1,4 +1,4 @@
-# MaraLyrics
+# Mara Lyrics
 
 A modern, high-performance Mara song lyrics website built with Cloudflare Workers, D1 database, and vanilla HTML/CSS/JS featuring glassmorphism UI with smart offline caching.
 

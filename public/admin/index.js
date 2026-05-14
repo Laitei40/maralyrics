@@ -1,5 +1,5 @@
 // ┌───────────────────────────────────────────────┐
-// │        MaraLyrics — Admin Dashboard Logic     │
+// │        Mara Lyrics — Admin Dashboard Logic    │
 // └───────────────────────────────────────────────┘
 
 'use strict';
