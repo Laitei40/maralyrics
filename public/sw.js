@@ -3,7 +3,7 @@
 // ║       Stale-While-Revalidate · Offline-First                ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const CACHE_VERSION = 'ml-v15';
+const CACHE_VERSION = 'ml-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -30,13 +30,13 @@ const PAGE_SHELLS = [
   '/artistview.html',
   '/composerview.html',
   '/copyrightownerview.html',
-  '/about/',
-  '/contact/',
-  '/copyright/',
-  '/faq/',
-  '/privacy/',
-  '/terms/',
-  '/report/',
+  '/about.html',
+  '/contact.html',
+  '/copyright.html',
+  '/faq.html',
+  '/privacy.html',
+  '/terms.html',
+  '/report.html',
 ];
 
 // ─── Install: Precache core assets ────────────────────────────
@@ -78,7 +78,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── SPA page routes (e.g. /song/slug, /vocalists/slug) ──
+  // ── SPA page routes (e.g. /song/slug, /artist/slug) ──
   // Network-first: let Pages Functions / Worker handle routing,
   // fall back to cached shell HTML when offline.
   if (isSpaRoute(url.pathname)) {
@@ -174,8 +174,8 @@ async function staleWhileRevalidate(request, cacheName) {
 async function serveSpaShell(request, pathname) {
   let shellPath;
   if (pathname.startsWith('/song/')) shellPath = '/songview.html';
-  else if (pathname.startsWith('/vocalists/')) shellPath = '/artistview.html';
-  else if (pathname.startsWith('/arrangers/')) shellPath = '/composerview.html';
+  else if (pathname.startsWith('/artist/')) shellPath = '/artistview.html';
+  else if (pathname.startsWith('/composer/')) shellPath = '/composerview.html';
   else if (pathname.startsWith('/copyright-owner/')) shellPath = '/copyrightownerview.html';
   else shellPath = '/index.html';
 
@@ -198,7 +198,7 @@ async function serveSpaShell(request, pathname) {
 // ─── Helpers ──────────────────────────────────────────────────
 
 function isSpaRoute(path) {
-  return /^\/(song|vocalists|arrangers|copyright-owner)\//.test(path);
+  return /^\/(song|artist|composer|copyright-owner)\//.test(path);
 }
 
 function isStaticAsset(path) {

@@ -49,58 +49,8 @@ import {
   // Contact
   handleCreateContact,
 } from './routes.js';
-import { handleSitemap } from './sitemap.js';
 
 const assetManifest = JSON.parse(manifestJSON);
-
-
-function escapeHtml(value = '') {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function buildSongSeo(song) {
-  const artist = song.artist_name || song.artist || 'Unknown Artist';
-  const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
-  const description = `Read the full lyrics of ${song.title}, a Mara song by ${artist}. Discover Mara music on MaraLyrics.`;
-
-  return {
-    title,
-    description,
-    schema: {
-      '@context': 'https://schema.org',
-      '@type': 'MusicRecording',
-      name: song.title,
-      byArtist: {
-        '@type': 'MusicGroup',
-        name: artist,
-      },
-      inLanguage: 'mrh',
-      url: `https://maralyrics.com/song/${song.slug}`,
-      publisher: {
-        '@type': 'Organization',
-        name: 'MaraLyrics',
-      },
-    },
-  };
-}
-
-async function fetchSongSeoData(db, slug) {
-  return db
-    .prepare(
-      `SELECT s.title, s.slug, a.name AS artist_name
-       FROM songs s
-       LEFT JOIN artists a ON s.artist_id = a.id
-       WHERE s.slug = ?`
-    )
-    .bind(slug)
-    .first();
-}
-
 
 export default {
   /**
@@ -349,89 +299,33 @@ export default {
         return await handleCreateContact(request, env.DB, env);
       }
 
-
-      // GET /sitemap.xml and /sitemap-:page.xml
-      if ((path === '/sitemap.xml' || path.match(/^\/sitemap-\d+\.xml$/)) && method === 'GET') {
-        return await handleSitemap(request, env.DB);
-      }
-
       // ─── Static Files / SPA Routing ────────────────────
 
       // Static info pages
-      if (path === '/about') return await serveAsset(request, env, ctx, '/about/page');
-      if (path === '/contact') return await serveAsset(request, env, ctx, '/contact/page');
-      if (path === '/faq') return await serveAsset(request, env, ctx, '/faq/page');
-      if (path === '/privacy') return await serveAsset(request, env, ctx, '/privacy/page');
-      if (path === '/terms') return await serveAsset(request, env, ctx, '/terms/page');
-      if (path === '/copyright') return await serveAsset(request, env, ctx, '/copyright/page');
+      if (path === '/about') return await serveAsset(request, env, ctx, '/about.html');
+      if (path === '/contact') return await serveAsset(request, env, ctx, '/contact.html');
+      if (path === '/faq') return await serveAsset(request, env, ctx, '/faq.html');
+      if (path === '/privacy') return await serveAsset(request, env, ctx, '/privacy.html');
+      if (path === '/terms') return await serveAsset(request, env, ctx, '/terms.html');
+      if (path === '/copyright') return await serveAsset(request, env, ctx, '/copyright.html');
 
-      // Report page: /report → serve report shell (extensionless; matches Pages Functions)
+      // Report page: /report → serve report.html
       if (path === '/report') {
-        return await serveAsset(request, env, ctx, '/report/page');
+        return await serveAsset(request, env, ctx, '/report.html');
       }
 
-      // Song page (clean URLs): /song/some-slug → server-render song SEO + serve songview.html
+      // Song page (clean URLs): /song/some-slug → serve songview.html
       if (path.startsWith('/song/')) {
-        return await serveSongPage(request, env, ctx);
+        return await serveAsset(request, env, ctx, '/songview.html');
       }
 
-      // Legacy profile URLs → /vocalists/* and /arrangers/* (avoid zone rules matching *artist* / *composer* / *form*)
-      if (path === '/artist' || path.startsWith('/artist/')) {
-        const u = new URL(request.url);
-        const slug = path.startsWith('/artist/')
-          ? path.slice('/artist/'.length).replace(/\/$/, '').split('/')[0]
-          : '';
-        u.pathname = slug ? `/vocalists/${encodeURIComponent(slug)}` : '/vocalists';
-        return Response.redirect(u.toString(), 301);
-      }
-      if (path === '/composer' || path.startsWith('/composer/')) {
-        const u = new URL(request.url);
-        const slug = path.startsWith('/composer/')
-          ? path.slice('/composer/'.length).replace(/\/$/, '').split('/')[0]
-          : '';
-        u.pathname = slug ? `/arrangers/${encodeURIComponent(slug)}` : '/arrangers';
-        return Response.redirect(u.toString(), 301);
-      }
-      if (path === '/artists' || path.startsWith('/artists/')) {
-        const u = new URL(request.url);
-        const slug = path.startsWith('/artists/')
-          ? path.slice('/artists/'.length).replace(/\/$/, '').split('/')[0]
-          : '';
-        u.pathname = slug ? `/vocalists/${encodeURIComponent(slug)}` : '/vocalists';
-        return Response.redirect(u.toString(), 301);
-      }
-      if (path === '/composers' || path.startsWith('/composers/')) {
-        const u = new URL(request.url);
-        const slug = path.startsWith('/composers/')
-          ? path.slice('/composers/'.length).replace(/\/$/, '').split('/')[0]
-          : '';
-        u.pathname = slug ? `/arrangers/${encodeURIComponent(slug)}` : '/arrangers';
-        return Response.redirect(u.toString(), 301);
-      }
-      if (path === '/performers' || path.startsWith('/performers/')) {
-        const u = new URL(request.url);
-        const slug = path.startsWith('/performers/')
-          ? path.slice('/performers/'.length).replace(/\/$/, '').split('/')[0]
-          : '';
-        u.pathname = slug ? `/vocalists/${encodeURIComponent(slug)}` : '/vocalists';
-        return Response.redirect(u.toString(), 301);
-      }
-      if (path === '/writers' || path.startsWith('/writers/')) {
-        const u = new URL(request.url);
-        const slug = path.startsWith('/writers/')
-          ? path.slice('/writers/'.length).replace(/\/$/, '').split('/')[0]
-          : '';
-        u.pathname = slug ? `/arrangers/${encodeURIComponent(slug)}` : '/arrangers';
-        return Response.redirect(u.toString(), 301);
-      }
-
-      // Artist profile shell: /vocalists → shell; /vocalists/some-slug → artistview.html
-      if (path === '/vocalists' || path.startsWith('/vocalists/')) {
+      // Artist page (clean URLs): /artist/some-slug → serve artistview.html
+      if (path.startsWith('/artist/')) {
         return await serveAsset(request, env, ctx, '/artistview.html');
       }
 
-      // Composer profile shell: /arrangers → shell; /arrangers/some-slug → composerview.html
-      if (path === '/arrangers' || path.startsWith('/arrangers/')) {
+      // Composer page (clean URLs): /composer/some-slug → serve composerview.html
+      if (path.startsWith('/composer/')) {
         return await serveAsset(request, env, ctx, '/composerview.html');
       }
 
@@ -488,83 +382,36 @@ async function serveAsset(request, env, ctx, overridePath = null) {
       options
     );
 
-    const headers = new Headers(response.headers);
-    headers.set('X-Content-Type-Options', 'nosniff');
-    headers.set('X-Frame-Options', 'DENY');
-    headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+    // Add security headers
+    const headers = new Response(response.body, response);
+    headers.headers.set('X-Content-Type-Options', 'nosniff');
+    headers.headers.set('X-Frame-Options', 'DENY');
+    headers.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    return headers;
 
   } catch (e) {
     if (e instanceof NotFoundError) {
-      // Serve extensionless 404 shell (avoids *.html redirect rules on some zones)
+      // Serve 404.html page
       try {
         const url = new URL(request.url);
-        url.pathname = '/404/page';
+        url.pathname = '/404.html';
         const notFoundReq = new Request(url.toString(), request);
         const notFoundResp = await getAssetFromKV(
           { request: notFoundReq, waitUntil: ctx.waitUntil.bind(ctx) },
           options
         );
-        const nfHeaders = new Headers(notFoundResp.headers);
         return new Response(notFoundResp.body, {
+          ...notFoundResp,
           status: 404,
-          statusText: notFoundResp.statusText,
-          headers: nfHeaders,
+          headers: notFoundResp.headers,
         });
       } catch {
-        try {
-          const url = new URL(request.url);
-          url.pathname = '/404.html';
-          const notFoundReq = new Request(url.toString(), request);
-          const notFoundResp = await getAssetFromKV(
-            { request: notFoundReq, waitUntil: ctx.waitUntil.bind(ctx) },
-            options
-          );
-          const nfHeaders = new Headers(notFoundResp.headers);
-          return new Response(notFoundResp.body, {
-            status: 404,
-            statusText: notFoundResp.statusText,
-            headers: nfHeaders,
-          });
-        } catch {
-          return new Response('Page not found', {
-            status: 404,
-            headers: { 'Content-Type': 'text/plain' },
-          });
-        }
+        return new Response('Page not found', {
+          status: 404,
+          headers: { 'Content-Type': 'text/plain' },
+        });
       }
     }
     throw e;
   }
-}
-
-
-async function serveSongPage(request, env, ctx) {
-  const url = new URL(request.url);
-  const slug = url.pathname.replace(/^\/song\//, '').replace(/\/$/, '');
-
-  const baseResponse = await serveAsset(request, env, ctx, '/songview.html');
-  if (!slug || baseResponse.status !== 200) return baseResponse;
-
-  const song = await fetchSongSeoData(env.DB, slug);
-  if (!song) return baseResponse;
-
-  const { title, description, schema } = buildSongSeo(song);
-  const html = await baseResponse.text();
-
-  const injected = html
-    .replace(/<title id="pageTitle">[\s\S]*?<\/title>/, `<title id="pageTitle">${escapeHtml(title)}</title>`)
-    .replace(/<meta name="description" id="metaDesc" content="[^"]*"\s*\/>/, `<meta name="description" id="metaDesc" content="${escapeHtml(description)}" />`)
-    .replace(/<meta property="og:title" id="ogTitle" content="[^"]*"\s*\/>/, `<meta property="og:title" id="ogTitle" content="${escapeHtml(title)}" />`)
-    .replace(/<meta property="og:description" id="ogDesc" content="[^"]*"\s*\/>/, `<meta property="og:description" id="ogDesc" content="${escapeHtml(description)}" />`)
-    .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2)}\n</script>`);
-
-  const headers = new Headers(baseResponse.headers);
-  headers.set('Content-Type', 'text/html; charset=UTF-8');
-  headers.set('Cache-Control', 'public, max-age=300');
-  return new Response(injected, { status: baseResponse.status, headers });
 }

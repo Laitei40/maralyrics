@@ -1,5 +1,5 @@
 // ╔══════════════════════════════════════════════════════════════╗
-// ║        Mara Lyrics — Client-Side Application                ║
+// ║        MaraLyrics — Client-Side Application                 ║
 // ║        Vanilla JS · Modular · Offline-Ready                 ║
 // ╚══════════════════════════════════════════════════════════════╝
 
@@ -53,7 +53,7 @@ const Utils = {
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
-    const match = path.match(/\/(song|vocalists|arrangers|copyright-owner)\/([^/]+)/);
+    const match = path.match(/\/(song|artist|composer|copyright-owner)\/([^/]+)/);
     return match ? match[2] : null;
   },
 
@@ -61,8 +61,8 @@ const Utils = {
   getPageType() {
     const path = window.location.pathname;
     if (path.startsWith('/song/')) return 'song';
-    if (path.startsWith('/vocalists/')) return 'artist';
-    if (path.startsWith('/arrangers/')) return 'composer';
+    if (path.startsWith('/artist/')) return 'artist';
+    if (path.startsWith('/composer/')) return 'composer';
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
     return 'home';
   },
@@ -70,9 +70,7 @@ const Utils = {
   /** Create a clickable name link or a disabled span for unknown. */
   renderNameLink(name, slug, type) {
     if (name && slug) {
-      const pathPrefix =
-        type === 'artist' ? 'vocalists' : type === 'composer' ? 'arrangers' : type;
-      const href = `/${pathPrefix}/${this.escapeHtml(slug)}`;
+      const href = `/${type}/${this.escapeHtml(slug)}`;
       return `<a href="${href}" class="meta-link">${this.escapeHtml(name)}</a>`;
     }
     return `<span class="meta-link meta-link--disabled">${this.escapeHtml(name || I18n.t('common.unknown'))}</span>`;
@@ -919,10 +917,9 @@ const SongPage = {
 
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
+    const title = `${song.title} — MaraLyrics`;
     const artistDisplay = song.artist_name || song.artist || I18n.t('common.unknown');
-    const brandName = I18n.t('brand.name');
-    const title = `${song.title} — ${brandName}`;
-    const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on ${brandName}.`;
+    const desc = I18n.t('song.meta_desc', { title: song.title, artist: artistDisplay });
 
     document.title = title;
 
@@ -943,18 +940,13 @@ const SongPage = {
     if (jsonLd) {
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
-        '@type': 'MusicRecording',
+        '@type': 'MusicComposition',
         name: song.title,
-        byArtist: {
-          '@type': 'MusicGroup',
-          name: artistDisplay,
-        },
-        inLanguage: 'mrh',
-        url: `https://maralyrics.com/song/${song.slug}`,
-        publisher: {
-          '@type': 'Organization',
-          name: brandName,
-        },
+        composer: song.composer_name || song.composer || I18n.t('common.unknown'),
+        lyricist: artistDisplay,
+        genre: song.category || 'Mara',
+        text: song.lyrics?.substring(0, 200),
+        url: window.location.href,
       });
     }
   },
@@ -1111,9 +1103,9 @@ const ProfilePage = {
 
   updateMeta(data) {
     const typeLabel = I18n.t(`${this.type}.role`);
-    const title = `${data.name} — ${typeLabel} — Mara Lyrics`;
+    const title = `${data.name} — ${typeLabel} — MaraLyrics`;
     const songCount = data.songs?.length || 0;
-    const desc = `${data.name} — ${typeLabel} on Mara Lyrics. ${songCount} song${songCount !== 1 ? 's' : ''}.${data.bio ? ' ' + data.bio.substring(0, 120) : ''}`;
+    const desc = `${data.name} — ${typeLabel} on MaraLyrics. ${songCount} song${songCount !== 1 ? 's' : ''}.${data.bio ? ' ' + data.bio.substring(0, 120) : ''}`;
 
     document.title = title;
 
@@ -1291,9 +1283,9 @@ const CopyrightOwnerPage = {
   updateMeta(data) {
     const owner = data.owner || data;
     const coRole = I18n.t('copyright_owner.role');
-    const title = `${owner.name} — ${coRole} — Mara Lyrics`;
+    const title = `${owner.name} — ${coRole} — MaraLyrics`;
     const songCount = data.songs?.length || 0;
-    const desc = `${owner.name} — ${coRole} on Mara Lyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
+    const desc = `${owner.name} — ${coRole} on MaraLyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
 
     document.title = title;
     const metaDesc = document.getElementById('metaDesc');
@@ -1441,6 +1433,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileDrawer.classList.remove('open');
     mobileDrawer.setAttribute('aria-hidden', 'true');
     menuBtn.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
   };
 
   const openMobileDrawer = () => {
@@ -1448,6 +1441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     mobileDrawer.classList.add('open');
     mobileDrawer.setAttribute('aria-hidden', 'false');
     menuBtn.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
   };
 
   if (menuBtn && mobileDrawer) {
@@ -1465,13 +1459,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && mobileDrawer.classList.contains('open')) closeMobileDrawer();
-    });
-
-    window.addEventListener('resize', () => {
-      const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
-      if (!menuVisible && mobileDrawer.classList.contains('open')) {
-        closeMobileDrawer();
-      }
     });
   }
 

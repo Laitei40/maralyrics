@@ -87,9 +87,6 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-x: none;
 }
 
 body {
@@ -99,7 +96,6 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
-  overflow-y: visible;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -219,7 +215,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: 260;
-  display: none;
+  pointer-events: none;
 }
 
 .mobile-drawer__backdrop {
@@ -236,18 +232,17 @@ body::before {
   right: 0;
   width: min(86vw, 320px);
   height: 100%;
-  background: var(--bg-card);
+  background: linear-gradient(165deg, rgba(11, 19, 34, 0.96), rgba(8, 13, 24, 0.92));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-left: 1px solid var(--border-glass);
-  box-shadow: -18px 0 40px rgba(0, 0, 0, 0.3);
+  box-shadow: -18px 0 40px rgba(0, 0, 0, 0.4);
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
   transform: translateX(104%);
   transition: transform var(--transition-base);
-  overflow-y: auto;
 }
 
 .mobile-drawer__header {
@@ -255,7 +250,7 @@ body::before {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-sm);
-  border-bottom: 1px solid var(--border-glass);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: var(--space-md);
 }
 
@@ -275,11 +270,11 @@ body::before {
 }
 
 .mobile-drawer__close {
-  border: 1px solid var(--border-glass);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: var(--bg-glass);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
   font-size: 24px;
   line-height: 1;
@@ -290,8 +285,6 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  overflow-y: auto;
-  flex: 1;
 }
 
 .mobile-drawer__link {
@@ -300,8 +293,8 @@ body::before {
   gap: 10px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid var(--border-glass);
-  background: var(--bg-glass);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 600;
@@ -316,19 +309,19 @@ body::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--border-glass);
+  background: rgba(255, 255, 255, 0.08);
   font-size: 14px;
 }
 
 .mobile-drawer__link:hover,
 .mobile-drawer__link.active {
   color: var(--text-primary);
-  border-color: var(--accent);
-  background: linear-gradient(120deg, rgba(139, 92, 246, 0.14), rgba(236, 72, 153, 0.08));
+  border-color: rgba(59, 130, 246, 0.5);
+  background: linear-gradient(120deg, rgba(59, 130, 246, 0.14), rgba(244, 114, 182, 0.08));
 }
 
 .mobile-drawer.open {
-  display: block;
+  pointer-events: auto;
 }
 
 .mobile-drawer.open .mobile-drawer__backdrop {
@@ -2825,8 +2818,8 @@ body::before {
 
 /* Mobile consent */
 @media (max-width: 600px) {
-  .cookie-consent { padding: var(--space-sm) var(--space-md); }
-  .cookie-consent__inner { padding: var(--space-md); max-width: 100%; }
+  .cookie-consent { padding: var(--space-sm); }
+  .cookie-consent__inner { padding: var(--space-md); }
   .cookie-consent__content { flex-direction: column; gap: var(--space-sm); }
   .cookie-consent__icon { width: 36px; height: 36px; }
   .cookie-consent__actions { flex-direction: column; }
@@ -2960,16 +2953,6 @@ body::before {
 }
 [data-theme="light"] .search-history__item:hover {
   background: rgba(0, 0, 0, 0.03);
-}
-
-/* ─── Light Theme — Mobile Drawer ──────────────────────────── */
-[data-theme="light"] .mobile-drawer__backdrop {
-  background: rgba(30, 41, 59, 0.42);
-}
-
-[data-theme="light"] .mobile-drawer__link:hover,
-[data-theme="light"] .mobile-drawer__link.active {
-  background: linear-gradient(120deg, rgba(124, 58, 237, 0.10), rgba(219, 39, 119, 0.06));
 }
 
 /* ─── Print ─────────────────────────────────────────────────── */

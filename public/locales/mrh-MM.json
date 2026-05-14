@@ -1,81 +1,81 @@
 {
   "nav": {
-    "home": "Home",
-    "popular": "Popular"
+    "home": "Hmiapi",
+    "popular": "Mo Hluhpazy"
   },
   "footer": {
-    "made_with": "Made with <span class=\"footer__heart\">♥</span> for the Mara community",
+    "made_with": "Marasaw châta <span class=\"footer__heart\">♥</span> ta taopa",
     "copyright": "© 2026 MaraLyrics"
   },
   "offline": {
-    "badge": "Offline Mode",
+    "badge": "Offline Dâh",
     "badge_text": "Offline"
   },
   "breadcrumb": {
-    "home": "Home"
+    "home": "Hmiapi"
   },
   "home": {
-    "hero_title": "Mara Song Lyrics",
-    "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
-    "search_placeholder": "Search songs by title or artist...",
-    "search_results": "Search Results",
-    "popular_songs": "Popular Songs",
-    "all_songs": "All Songs",
-    "no_songs_title": "No songs found",
-    "no_songs_text": "Try a different search term or browse categories above."
+    "hero_title": "Mara Hlabie",
+    "hero_subtitle": "Marasawzy tawhta hlabie pha kawpazy hmô papua la tlua teh",
+    "search_placeholder": "Hlasatuhpa moh ta chvk chôtlâhpi ta tlua...",
+    "search_results": "Hmôpazy",
+    "popular_songs": "Alualâpa Hlazy",
+    "all_songs": "Hla Zydua",
+    "no_songs_title": "Hla hmôpa y vei",
+    "no_songs_text": "A hropa ta tlua chhi chvk achô liata phozy khi tlua chhi."
   },
   "song": {
-    "breadcrumb": "Song",
-    "feedback_btn": "Feedback",
+    "breadcrumb": "Hla",
+    "feedback_btn": "Khokheina",
     "meta_desc": "Read lyrics of \"{title}\" by {artist} on MaraLyrics.",
-    "error_title": "Song not found",
-    "error_text": "This song may have been removed or the link is incorrect.",
-    "error_go_home": "← Go Home"
+    "error_title": "Hla hmôpa y vei",
+    "error_text": "He hla he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
+    "error_go_home": "← Hmiapi Lâ"
   },
   "artist": {
-    "breadcrumb": "Artist",
-    "role": "Artist",
-    "songs_title": "Songs by this Artist",
-    "no_songs": "No songs found for this artist.",
-    "error_title": "Artist not found",
-    "error_text": "This artist may have been removed or the link is incorrect.",
-    "error_go_home": "← Go Home"
+    "breadcrumb": "Hlasatuhpa",
+    "role": "Hlasatuhpa",
+    "songs_title": "He Hlasatuhpa hlazy",
+    "no_songs": "He hlasatuhpa hla hmôpa y vei.",
+    "error_title": "Hlasatuhpa hmôpa châ vei",
+    "error_text": "He hlasatuhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
+    "error_go_home": "← Hmiapi Lâ"
   },
   "composer": {
-    "breadcrumb": "Composer",
-    "role": "Composer",
-    "songs_title": "Songs by this Composer",
-    "no_songs": "No songs found for this composer.",
-    "error_title": "Composer not found",
-    "error_text": "This composer may have been removed or the link is incorrect.",
-    "error_go_home": "← Go Home"
+    "breadcrumb": "Hlaphituhpa",
+    "role": "Hlaphituhpa",
+    "songs_title": "He Hlaphituhpa Hlazy",
+    "no_songs": "He hlaphituhpa hla hmôpa y vei.",
+    "error_title": "Hlaphituhpa hmôpa châ vei",
+    "error_text": "He hlaphituhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
+    "error_go_home": "← Hmiapi Lâ"
   },
   "feedback": {
-    "title": "Feedback",
-    "subtitle": "Have feedback about this song? Let us know and we'll look into it.",
-    "about_label": "Feedback about:",
-    "name_label": "Your Name",
-    "name_placeholder": "Enter your name",
-    "email_label": "Your Email",
-    "email_placeholder": "you@example.com",
-    "body_label": "Your Feedback",
-    "body_placeholder": "Tell us what you think — corrections, suggestions, or anything else about this song.",
-    "submit_btn": "Send Feedback",
-    "back_btn": "← Back",
-    "back_to_song": "← Back to Song",
-    "sending": "Sending...",
-    "success_title": "Feedback Sent!",
+    "title": "Khokheina",
+    "subtitle": "He hla nata azaopa khokheina na hnei ma? Mia vaw chho bei la, eima vaw moh bei aw.",
+    "about_label": "Khokheina kyh:",
+    "name_label": "Na Moh",
+    "name_placeholder": "Na moh khô la",
+    "email_label": "Na Email",
+    "email_placeholder": "namoh@pamosana.com",
+    "body_label": "Na Khokheina",
+    "body_placeholder": "Na pachâpa miah chho la — paraih khohpazy, pachâna piepazy, chvk he hla nata azaopa kheih hawhpa rai châ se.",
+    "submit_btn": "Khokheina Paphao",
+    "back_btn": "← Kua",
+    "back_to_song": "← Hla lâ Kua",
+    "sending": "Paphao hai...",
+    "success_title": "Khokheina a sie haw!",
     "success_text": "Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.",
-    "success_back_home": "← Back to Home",
-    "err_fill_all": "Please fill in all fields.",
-    "err_turnstile": "Please complete the verification challenge.",
-    "err_send_failed": "Failed to send report",
-    "err_generic": "Something went wrong. Please try again."
+    "success_back_home": "← Hmiapi lâ Kua",
+    "err_fill_all": "Kao zydua pathla khai bei teh.",
+    "err_turnstile": "Pasiana pahaopa kha patlô tua bei ta.",
+    "err_send_failed": "Ripaw a paphao vei",
+    "err_generic": "Sâkha kha a sie chhei haw. Azao heih la."
   },
   "error_page": {
     "code": "404",
-    "title": "Page Not Found",
-    "text_line1": "The page you're looking for doesn't exist or has been moved.",
+    "title": "Hmia Hmô Vei",
+    "text_line1": "Na tlua haipa hmia cha y vei chvk thy hawpa a châ.",
     "text_line2": "Let's get you back to the music.",
     "back_home": "← Back to Home",
     "go_back": "Go Back"
@@ -132,23 +132,23 @@
     "message_placeholder": "Write your message here...",
     "submit_btn": "Send Message",
     "back_btn": "← Back",
-    "success_title": "Message Sent!",
-    "success_text": "Thank you for reaching out. We'll get back to you as soon as possible.",
-    "success_back_home": "← Back to Home"
+    "success_title": "Mesei a Sie haw!",
+    "success_text": "Miah na vaw chareipa vâta eima châ ly kaw. Eima theina chhôh eima châ vaw tyh aw.",
+    "success_back_home": "← Hmiapi lâ Kua"
   },
   "faq": {
-    "breadcrumb": "FAQ",
-    "title": "Frequently Asked Questions",
+    "breadcrumb": "HHH",
+    "title": "Haihri Hluhpa Hiahrinazy",
     "q1": "How accurate are the song lyrics on MaraLyrics?",
-    "a1": "<p>We strive for the highest level of accuracy. All lyrics are sourced from original recordings, official publications, or trusted community members. However, some variations may exist between different performances or regional dialects. If you notice an error, please use our <a href=\"/report\">Report Error</a> page to let us know.</p>",
+    "a1": "<p>Â do chaipa pachâsa theina awpa ta eima chhuah. Hlabie zydua he original record-pazy, ryhpa ta papuapazy, tlyma ngâchhih kawpa eima zawpizy tawhta lapa a châ. Châhrasala, hla sa dâh a nanopazie nata râh reih a nanopa vâta a hropazie a y thei aw. A pâna na hmô khiahtala, miah pahnosa awpa ta <a href=\"/report\">Pâna Pahnosa</a> hmia he vaw hmâh teh.</p>",
     "q2": "How can I submit a song to MaraLyrics?",
-    "a2": "<p>We welcome song submissions from the community! To submit lyrics, please <a href=\"/contact\">contact us</a> with the following information:</p><ul><li>Song title</li><li>Artist / composer name</li><li>Complete lyrics text</li><li>Category (Gospel, Love, Traditional, Patriotic, etc.)</li><li>Any additional context or notes</li></ul><p>Our editorial team will review the submission and publish it once verified.</p>",
+    "a2": "<p>Hla sona py tawhta eima chaw dy! Hlabie so awpa ta, ngiachhiepa ta ary liata kyhzy chhao heta <a href=\"/contact\">miah azao</a> bei la:</p><ul><li>Hla Chôtlâhpi</li><li>Hlasatuhpa / hlaphituhpa moh</li><li>Hlabie a kipa</li><li>Pho (Reithaina hla, Vâia hla, Chhâparoh hla, Râh hla, hpz.)</li><li>Hrohriapazy</li></ul><p>Eimo pyzy ta vaw mohpazih aw ei ta, apypa a châ khiah ama vaw soh aw.</p>",
     "q3": "Is MaraLyrics free to use?",
     "a3": "<p>Yes! MaraLyrics is completely free. Our mission is to make Mara song lyrics accessible to everyone. The platform may display advertisements to support operational costs, but access to lyrics will always remain free.</p>",
-    "q4": "Who owns the copyright to the lyrics?",
+    "q4": "Ahy he hlabiezy he biehneina a hnei?",
     "a4": "<p>The copyright of all lyrics belongs to their respective artists, composers, and rights holders. MaraLyrics displays lyrics for cultural, educational, and personal use only. We do not claim ownership of any song content. If you are a copyright owner and wish to request a removal, please visit our <a href=\"/copyright\">Copyright</a> page.</p>",
-    "q5": "How do I report an error in the lyrics?",
-    "a5": "<p>You can report errors directly from the song page by clicking the \"Send Feedback\" button, or visit our <a href=\"/report\">Report Error</a> page. Please include the song title and a description of the issue. Our team will review and correct it promptly.</p>",
+    "q5": "Kheihta e hlabie pâpa ei report aw?",
+    "a5": "<p>Pâpazy report awpa ta \"Pachâna Paphao\" na hmie thgei, tlyma <a href=\"/report\">Pâna Chho</a> hmia he charei mah y. Hla chôtlâhpi nata palâsana kha pâna liata pahlaopâ mah y. Keimo pyzy ta vaw mohpasia aw ei ta, ama vaw paraih aw.</p>",
     "q6": "Can I use lyrics from MaraLyrics for my project?",
     "a6": "<p>Lyrics on MaraLyrics are shared for cultural and educational purposes. For personal, non-commercial use (such as learning, singing, or study), you are welcome to reference the content. For any commercial use, please contact the original rights holders. Please see our <a href=\"/terms\">Terms &amp; Conditions</a> for full details.</p>",
     "q7": "Does MaraLyrics collect my personal data?",
