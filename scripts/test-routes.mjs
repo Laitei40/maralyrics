@@ -130,8 +130,8 @@ async function main() {
     ['/copyright', 'copyright'],
     ['/report', 'report'],
     ['/song/zzz-smoke-test-slug', 'song shell'],
-    ['/artists/zzz-smoke-test-slug', 'artist shell'],
-    ['/composers/zzz-smoke-test-slug', 'composer shell'],
+    ['/vocalists/zzz-smoke-test-slug', 'artist shell'],
+    ['/arrangers/zzz-smoke-test-slug', 'composer shell'],
     ['/copyright-owner/zzz-smoke-test-slug', 'copyright-owner shell'],
   ];
 

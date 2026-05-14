@@ -53,7 +53,7 @@ const Utils = {
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
-    const match = path.match(/\/(song|artists|composers|copyright-owner)\/([^/]+)/);
+    const match = path.match(/\/(song|vocalists|arrangers|copyright-owner)\/([^/]+)/);
     return match ? match[2] : null;
   },
 
@@ -61,8 +61,8 @@ const Utils = {
   getPageType() {
     const path = window.location.pathname;
     if (path.startsWith('/song/')) return 'song';
-    if (path.startsWith('/artists/')) return 'artist';
-    if (path.startsWith('/composers/')) return 'composer';
+    if (path.startsWith('/vocalists/')) return 'artist';
+    if (path.startsWith('/arrangers/')) return 'composer';
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
     return 'home';
   },
@@ -71,7 +71,7 @@ const Utils = {
   renderNameLink(name, slug, type) {
     if (name && slug) {
       const pathPrefix =
-        type === 'artist' ? 'artists' : type === 'composer' ? 'composers' : type;
+        type === 'artist' ? 'vocalists' : type === 'composer' ? 'arrangers' : type;
       const href = `/${pathPrefix}/${this.escapeHtml(slug)}`;
       return `<a href="${href}" class="meta-link">${this.escapeHtml(name)}</a>`;
     }

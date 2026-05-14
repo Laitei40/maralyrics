@@ -117,8 +117,8 @@ async function fetchCategoryEntries(db) {
 async function buildSitemapEntries(db) {
   const [songs, artists, composers, categories] = await Promise.all([
     fetchEntities(db, 'songs', 'song', 'monthly', '0.7'),
-    fetchEntities(db, 'artists', 'artists', 'weekly', '0.6'),
-    fetchEntities(db, 'composers', 'composers', 'weekly', '0.6'),
+    fetchEntities(db, 'artists', 'vocalists', 'weekly', '0.6'),
+    fetchEntities(db, 'composers', 'arrangers', 'weekly', '0.6'),
     fetchCategoryEntries(db),
   ]);
 
