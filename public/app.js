@@ -327,51 +327,51 @@ const API = {
 
   /** Get paginated song list. */
   async getSongs(page = 1, category = null) {
-    let url = `/songs?page=${page}&limit=${CONFIG.ITEMS_PER_PAGE}`;
+    let url = `/api/songs?page=${page}&limit=${CONFIG.ITEMS_PER_PAGE}`;
     if (category) url += `&category=${encodeURIComponent(category)}`;
     return this.fetchJSON(url);
   },
 
   /** Get single song by slug. */
   async getSong(slug) {
-    return this.fetchJSON(`/song/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/api/song/${encodeURIComponent(slug)}`);
   },
 
   /** Search songs. */
   async search(query) {
-    return this.fetchJSON(`/search?q=${encodeURIComponent(query)}`);
+    return this.fetchJSON(`/api/search?q=${encodeURIComponent(query)}`);
   },
 
   /** Get categories. */
   async getCategories() {
-    return this.fetchJSON('/categories');
+    return this.fetchJSON('/api/categories');
   },
 
   /** Get popular songs. */
   async getPopular() {
-    return this.fetchJSON(`/popular?limit=${CONFIG.POPULAR_LIMIT}`);
+    return this.fetchJSON(`/api/popular?limit=${CONFIG.POPULAR_LIMIT}`);
   },
 
   /** Increment view count. */
   async incrementView(slug) {
-    return fetch(`${CONFIG.API_BASE}/view/${encodeURIComponent(slug)}`, {
+    return fetch(`${CONFIG.API_BASE}/api/view/${encodeURIComponent(slug)}`, {
       method: 'POST',
     });
   },
 
   /** Get copyright owner by slug. */
   async getCopyrightOwner(slug) {
-    return this.fetchJSON(`/copyright-owner/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/api/copyright-owner/${encodeURIComponent(slug)}`);
   },
 
   /** Get artist by slug. */
   async getArtist(slug) {
-    return this.fetchJSON(`/artist/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/api/artist/${encodeURIComponent(slug)}`);
   },
 
   /** Get composer by slug. */
   async getComposer(slug) {
-    return this.fetchJSON(`/composer/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/api/composer/${encodeURIComponent(slug)}`);
   },
 };
 
