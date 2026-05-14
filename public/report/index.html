@@ -219,7 +219,8 @@
 
     // ─── Report Page Logic ──────────────────────────
     (function () {
-      const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost'))
+      // Same origin rules as app.js: production domain + Pages preview use the API worker.
+      const API_BASE = (location.hostname.endsWith('pages.dev') || location.hostname.endsWith('maralyrics.com'))
         ? 'https://maralyrics.teiteipara.workers.dev'
         : '';
 

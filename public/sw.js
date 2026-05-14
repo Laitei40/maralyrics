@@ -3,7 +3,7 @@
 // ║       Stale-While-Revalidate · Offline-First                ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const CACHE_VERSION = 'ml-v6';
+const CACHE_VERSION = 'ml-v8';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -30,13 +30,13 @@ const PAGE_SHELLS = [
   '/artistview.html',
   '/composerview.html',
   '/copyrightownerview.html',
-  '/about.html',
-  '/contact.html',
-  '/copyright.html',
-  '/faq.html',
-  '/privacy.html',
-  '/terms.html',
-  '/report.html',
+  '/about/',
+  '/contact/',
+  '/copyright/',
+  '/faq/',
+  '/privacy/',
+  '/terms/',
+  '/report/',
 ];
 
 // ─── Install: Precache core assets ────────────────────────────
