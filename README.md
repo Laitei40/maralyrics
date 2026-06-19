@@ -1,161 +1,136 @@
 # MaraLyrics
 
-A modern, high-performance Mara song lyrics website built with Cloudflare Workers, D1 database, and vanilla HTML/CSS/JS featuring glassmorphism UI with smart offline caching.
+A modern, lightweight Mara song lyrics website. The project serves a static frontend from `public/` and uses Cloudflare Workers + D1 for dynamic pages and data.
 
 ---
 
-## Project Structure
+## Project layout
 
 ```
 maralyrics/
-├── public/              # Frontend static files
-│   ├── index.html       # Home page (song list, search, categories)
-│   ├── song.html        # Single song lyrics page
-│   ├── style.css        # Full CSS (Glass UI, dark mode, responsive)
-│   └── app.js           # Client-side JavaScript (modular, offline-ready)
-├── worker/              # Cloudflare Worker backend
-│   ├── worker.js        # Entry point — request routing
-│   ├── routes.js        # API route handlers
-│   └── db.js            # D1 database query helpers
-├── schema.sql           # D1 SQL schema + seed data
-├── wrangler.toml        # Cloudflare deployment config
-├── package.json         # npm scripts
-└── README.md            # This file
+├── public/                 # Static site assets (HTML, CSS, JS)
+│   ├── index.html
+│   ├── songview.html
+│   ├── artistview.html
+│   ├── composerview.html
+│   ├── copyrightownerview.html
+│   ├── style.css
+│   └── app.js
+├── functions/              # Cloudflare Functions / route handlers
+│   ├── sitemap.xml.js      # /sitemap.xml
+│   ├── song/[[catchall]].js
+│   ├── artist/[[catchall]].js
+│   ├── composer/[[catchall]].js
+│   └── copyright-owner/[[catchall]].js
+├── schema.sql              # D1 database schema + seed data
+├── wrangler.toml           # Cloudflare configuration (site + D1 bindings)
+├── package.json            # npm scripts (dev, deploy, db tasks)
+└── README.md               # This file
 ```
 
 ---
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) v18+
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) v3+
-- A Cloudflare account
+- Node.js v18+
+- Wrangler CLI v3+ (`npm install -g wrangler` or use the locally installed `wrangler`)
+- A Cloudflare account with D1 access (or local D1 for development)
 
 ---
 
-## Setup Instructions
+## Quick start (local)
 
-### 1. Install Dependencies
+1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Login to Cloudflare
+2. Login to Cloudflare
 
 ```bash
 npx wrangler login
 ```
 
-### 3. Create the D1 Database
+3. Create a D1 database (one-time)
 
 ```bash
 npm run db:create
 ```
 
-This prints a database ID. Copy it and paste it into `wrangler.toml`:
+Copy the printed `database_id` and update the `[[d1_databases]]` entry in `wrangler.toml`.
 
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "maralyrics-db"
-database_id = "PASTE_YOUR_DATABASE_ID_HERE"
-```
+4. Run migration locally
 
-### 4. Run Database Migration (Create Tables + Seed Data)
-
-**Local development:**
 ```bash
 npm run db:migrate:local
 ```
 
-**Production (remote D1):**
-```bash
-npm run db:migrate
-```
-
-### 5. Start Local Development
+5. Start local dev server (wrangler dev serves the `public/` site and functions)
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:8787](http://localhost:8787) in your browser.
+Open http://localhost:8787 in your browser.
 
-### 6. Deploy to Production
+---
+
+## Deploy
 
 ```bash
 npm run deploy
 ```
 
----
-
-## API Endpoints
-
-| Method | Route                  | Description                    |
-|--------|------------------------|--------------------------------|
-| GET    | `/api/songs`           | List songs (paginated)         |
-| GET    | `/api/song/:slug`      | Get single song by slug        |
-| GET    | `/api/search?q=`       | Search by title or artist      |
-| GET    | `/api/categories`      | Get all unique categories      |
-| GET    | `/api/popular?limit=`  | Get top viewed songs           |
-| POST   | `/api/view/:slug`      | Increment view count           |
-
-### Query Parameters
-
-- `page` — Page number (default: 1)
-- `limit` — Items per page (default: 20, max: 50)
-- `category` — Filter by category name
-- `q` — Search query string
+This uses `wrangler deploy` and the config in `wrangler.toml` (site bucket, D1 bindings, routes).
 
 ---
 
-## Features
+## Routing & behavior
 
-- **Glassmorphism UI** — Frosted glass cards, soft neon accents, dark mode
-- **Real-time Search** — Debounced search with offline fallback
-- **Smart Offline Cache** — Songs cached in localStorage + cookies for instant offline access
-- **View Counter** — Per-song view tracking with 1-hour cooldown
-- **Category Filters** — Filter songs by category with animated buttons
-- **Pagination** — Clean paginated song listing
-- **Shimmer Loading** — Skeleton loaders while fetching data
-- **SEO Optimized** — Dynamic meta tags, Open Graph, JSON-LD structured data
-- **Mobile-First** — Fully responsive, touch-friendly, no horizontal scroll
-- **XSS Prevention** — Output sanitization, HTML escaping, input validation
-- **Rate Limiting** — In-memory rate limiter for view count API
+- Static content is served from `public/` as a Cloudflare Site.
+- Dynamic page handlers live in `functions/` — each catch-all serves the corresponding view (`songview.html`, `artistview.html`, etc.) and injects SEO metadata when available.
+- A sitemap is generated at `/sitemap.xml` by `functions/sitemap.xml.js` using the D1 `songs` table.
+- Database access is performed via the D1 binding named `DB` (see `wrangler.toml`).
 
 ---
 
-## Custom Domain (Optional)
+## Scripts
 
-In `wrangler.toml`, uncomment and update:
+The important npm scripts are defined in `package.json`:
 
-```toml
-routes = [
-  { pattern = "maralyrics.yourdomain.com", custom_domain = true }
-]
-```
-
-Then deploy and configure DNS in Cloudflare dashboard.
+- `npm run dev` — `wrangler dev` (local development)
+- `npm run deploy` — `wrangler deploy` (production deploy)
+- `npm run db:create` — create a D1 database (`wrangler d1 create`)
+- `npm run db:migrate` — run migrations against remote D1
+- `npm run db:migrate:local` — run migrations against local D1
 
 ---
 
-## Adding Songs
+## Adding songs
 
-Insert new songs directly into D1:
+You can insert songs directly into the D1 `songs` table. Example SQL:
 
 ```sql
 INSERT INTO songs (title, slug, artist, category, lyrics) VALUES
 ('Song Title', 'song-title-slug', 'Artist Name', 'Category', 'Lyrics line 1\nLine 2\n...');
 ```
 
-Run via:
+You can execute ad-hoc commands with Wrangler:
+
 ```bash
 npx wrangler d1 execute maralyrics-db --command="INSERT INTO songs ..."
 ```
 
 ---
 
+## Notes
+
+- `wrangler.toml` in this repository contains the D1 binding and site bucket. Update `database_id` after creating your D1 instance.
+- This project serves pre-rendered HTML views and uses client-side JS to fetch and render data where appropriate.
+
+---
+
 ## License
 
-MIT — Built with ♥ for the Mara community.
+MIT License — Copyright (c) 2026 Maralyrics
