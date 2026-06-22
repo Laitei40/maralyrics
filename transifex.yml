@@ -1,6 +1,6 @@
 filters:
   - filter_type: file
     file_format: KEYVALUEJSON
-    source_file: i18n/en.json
+    source_file: public/locales/en.json
     source_language: en
-    translation_files_expression: 'i18n/<lang>.json'
+    translation_files_expression: 'public/locales/<lang>.json'
