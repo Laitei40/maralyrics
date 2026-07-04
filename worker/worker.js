@@ -10,6 +10,18 @@ export default {
     }
 
     // ============================
+    // Admin dashboard SPA
+    // ============================
+    if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
+      const accept = request.headers.get("accept") || "";
+      if (accept.includes("text/html")) {
+        const assetUrl = new URL(request.url);
+        assetUrl.pathname = "/admin/index.html";
+        return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+      }
+    }
+
+    // ============================
     // Serve Static Assets
     // ============================
     return env.ASSETS.fetch(request);
