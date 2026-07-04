@@ -11,6 +11,7 @@ database_id = "b27f5e8e-0b46-41df-8738-ddc611da58e3"  # Replace after: wrangler 
 # ─── Static Assets ───
 [site]
 bucket = "./public"
+include = ["**/*"]
 
 # ─── Custom Domain (optional) ───
 # routes = [
