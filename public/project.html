@@ -26,14 +26,14 @@
         <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
         <div class="settings-toggle">
-          <button class="settings-toggle__btn" aria-label="Settings" title="Settings">
+          <button class="settings-toggle__btn" aria-label="Settings" title="Settings" data-i18n-aria="settings_panel.toggle" data-i18n-title="settings_panel.toggle">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
           </button>
           <div class="settings-panel">
             <div class="settings-panel__section">
               <div class="settings-panel__label">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                Language
+                <span data-i18n="settings_panel.language">Language</span>
               </div>
               <div class="settings-panel__options">
                 <button class="lang-switcher__btn active" data-lang="en">EN</button>
@@ -45,13 +45,13 @@
             <div class="settings-panel__section">
               <div class="settings-panel__label">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                Theme
+                <span data-i18n="settings_panel.theme">Theme</span>
               </div>
               <div class="settings-panel__options">
-                <button class="theme-switcher__btn" data-theme="dark" title="Dark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-                <button class="theme-switcher__btn" data-theme="light" title="Light"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
-                <button class="theme-switcher__btn" data-theme="system" title="Follow System"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
-                <button class="theme-switcher__btn" data-theme="time" title="Follow Time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+                <button class="theme-switcher__btn" data-theme="dark" title="Dark" data-i18n-title="theme.dark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+                <button class="theme-switcher__btn" data-theme="light" title="Light" data-i18n-title="theme.light"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+                <button class="theme-switcher__btn" data-theme="system" title="Follow System" data-i18n-title="theme.title_system"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></button>
+                <button class="theme-switcher__btn" data-theme="time" title="Follow Time" data-i18n-title="theme.title_time"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
               </div>
             </div>
           </div>
@@ -64,65 +64,65 @@
   <main class="static-page container">
 
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/" class="breadcrumb__link">Home</a>
+      <a href="/" class="breadcrumb__link" data-i18n="breadcrumb.home">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current">The Project</span>
+      <span class="breadcrumb__current" data-i18n="project.breadcrumb">The Project</span>
     </nav>
 
     <div class="static-page__card">
 
-      <h1 class="static-page__title">The Project</h1>
+      <h1 class="static-page__title" data-i18n="project.title">The Project</h1>
 
       <section class="static-page__section">
-        <p>MaraLyrics is an open-source, community-driven archive of Mara song lyrics. Everything below is pulled live from the site's own database and its public GitHub repository — no hand-maintained numbers.</p>
+        <p data-i18n="project.intro">MaraLyrics is an open-source, community-driven archive of Mara song lyrics. Everything below is pulled live from the site's own database and its public GitHub repository — no hand-maintained numbers.</p>
       </section>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading">By the Numbers</h2>
+        <h2 class="static-page__heading" data-i18n="project.stats_heading">By the Numbers</h2>
         <div class="stats-grid" id="statsGrid">
           <div class="stat-tile">
             <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
             <div class="stat-tile__value" id="statSongs">—</div>
-            <div class="stat-tile__label">Songs</div>
+            <div class="stat-tile__label" data-i18n="project.stat_songs">Songs</div>
           </div>
           <div class="stat-tile">
             <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
             <div class="stat-tile__value" id="statArtists">—</div>
-            <div class="stat-tile__label">Artists</div>
+            <div class="stat-tile__label" data-i18n="project.stat_artists">Artists</div>
           </div>
           <div class="stat-tile">
             <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
             <div class="stat-tile__value" id="statComposers">—</div>
-            <div class="stat-tile__label">Composers</div>
+            <div class="stat-tile__label" data-i18n="project.stat_composers">Composers</div>
           </div>
           <div class="stat-tile">
             <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L11 3.83A2 2 0 009.59 3.17H4a1 1 0 00-1 1v5.59a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.83 0l5.59-5.59a2 2 0 000-2.83z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
             <div class="stat-tile__value" id="statCategories">—</div>
-            <div class="stat-tile__label">Categories</div>
+            <div class="stat-tile__label" data-i18n="project.stat_categories">Categories</div>
           </div>
           <div class="stat-tile">
             <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
             <div class="stat-tile__value" id="statViews">—</div>
-            <div class="stat-tile__label">Total Views</div>
+            <div class="stat-tile__label" data-i18n="project.stat_views">Total Views</div>
           </div>
         </div>
       </section>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading">Contributors</h2>
-        <p>MaraLyrics is built in the open. These are the people who have contributed code on GitHub.</p>
+        <h2 class="static-page__heading" data-i18n="project.contributors_heading">Contributors</h2>
+        <p data-i18n="project.contributors_intro">MaraLyrics is built in the open. These are the people who have contributed code on GitHub.</p>
         <div class="contributors-grid" id="contributorsGrid">
-          <p class="contributors-grid__status" id="contributorsStatus">Loading contributors…</p>
+          <p class="contributors-grid__status" id="contributorsStatus" data-i18n="project.contributors_loading">Loading contributors…</p>
         </div>
       </section>
 
       <section class="static-page__section">
-        <h2 class="static-page__heading">Contribute</h2>
-        <p>Found a bug, want to add a song, fix a translation, or improve the code? Contributions are welcome.</p>
+        <h2 class="static-page__heading" data-i18n="project.contribute_heading">Contribute</h2>
+        <p data-i18n="project.contribute_intro">Found a bug, want to add a song, fix a translation, or improve the code? Contributions are welcome.</p>
         <div class="contribute-cta">
           <a href="https://github.com/Laitei40/maralyrics" target="_blank" rel="noopener noreferrer" class="error-page__btn error-page__btn--primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-            Contribute on GitHub
+            <span data-i18n="project.contribute_btn">Contribute on GitHub</span>
           </a>
         </div>
       </section>
@@ -139,39 +139,39 @@
             <img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" />
             MaraLyrics
           </a>
-          <p class="footer__tagline">Preserving Mara music for future generations.</p>
+          <p class="footer__tagline" data-i18n="footer.tagline">Preserving Mara music for future generations.</p>
           <div class="footer__social">
             <a href="https://www.youtube.com/@haoleimrh" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--youtube" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
             <a href="https://www.reddit.com/r/maralyrics/" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--reddit" aria-label="Reddit"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 01-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 01.042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 013.058 12.4c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 01.14-.197.35.35 0 01.238-.042l2.906.617a1.214 1.214 0 011.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.248 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.561-1.249-1.249-1.249zm-5.466 3.99a.327.327 0 00-.231.094.33.33 0 000 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 00.029-.463.33.33 0 00-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 00-.232-.095z"/></svg></a>
           </div>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading">Information</h4>
+          <h4 class="footer__heading" data-i18n="footer.heading_information">Information</h4>
           <ul class="footer__links">
-            <li><a href="/about">About Us</a></li>
-            <li><a href="/project">The Project</a></li>
-            <li><a href="/faq">FAQ</a></li>
+            <li><a href="/about" data-i18n="footer.link_about">About Us</a></li>
+            <li><a href="/project" data-i18n="footer.link_project">The Project</a></li>
+            <li><a href="/faq" data-i18n="footer.link_faq">FAQ</a></li>
           </ul>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading">Legal</h4>
+          <h4 class="footer__heading" data-i18n="footer.heading_legal">Legal</h4>
           <ul class="footer__links">
-            <li><a href="/privacy">Privacy Policy</a></li>
-            <li><a href="/terms">Terms &amp; Conditions</a></li>
-            <li><a href="/copyright">Copyright</a></li>
+            <li><a href="/privacy" data-i18n="footer.link_privacy">Privacy Policy</a></li>
+            <li><a href="/terms" data-i18n="footer.link_terms">Terms &amp; Conditions</a></li>
+            <li><a href="/copyright" data-i18n="footer.link_copyright">Copyright</a></li>
           </ul>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading">Support</h4>
+          <h4 class="footer__heading" data-i18n="footer.heading_support">Support</h4>
           <ul class="footer__links">
-            <li><a href="/contact">Contact Us</a></li>
-            <li><a href="/report">Report Error</a></li>
+            <li><a href="/contact" data-i18n="footer.link_contact">Contact Us</a></li>
+            <li><a href="/report" data-i18n="footer.link_report">Report Error</a></li>
           </ul>
         </div>
       </div>
       <div class="footer__bottom">
-        <p>Proudly Made in Maraland <span class="footer__heart">♥</span> for the Mara community</p>
-        <p>&copy; 2026 MaraLyrics. All rights reserved.</p>
+        <p data-i18n="footer.made_with">Proudly Made in Maraland <span class="footer__heart">♥</span> for the Mara community</p>
+        <p data-i18n="footer.copyright">&copy; 2026 MaraLyrics. All rights reserved.</p>
       </div>
     </div>
   </footer>
@@ -232,20 +232,23 @@
         .then((data) => {
           const contributors = data.contributors;
           if (!Array.isArray(contributors) || contributors.length === 0) {
-            status.textContent = 'No contributors found yet.';
+            status.textContent = I18n.t('project.contributors_none');
             return;
           }
           status.remove();
-          grid.innerHTML = contributors.map((c) => `
-            <a href="${c.html_url}" target="_blank" rel="noopener noreferrer" class="contributor-card" title="${c.login} — ${c.contributions} contribution${c.contributions === 1 ? '' : 's'}">
+          grid.innerHTML = contributors.map((c) => {
+            const commitsWord = I18n.t(c.contributions === 1 ? 'project.commits_one' : 'project.commits_other');
+            return `
+            <a href="${c.html_url}" target="_blank" rel="noopener noreferrer" class="contributor-card" title="${c.login} — ${c.contributions} ${commitsWord}">
               <img src="${c.avatar_url}" alt="${c.login}" class="contributor-card__avatar" loading="lazy" />
               <span class="contributor-card__name">${c.login}</span>
-              <span class="contributor-card__contributions">${c.contributions} commit${c.contributions === 1 ? '' : 's'}</span>
+              <span class="contributor-card__contributions">${c.contributions} ${commitsWord}</span>
             </a>
-          `).join('');
+          `;
+          }).join('');
         })
         .catch(() => {
-          status.textContent = 'Couldn\'t load contributors right now — see them directly on GitHub.';
+          status.textContent = I18n.t('project.contributors_error');
         });
     })();
   </script>

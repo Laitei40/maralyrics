@@ -1092,8 +1092,7 @@ const ProfilePage = {
     // Update "Songs by {name}" section title
     const songsTitleEl = document.getElementById('songsSectionTitle');
     if (songsTitleEl && data.name) {
-      const prefix = songsTitleEl.getAttribute('data-prefix') || 'Songs by';
-      songsTitleEl.textContent = `${prefix} ${data.name}`;
+      songsTitleEl.textContent = I18n.t(`${this.type}.songs_by_name`, { name: data.name });
     }
 
     // Breadcrumb

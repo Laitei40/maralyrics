@@ -4,8 +4,25 @@
     "popular": "Popular"
   },
   "footer": {
+    "tagline": "Preserving Mara music for future generations.",
+    "heading_information": "Information",
+    "heading_legal": "Legal",
+    "heading_support": "Support",
+    "link_about": "About Us",
+    "link_project": "The Project",
+    "link_faq": "FAQ",
+    "link_privacy": "Privacy Policy",
+    "link_terms": "Terms & Conditions",
+    "link_copyright": "Copyright",
+    "link_contact": "Contact Us",
+    "link_report": "Report Error",
     "made_with": "Proudly Made in Maraland <span class=\"footer__heart\">♥</span> for the Mara community",
-    "copyright": "© 2026 MaraLyrics"
+    "copyright": "© 2026 MaraLyrics. All rights reserved."
+  },
+  "settings_panel": {
+    "toggle": "Settings",
+    "language": "Language",
+    "theme": "Theme"
   },
   "offline": {
     "badge": "Offline Mode",
@@ -18,11 +35,20 @@
     "hero_title": "Mara Song Lyrics",
     "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
     "search_placeholder": "Search songs by title or artist...",
+    "search_aria": "Search songs",
+    "search_clear_aria": "Clear search",
     "search_results": "Search Results",
     "popular_songs": "Popular Songs",
     "all_songs": "All Songs",
     "no_songs_title": "No songs found",
     "no_songs_text": "Try a different search term or browse categories above."
+  },
+  "mobile_drawer": {
+    "aria_label": "Mobile navigation",
+    "open_aria": "Open navigation menu",
+    "eyebrow": "Navigation",
+    "title": "Explore",
+    "close_aria": "Close navigation menu"
   },
   "song": {
     "breadcrumb": "Song",
@@ -42,6 +68,7 @@
     "breadcrumb": "Artist",
     "role": "Artist",
     "songs_title": "Songs by this Artist",
+    "songs_by_name": "Songs by {name}",
     "no_songs": "No songs found for this artist.",
     "error_title": "Artist not found",
     "error_text": "This artist may have been removed or the link is incorrect.",
@@ -51,6 +78,7 @@
     "breadcrumb": "Composer",
     "role": "Composer",
     "songs_title": "Songs by this Composer",
+    "songs_by_name": "Songs by {name}",
     "no_songs": "No songs found for this composer.",
     "error_title": "Composer not found",
     "error_text": "This composer may have been removed or the link is incorrect.",
@@ -138,10 +166,15 @@
     "message_label": "Message <span class=\"form-required\">*</span>",
     "message_placeholder": "Write your message here...",
     "submit_btn": "Send Message",
+    "sending": "Sending...",
     "back_btn": "← Back",
     "success_title": "Message Sent!",
     "success_text": "Thank you for reaching out. We'll get back to you as soon as possible.",
-    "success_back_home": "← Back to Home"
+    "success_back_home": "← Back to Home",
+    "err_fill_all": "Please fill in all required fields.",
+    "err_turnstile": "Please complete the security check.",
+    "err_send_failed": "Failed to send message.",
+    "err_generic": "Something went wrong. Please try again."
   },
   "faq": {
     "breadcrumb": "FAQ",
@@ -242,7 +275,9 @@
     "dark": "Dark",
     "light": "Light",
     "system": "System",
-    "auto_time": "Auto Time"
+    "auto_time": "Auto Time",
+    "title_system": "Follow System",
+    "title_time": "Follow Time"
   },
   "search_history": {
     "recent": "Recent",
@@ -252,8 +287,33 @@
   "search": {
     "did_you_mean": "Did you mean:"
   },
+  "project": {
+    "breadcrumb": "The Project",
+    "title": "The Project",
+    "intro": "MaraLyrics is an open-source, community-driven archive of Mara song lyrics. Everything below is pulled live from the site's own database and its public GitHub repository — no hand-maintained numbers.",
+    "stats_heading": "By the Numbers",
+    "stat_songs": "Songs",
+    "stat_artists": "Artists",
+    "stat_composers": "Composers",
+    "stat_categories": "Categories",
+    "stat_views": "Total Views",
+    "contributors_heading": "Contributors",
+    "contributors_intro": "MaraLyrics is built in the open. These are the people who have contributed code on GitHub.",
+    "contributors_loading": "Loading contributors…",
+    "contributors_none": "No contributors found yet.",
+    "contributors_error": "Couldn't load contributors right now — see them directly on GitHub.",
+    "commits_one": "commit",
+    "commits_other": "commits",
+    "contribute_heading": "Contribute",
+    "contribute_intro": "Found a bug, want to add a song, fix a translation, or improve the code? Contributions are welcome.",
+    "contribute_btn": "Contribute on GitHub"
+  },
   "copyright_owner": {
+    "breadcrumb": "Copyright Owner",
     "role": "Copyright Owner",
+    "error_title": "Copyright owner not found",
+    "error_text": "This copyright owner may have been removed or the link is incorrect.",
+    "error_go_home": "← Go Home",
     "full_legal_name": "Full Legal Name",
     "organization": "Organization / Publisher",
     "territory": "Territory / Jurisdiction",
