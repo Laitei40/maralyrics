@@ -206,7 +206,7 @@
     // ─── Contact Form Logic ──────────────────────────
     (function () {
       const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost'))
-        ? 'https://maralyrics.teiteipara.workers.dev'
+        ? 'https://api.maralyrics.com'
         : '';
 
       document.getElementById('contactForm').addEventListener('submit', async function (e) {
@@ -240,7 +240,7 @@
         }
 
         try {
-          const res = await fetch(API_BASE + '/api/contact', {
+          const res = await fetch(API_BASE + '/api/v1/contacts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -5,6 +5,9 @@ node_modules/
 .wrangler/
 .dev.vars
 
+# Database backups (contain real user PII — never commit)
+backups/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -1,33 +1,40 @@
 -- ╔══════════════════════════════════════════════════════════════╗
--- ║           MaraLyrics — Cloudflare D1 Schema                ║
+-- ║           MaraLyrics — Cloudflare D1 Schema                 ║
 -- ╚══════════════════════════════════════════════════════════════╝
-
--- Drop existing tables to ensure clean schema migration
-DROP TABLE IF EXISTS songs;
-DROP TABLE IF EXISTS composers;
-DROP TABLE IF EXISTS artists;
-DROP TABLE IF EXISTS copyright_owners;
+--
+-- This file defines the CURRENT desired schema and is safe to run
+-- against any database, new or existing — every statement is
+-- idempotent (IF NOT EXISTS) and nothing is ever dropped.
+--
+-- • Bootstrapping a brand new database? Just run this file.
+-- • Upgrading an existing database created before a given schema
+--   change? Run the matching file in ./migrations first — this file
+--   alone will NOT retroactively alter tables that already exist
+--   under an older definition.
+-- • Want sample data for local development? See ./seed.sql.
 
 -- Artists table
 CREATE TABLE IF NOT EXISTS artists (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL,
-    slug        TEXT UNIQUE NOT NULL,
-    bio         TEXT,
-    image_url   TEXT,
-    social_links TEXT,
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL,
+    slug         TEXT UNIQUE NOT NULL,
+    bio          TEXT,
+    image_url    TEXT,
+    social_links TEXT CHECK (social_links IS NULL OR json_valid(social_links)),
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Composers table
 CREATE TABLE IF NOT EXISTS composers (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT NOT NULL,
-    slug        TEXT UNIQUE NOT NULL,
-    bio         TEXT,
-    image_url   TEXT,
-    social_links TEXT,
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL,
+    slug         TEXT UNIQUE NOT NULL,
+    bio          TEXT,
+    image_url    TEXT,
+    social_links TEXT CHECK (social_links IS NULL OR json_valid(social_links)),
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Copyright Owners table (international standard fields)
@@ -45,7 +52,8 @@ CREATE TABLE IF NOT EXISTS copyright_owners (
     isrc_prefix     TEXT,
     pro_affiliation TEXT,
     notes           TEXT,
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Songs table
@@ -56,100 +64,127 @@ CREATE TABLE IF NOT EXISTS songs (
     artist_id           INTEGER,
     composer_id         INTEGER,
     copyright_owner_id  INTEGER,
-    category            TEXT,
+    category            TEXT CHECK (category IS NULL OR category IN ('Gospel', 'Love', 'Traditional', 'Patriotic')),
     lyrics              TEXT NOT NULL,
     views               INTEGER DEFAULT 0,
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE SET NULL,
     FOREIGN KEY (composer_id) REFERENCES composers(id) ON DELETE SET NULL,
     FOREIGN KEY (copyright_owner_id) REFERENCES copyright_owners(id) ON DELETE SET NULL
 );
 
--- Reports table
+-- Reports table (copyright / content reports filed against a song)
 CREATE TABLE IF NOT EXISTS reports (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_id         INTEGER,
     song_slug       TEXT,
     song_title      TEXT,
     song_artist     TEXT,
     reporter_name   TEXT NOT NULL,
     reporter_email  TEXT NOT NULL,
     body            TEXT NOT NULL,
-    status          TEXT DEFAULT 'pending',
-    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+    status          TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved', 'dismissed')),
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE SET NULL
 );
 
+-- Contact form submissions
 CREATE TABLE IF NOT EXISTS contacts (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT NOT NULL,
     email      TEXT NOT NULL,
     subject    TEXT DEFAULT 'General',
     message    TEXT NOT NULL,
-    status     TEXT DEFAULT 'unread',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    status     TEXT DEFAULT 'unread' CHECK (status IN ('unread', 'read', 'archived')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Performance indexes
-CREATE INDEX IF NOT EXISTS idx_songs_slug       ON songs(slug);
-CREATE INDEX IF NOT EXISTS idx_songs_title      ON songs(title);
-CREATE INDEX IF NOT EXISTS idx_songs_category   ON songs(category);
-CREATE INDEX IF NOT EXISTS idx_songs_views      ON songs(views DESC);
-CREATE INDEX IF NOT EXISTS idx_songs_artist_id  ON songs(artist_id);
-CREATE INDEX IF NOT EXISTS idx_songs_composer_id ON songs(composer_id);
+-- ── Performance indexes ──
+CREATE INDEX IF NOT EXISTS idx_songs_slug              ON songs(slug);
+CREATE INDEX IF NOT EXISTS idx_songs_title              ON songs(title);
+CREATE INDEX IF NOT EXISTS idx_songs_category           ON songs(category);
+CREATE INDEX IF NOT EXISTS idx_songs_views              ON songs(views DESC);
+CREATE INDEX IF NOT EXISTS idx_songs_artist_id          ON songs(artist_id);
+CREATE INDEX IF NOT EXISTS idx_songs_composer_id        ON songs(composer_id);
 CREATE INDEX IF NOT EXISTS idx_songs_copyright_owner_id ON songs(copyright_owner_id);
-CREATE INDEX IF NOT EXISTS idx_artists_slug     ON artists(slug);
-CREATE INDEX IF NOT EXISTS idx_composers_slug   ON composers(slug);
-CREATE INDEX IF NOT EXISTS idx_copyright_owners_slug ON copyright_owners(slug);
+CREATE INDEX IF NOT EXISTS idx_songs_created_at         ON songs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_artists_slug             ON artists(slug);
+CREATE INDEX IF NOT EXISTS idx_composers_slug           ON composers(slug);
+CREATE INDEX IF NOT EXISTS idx_copyright_owners_slug    ON copyright_owners(slug);
+CREATE INDEX IF NOT EXISTS idx_reports_status           ON reports(status);
+CREATE INDEX IF NOT EXISTS idx_reports_song_id          ON reports(song_id);
+CREATE INDEX IF NOT EXISTS idx_contacts_status          ON contacts(status);
 
--- ╔══════════════════════════════════════════════════════════════╗
--- ║                    Sample Seed Data                         ║
--- ╚══════════════════════════════════════════════════════════════╝
+-- ── updated_at auto-maintenance triggers ──
+CREATE TRIGGER IF NOT EXISTS trg_artists_updated_at
+AFTER UPDATE ON artists
+FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+    UPDATE artists SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
 
--- Seed artists
-INSERT INTO artists (name, slug, bio) VALUES
-('Mara Artist',         'mara-artist',         'A renowned Mara vocalist known for traditional melodies.'),
-('Mara Singer',         'mara-singer',         'A gifted singer from the Mara community.'),
-('Mara Choir',          'mara-choir',          'An acclaimed Mara choral group performing hymns and patriotic songs.'),
-('Traditional Singers', 'traditional-singers', 'A collective preserving Mara traditional music.'),
-('Youth Choir',         'youth-choir',         'A vibrant youth choir from the Mara community.');
+CREATE TRIGGER IF NOT EXISTS trg_composers_updated_at
+AFTER UPDATE ON composers
+FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+    UPDATE composers SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
 
--- Seed composers
-INSERT INTO composers (name, slug, bio) VALUES
-('Mara Composer',       'mara-composer',       'A prolific composer of Mara traditional and contemporary songs.');
+CREATE TRIGGER IF NOT EXISTS trg_copyright_owners_updated_at
+AFTER UPDATE ON copyright_owners
+FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+    UPDATE copyright_owners SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
 
--- Seed songs (linked by artist_id / composer_id)
-INSERT INTO songs (title, slug, artist_id, composer_id, category, lyrics) VALUES
-(
-    'Mara Hlasa',
-    'mara-hlasa',
-    1, 1,
-    'Traditional',
-    'Line 1 of Mara Hlasa lyrics...' || char(10) || 'Line 2 of the song...' || char(10) || 'Line 3 continues here...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'More lyrics follow...' || char(10) || 'Beautiful melody...'
-),
-(
-    'Ei ly kaw',
-    'ei-ly-kaw',
-    2, NULL,
-    'Love',
-    'Ei ly kaw a nasa e...' || char(10) || 'Heartfelt words flow...' || char(10) || 'Melody of the hills...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Singing together...' || char(10) || 'Voices of Mara...'
-),
-(
-    'Thlahpa Pathaih',
-    'thlahpa-pathaih',
-    3, 1,
-    'Patriotic',
-    'Hla a pha ngaita...' || char(10) || 'New season dawns...' || char(10) || 'Gratitude fills the heart...' || char(10) || char(10) || 'Verse 2:' || char(10) || 'Joyful celebration...' || char(10) || 'Together we sing...'
-),
-(
-    'Mara Râh Hla',
-    'mara-râh-hla',
-    4, NULL,
-    'Traditional',
-    'Mararâh chu a pha...' || char(10) || 'Our homeland forever...' || char(10) || 'Mountains and valleys...' || char(10) || char(10) || 'Chorus:' || char(10) || 'Mararâh, Mararâh...' || char(10) || 'Beautiful land of ours...'
-),
-(
-    'Abeipa pha zie',
-    'abeipa-pha-zie',
-    5, 1,
-    'Gospel',
-    'Abeipa pha zie a that e...' || char(10) || 'Goodness overflows...' || char(10) || 'Blessing upon blessing...' || char(10) || char(10) || 'Bridge:' || char(10) || 'Forever grateful...' || char(10) || 'Songs of praise...'
+CREATE TRIGGER IF NOT EXISTS trg_songs_updated_at
+AFTER UPDATE ON songs
+FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+    UPDATE songs SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_reports_updated_at
+AFTER UPDATE ON reports
+FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+    UPDATE reports SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_contacts_updated_at
+AFTER UPDATE ON contacts
+FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+    UPDATE contacts SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+-- ── Full-text search over songs (title + lyrics) ──
+CREATE VIRTUAL TABLE IF NOT EXISTS songs_fts USING fts5(
+    title,
+    lyrics,
+    content = 'songs',
+    content_rowid = 'id'
 );
+
+CREATE TRIGGER IF NOT EXISTS trg_songs_fts_insert
+AFTER INSERT ON songs
+BEGIN
+    INSERT INTO songs_fts (rowid, title, lyrics) VALUES (NEW.id, NEW.title, NEW.lyrics);
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_songs_fts_delete
+AFTER DELETE ON songs
+BEGIN
+    INSERT INTO songs_fts (songs_fts, rowid, title, lyrics) VALUES ('delete', OLD.id, OLD.title, OLD.lyrics);
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_songs_fts_update
+AFTER UPDATE ON songs
+FOR EACH ROW WHEN NEW.title IS NOT OLD.title OR NEW.lyrics IS NOT OLD.lyrics
+BEGIN
+    INSERT INTO songs_fts (songs_fts, rowid, title, lyrics) VALUES ('delete', OLD.id, OLD.title, OLD.lyrics);
+    INSERT INTO songs_fts (rowid, title, lyrics) VALUES (NEW.id, NEW.title, NEW.lyrics);
+END;

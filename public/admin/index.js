@@ -4,11 +4,29 @@
 
 'use strict';
 
-const WORKER_ORIGIN = 'https://maralyrics.teiteipara.workers.dev';
+const WORKER_ORIGIN = 'https://api.maralyrics.com';
 const SITE_ORIGIN = 'https://maralyrics.com';
 const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
 const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
-const ADMIN_API = `${API_ORIGIN}/api/admin`;
+const API_BASE = `${API_ORIGIN}/api/v1`;
+const ADMIN_API = `${API_BASE}/admin`;
+
+// ─── Admin token (Bearer auth) ──────────────────────
+const TOKEN_KEY = 'ml_admin_token';
+function getAdminToken() {
+  return localStorage.getItem(TOKEN_KEY) || '';
+}
+function setAdminToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+function promptForAdminToken() {
+  const token = window.prompt('Enter admin access token:');
+  if (token) setAdminToken(token.trim());
+  return getAdminToken();
+}
+function authHeaders(extra = {}) {
+  return { ...extra, Authorization: `Bearer ${getAdminToken()}` };
+}
 
 // State
 let currentPage = 1;
@@ -188,9 +206,16 @@ function generateSlug(text) {
 }
 
 // ─── API Calls ──────────────────────────────────
+async function handleAuthFailure(res) {
+  if (res.status === 401) {
+    promptForAdminToken();
+  }
+}
+
 async function apiGet(url) {
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) {
+    await handleAuthFailure(res);
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || `Error ${res.status}`);
   }
@@ -200,29 +225,38 @@ async function apiGet(url) {
 async function apiPost(url, body) {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    throw new Error(data.error || `Error ${res.status}`);
+  }
   return data;
 }
 
 async function apiPut(url, body) {
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    throw new Error(data.error || `Error ${res.status}`);
+  }
   return data;
 }
 
 async function apiDelete(url) {
-  const res = await fetch(url, { method: 'DELETE' });
+  const res = await fetch(url, { method: 'DELETE', headers: authHeaders() });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  if (!res.ok) {
+    await handleAuthFailure(res);
+    throw new Error(data.error || `Error ${res.status}`);
+  }
   return data;
 }
 
@@ -337,7 +371,7 @@ function renderPagination() {
 async function updateStats(data) {
   document.getElementById('statTotal').textContent = data.total || allSongs.length;
   try {
-    const catData = await apiGet(`${API_ORIGIN}/api/categories`);
+    const catData = await apiGet(`${API_BASE}/categories`);
     document.getElementById('statCategories').textContent = catData.categories?.length || 0;
   } catch { /* ignore */ }
   const totalViews = allSongs.reduce((sum, s) => sum + (s.views || 0), 0);
@@ -402,7 +436,7 @@ async function editSong(id) {
   openSongModal();
 
   try {
-    const song = await apiGet(`${ADMIN_API}/song/${id}`);
+    const song = await apiGet(`${ADMIN_API}/songs/${id}`);
     document.getElementById('formSongId').value = song.id;
     document.getElementById('formTitle').value = song.title || '';
     document.getElementById('formArtist').value = song.artist_id || '';
@@ -444,7 +478,7 @@ async function saveSong(e) {
     const body = { title, artist_id, composer_id, copyright_owner_id, category, slug, lyrics };
 
     if (id) {
-      await apiPut(`${ADMIN_API}/song/${id}`, body);
+      await apiPut(`${ADMIN_API}/songs/${id}`, body);
       showFormMessage('Song updated successfully!');
     } else {
       await apiPost(`${ADMIN_API}/songs`, body);
@@ -896,7 +930,7 @@ async function editPerson(type, id) {
   openPersonModal();
 
   try {
-    const item = await apiGet(`${ADMIN_API}/${type}/${id}`);
+    const item = await apiGet(`${ADMIN_API}/${type}s/${id}`);
     document.getElementById('personFormId').value = item.id;
     document.getElementById('personFormName').value = item.name || '';
     document.getElementById('personFormSlug').value = item.slug || '';
@@ -941,7 +975,7 @@ async function savePerson(e) {
     const plural = type + 's';
 
     if (id) {
-      await apiPut(`${ADMIN_API}/${type}/${id}`, body);
+      await apiPut(`${ADMIN_API}/${type}s/${id}`, body);
       showPersonMessage(label + ' updated successfully!');
     } else {
       await apiPost(`${ADMIN_API}/${plural}`, body);
@@ -1008,7 +1042,7 @@ async function deleteItem() {
   else if (type === 'report') allReports = allReports.filter(r => r.id !== id);
 
   try {
-    await apiDelete(`${ADMIN_API}/${type}/${id}`);
+    await apiDelete(`${ADMIN_API}/${type}s/${id}`);
     // Reload for accurate counts/pagination
     if (type === 'song') loadSongs(currentPage);
     else if (type === 'artist') loadArtists();
@@ -1035,6 +1069,8 @@ async function deleteItem() {
 // ═══════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (!getAdminToken()) promptForAdminToken();
+
   // Load songs + populate dropdowns
   loadSongs();
   populateDropdowns();
@@ -1262,7 +1298,7 @@ async function editCopyrightOwner(id) {
   openCopyrightOwnerModal();
 
   try {
-    const item = await apiGet(`${ADMIN_API}/copyright-owner/${id}`);
+    const item = await apiGet(`${ADMIN_API}/copyright-owners/${id}`);
     document.getElementById('coFormId').value = item.id;
     document.getElementById('coFormName').value = item.name || '';
     document.getElementById('coFormSlug').value = item.slug || '';
@@ -1313,7 +1349,7 @@ async function saveCopyrightOwner(e) {
     const body = { name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes };
 
     if (id) {
-      await apiPut(`${ADMIN_API}/copyright-owner/${id}`, body);
+      await apiPut(`${ADMIN_API}/copyright-owners/${id}`, body);
       showCOMessage('Copyright owner updated successfully!');
     } else {
       await apiPost(`${ADMIN_API}/copyright-owners`, body);
@@ -1414,7 +1450,7 @@ function renderReportsTable() {
 
 async function updateReportStatus(id, status) {
   try {
-    await apiPut(`${ADMIN_API}/report/${id}`, { status });
+    await apiPut(`${ADMIN_API}/reports/${id}`, { status });
     // Update local state
     const report = allReports.find(r => r.id === id);
     if (report) report.status = status;

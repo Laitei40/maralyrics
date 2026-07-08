@@ -1,4 +1,4 @@
-name = "maralyrics"
+name = "maralyrics-api"
 main = "worker/worker.js"
 compatibility_date = "2024-12-01"
 
@@ -21,3 +21,8 @@ include = ["**/*"]
 # ─── Environment Variables ───
 [vars]
 ENVIRONMENT = "production"
+
+# ─── Secrets (set via `wrangler secret put <NAME>`, never committed) ───
+# ADMIN_TOKEN          — bearer token required on all /api/v1/admin/* requests
+# TURNSTILE_SECRET_KEY — Cloudflare Turnstile secret key, verifies /reports and /contacts submissions
+# See .dev.vars.example for local development.

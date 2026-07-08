@@ -220,7 +220,7 @@
     // ─── Report Page Logic ──────────────────────────
     (function () {
       const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost'))
-        ? 'https://maralyrics.teiteipara.workers.dev'
+        ? 'https://api.maralyrics.com'
         : '';
 
       // Parse URL params: ?song=slug&title=...&artist=...
@@ -276,7 +276,7 @@
         }
 
         try {
-          const res = await fetch(API_BASE + '/api/report', {
+          const res = await fetch(API_BASE + '/api/v1/reports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

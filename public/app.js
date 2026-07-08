@@ -6,11 +6,11 @@
 'use strict';
 
 // ─── Configuration ─────────────────────────────────────────────
-const WORKER_ORIGIN = 'https://maralyrics.teiteipara.workers.dev';
+const WORKER_ORIGIN = 'https://api.maralyrics.com';
 const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
 const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
 const CONFIG = {
-  API_BASE: `${API_ORIGIN}/api`,
+  API_BASE: `${API_ORIGIN}/api/v1`,
   CACHE_PREFIX: 'ml_',
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 hours
   SEARCH_DEBOUNCE: 300,
@@ -332,7 +332,7 @@ const API = {
 
   /** Get single song by slug. */
   async getSong(slug) {
-    return this.fetchJSON(`/song/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/songs/${encodeURIComponent(slug)}`);
   },
 
   /** Search songs. */
@@ -347,29 +347,29 @@ const API = {
 
   /** Get popular songs. */
   async getPopular() {
-    return this.fetchJSON(`/popular?limit=${CONFIG.POPULAR_LIMIT}`);
+    return this.fetchJSON(`/songs/popular?limit=${CONFIG.POPULAR_LIMIT}`);
   },
 
   /** Increment view count. */
   async incrementView(slug) {
-    return fetch(`${CONFIG.API_BASE}/view/${encodeURIComponent(slug)}`, {
+    return fetch(`${CONFIG.API_BASE}/songs/${encodeURIComponent(slug)}/view`, {
       method: 'POST',
     });
   },
 
   /** Get copyright owner by slug. */
   async getCopyrightOwner(slug) {
-    return this.fetchJSON(`/copyright-owner/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/copyright-owners/${encodeURIComponent(slug)}`);
   },
 
   /** Get artist by slug. */
   async getArtist(slug) {
-    return this.fetchJSON(`/artist/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/artists/${encodeURIComponent(slug)}`);
   },
 
   /** Get composer by slug. */
   async getComposer(slug) {
-    return this.fetchJSON(`/composer/${encodeURIComponent(slug)}`);
+    return this.fetchJSON(`/composers/${encodeURIComponent(slug)}`);
   },
 };
 
