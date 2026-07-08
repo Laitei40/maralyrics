@@ -38,7 +38,7 @@ app.get('/stats', async (c) => {
 
 app.get('/contributors', async (c) => {
   const cache = caches.default;
-  const cacheKey = new Request('https://api.maralyrics.com/api/v1/contributors', c.req.raw);
+  const cacheKey = new Request('https://api.maralyrics.com/api/v1/contributors?v=2', c.req.raw);
 
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
@@ -55,12 +55,14 @@ app.get('/contributors', async (c) => {
     return c.json({ error: 'Failed to fetch contributors' }, 502);
   }
 
-  const contributors = (await ghRes.json()).map((u) => ({
-    login: u.login,
-    avatar_url: u.avatar_url,
-    html_url: u.html_url,
-    contributions: u.contributions,
-  }));
+  const contributors = (await ghRes.json())
+    .filter((u) => u.type !== 'Bot')
+    .map((u) => ({
+      login: u.login,
+      avatar_url: u.avatar_url,
+      html_url: u.html_url,
+      contributions: u.contributions,
+    }));
 
   const response = c.json({ contributors }, 200, { 'Cache-Control': 'public, max-age=3600' });
   c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
