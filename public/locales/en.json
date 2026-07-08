@@ -1,6 +1,5 @@
 {
   "nav": {
-    "home": "Home",
     "popular": "Popular"
   },
   "footer": {
@@ -8,13 +7,7 @@
     "heading_information": "Information",
     "heading_legal": "Legal",
     "heading_support": "Support",
-    "link_about": "About Us",
-    "link_project": "The Project",
-    "link_faq": "FAQ",
-    "link_privacy": "Privacy Policy",
-    "link_terms": "Terms & Conditions",
     "link_copyright": "Copyright",
-    "link_contact": "Contact Us",
     "link_report": "Report Error",
     "made_with": "Proudly Made in Maraland <span class=\"footer__heart\">♥</span> for the Mara community",
     "copyright": "© 2026 MaraLyrics. All rights reserved."
@@ -25,12 +18,9 @@
     "theme": "Theme"
   },
   "offline": {
-    "badge": "Offline Mode",
     "badge_text": "Offline"
   },
-  "breadcrumb": {
-    "home": "Home"
-  },
+  "breadcrumb": {},
   "home": {
     "hero_title": "Mara Song Lyrics",
     "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
@@ -52,66 +42,47 @@
   },
   "song": {
     "breadcrumb": "Song",
-    "feedback_btn": "Feedback",
     "copy_btn": "Copy",
     "copy_success": "Lyrics copied to clipboard",
     "copy_error": "Couldn't copy lyrics",
     "share_btn": "Share",
     "share_success": "Link copied to clipboard",
     "share_error": "Couldn't share song",
-    "meta_desc": "Read lyrics of \"{title}\" by {artist} on MaraLyrics.",
     "error_title": "Song not found",
-    "error_text": "This song may have been removed or the link is incorrect.",
-    "error_go_home": "← Go Home"
+    "error_text": "This song may have been removed or the link is incorrect."
   },
   "artist": {
-    "breadcrumb": "Artist",
     "role": "Artist",
-    "songs_title": "Songs by this Artist",
-    "songs_by_name": "Songs by {name}",
     "no_songs": "No songs found for this artist.",
     "error_title": "Artist not found",
-    "error_text": "This artist may have been removed or the link is incorrect.",
-    "error_go_home": "← Go Home"
+    "error_text": "This artist may have been removed or the link is incorrect."
   },
   "composer": {
-    "breadcrumb": "Composer",
     "role": "Composer",
-    "songs_title": "Songs by this Composer",
-    "songs_by_name": "Songs by {name}",
     "no_songs": "No songs found for this composer.",
     "error_title": "Composer not found",
-    "error_text": "This composer may have been removed or the link is incorrect.",
-    "error_go_home": "← Go Home"
+    "error_text": "This composer may have been removed or the link is incorrect."
   },
   "feedback": {
-    "title": "Feedback",
     "subtitle": "Have feedback about this song? Let us know and we'll look into it.",
     "about_label": "Feedback about:",
     "name_label": "Your Name",
-    "name_placeholder": "Enter your name",
     "email_label": "Your Email",
-    "email_placeholder": "you@example.com",
     "body_label": "Your Feedback",
     "body_placeholder": "Tell us what you think — corrections, suggestions, or anything else about this song.",
     "submit_btn": "Send Feedback",
-    "back_btn": "← Back",
     "back_to_song": "← Back to Song",
-    "sending": "Sending...",
     "success_title": "Feedback Sent!",
     "success_text": "Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.",
-    "success_back_home": "← Back to Home",
     "err_fill_all": "Please fill in all fields.",
     "err_turnstile": "Please complete the verification challenge.",
-    "err_send_failed": "Failed to send report",
-    "err_generic": "Something went wrong. Please try again."
+    "err_send_failed": "Failed to send report"
   },
   "error_page": {
     "code": "404",
     "title": "Page Not Found",
     "text_line1": "The page you're looking for doesn't exist or has been moved.",
     "text_line2": "Let's get you back to the music.",
-    "back_home": "← Back to Home",
     "go_back": "Go Back"
   },
   "common": {
@@ -119,13 +90,21 @@
     "unknown": "Unknown",
     "unknown_artist": "Unknown Artist",
     "uncategorized": "Uncategorized",
-    "loading": "Loading...",
-    "views": "views",
     "prev": "← Prev",
     "next": "Next →",
     "found": "({count} found)",
     "cached": "({count} cached)",
-    "website": "Website"
+    "website": "Website",
+    "home": "Home",
+    "feedback": "Feedback",
+    "go_home": "← Go Home",
+    "songs_by_name": "Songs by {name}",
+    "name_placeholder": "Enter your name",
+    "email_placeholder": "you@example.com",
+    "back": "← Back",
+    "sending": "Sending...",
+    "back_to_home": "← Back to Home",
+    "err_generic": "Something went wrong. Please try again."
   },
   "about": {
     "breadcrumb": "About Us",
@@ -154,27 +133,20 @@
     "community_p3": "Curious how the project is growing, or want to contribute code? See <a href=\"/project\">the project stats and contributors</a>."
   },
   "contact": {
-    "breadcrumb": "Contact Us",
     "title": "Contact Us",
     "intro": "Have a question, suggestion, or want to contribute to MaraLyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.",
     "name_label": "Your Name <span class=\"form-required\">*</span>",
-    "name_placeholder": "Enter your name",
     "email_label": "Your Email <span class=\"form-required\">*</span>",
-    "email_placeholder": "you@example.com",
     "subject_label": "Subject",
     "subject_placeholder": "What is this about?",
     "message_label": "Message <span class=\"form-required\">*</span>",
     "message_placeholder": "Write your message here...",
     "submit_btn": "Send Message",
-    "sending": "Sending...",
-    "back_btn": "← Back",
     "success_title": "Message Sent!",
     "success_text": "Thank you for reaching out. We'll get back to you as soon as possible.",
-    "success_back_home": "← Back to Home",
     "err_fill_all": "Please fill in all required fields.",
     "err_turnstile": "Please complete the security check.",
-    "err_send_failed": "Failed to send message.",
-    "err_generic": "Something went wrong. Please try again."
+    "err_send_failed": "Failed to send message."
   },
   "faq": {
     "breadcrumb": "FAQ",
@@ -197,7 +169,6 @@
     "a8": "<p>You can support us by:</p><ul><li>Sharing MaraLyrics with friends and family</li><li>Submitting song lyrics or corrections</li><li>Providing feedback through our <a href=\"/contact\">Contact</a> page</li><li>Spreading the word about Mara music and culture</li></ul>"
   },
   "privacy": {
-    "breadcrumb": "Privacy Policy",
     "title": "Privacy Policy",
     "date": "Last updated: February 15, 2026",
     "h1": "1. Introduction",
@@ -222,7 +193,6 @@
     "s10_content": "<p>If you have any questions about this Privacy Policy, please contact us at:</p><p><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p>"
   },
   "terms": {
-    "breadcrumb": "Terms & Conditions",
     "title": "Terms & Conditions",
     "date": "Last updated: February 15, 2026",
     "h1": "1. Acceptance of Terms",
@@ -249,7 +219,6 @@
     "s11_content": "<p>If you have any questions about these Terms, please contact us at:</p><p><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p>"
   },
   "copyright_page": {
-    "breadcrumb": "Copyright & Removal Request",
     "title": "Copyright & Removal Request",
     "h1": "Our Commitment",
     "s1_content": "<p>MaraLyrics respects the intellectual property rights of songwriters, composers, and artists. Our platform exists to preserve and celebrate Mara musical heritage, and we are committed to handling all copyright matters responsibly and promptly.</p>",
@@ -288,7 +257,6 @@
     "did_you_mean": "Did you mean:"
   },
   "project": {
-    "breadcrumb": "The Project",
     "title": "The Project",
     "intro": "MaraLyrics is an open-source, community-driven archive of Mara song lyrics. Everything below is pulled live from the site's own database and its public GitHub repository — no hand-maintained numbers.",
     "stats_heading": "By the Numbers",
@@ -309,16 +277,13 @@
     "contribute_btn": "Contribute on GitHub"
   },
   "copyright_owner": {
-    "breadcrumb": "Copyright Owner",
     "role": "Copyright Owner",
     "error_title": "Copyright owner not found",
     "error_text": "This copyright owner may have been removed or the link is incorrect.",
-    "error_go_home": "← Go Home",
     "full_legal_name": "Full Legal Name",
     "organization": "Organization / Publisher",
     "territory": "Territory / Jurisdiction",
     "email": "Email",
-    "website": "Website",
     "address": "Address",
     "ipi_number": "IPI Number",
     "isrc_prefix": "ISRC Prefix",

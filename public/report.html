@@ -33,7 +33,7 @@
         MaraLyrics
       </a>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link" data-i18n="nav.home">Home</a>
+        <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
 
         <!-- Settings Dropdown -->
@@ -85,9 +85,9 @@
 
     <!-- Breadcrumb -->
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/" class="breadcrumb__link" data-i18n="breadcrumb.home">Home</a>
+      <a href="/" class="breadcrumb__link" data-i18n="common.home">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current" data-i18n="feedback.title">Feedback</span>
+      <span class="breadcrumb__current" data-i18n="common.feedback">Feedback</span>
     </nav>
 
     <div class="report-page__card">
@@ -96,7 +96,7 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;color:var(--accent);">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
         </svg>
-        <span data-i18n="feedback.title">Feedback</span>
+        <span data-i18n="common.feedback">Feedback</span>
       </h1>
       <p class="report-page__subtitle" data-i18n="feedback.subtitle">Have feedback about this song? Let us know and we'll look into it.</p>
 
@@ -118,12 +118,12 @@
 
         <div class="form-group">
           <label class="form-label" for="reporterName" data-i18n="feedback.name_label">Your Name <span class="form-required">*</span></label>
-          <input type="text" id="reporterName" class="form-input" placeholder="Enter your name" data-i18n-placeholder="feedback.name_placeholder" required />
+          <input type="text" id="reporterName" class="form-input" placeholder="Enter your name" data-i18n-placeholder="common.name_placeholder" required />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="reporterEmail" data-i18n="feedback.email_label">Your Email <span class="form-required">*</span></label>
-          <input type="email" id="reporterEmail" class="form-input" placeholder="you@example.com" data-i18n-placeholder="feedback.email_placeholder" required />
+          <input type="email" id="reporterEmail" class="form-input" placeholder="you@example.com" data-i18n-placeholder="common.email_placeholder" required />
         </div>
 
         <div class="form-group">
@@ -145,7 +145,7 @@
             </span>
             <span class="btn-send-feedback__text" data-i18n="feedback.submit_btn">Send Feedback</span>
           </button>
-          <a href="/" class="btn btn--ghost" id="btnBackHome" data-i18n="feedback.back_btn">← Back</a>
+          <a href="/" class="btn btn--ghost" id="btnBackHome" data-i18n="common.back">← Back</a>
         </div>
       </form>
 
@@ -156,7 +156,7 @@
       <div class="report-page__success-icon">✅</div>
       <h2 class="report-page__success-title" data-i18n="feedback.success_title">Feedback Sent!</h2>
       <p class="report-page__success-text" data-i18n="feedback.success_text">Thank you for helping us improve MaraLyrics. We'll review your feedback as soon as possible.</p>
-      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);" data-i18n="feedback.success_back_home">← Back to Home</a>
+      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);" data-i18n="common.back_to_home">← Back to Home</a>
     </div>
 
   </main>
@@ -175,15 +175,15 @@
         </div>
         <div class="footer__col">
           <h4 class="footer__heading" data-i18n="footer.heading_information">Information</h4>
-          <ul class="footer__links"><li><a href="/about" data-i18n="footer.link_about">About Us</a></li><li><a href="/project" data-i18n="footer.link_project">The Project</a></li><li><a href="/faq" data-i18n="footer.link_faq">FAQ</a></li></ul>
+          <ul class="footer__links"><li><a href="/about" data-i18n="about.breadcrumb">About Us</a></li><li><a href="/project" data-i18n="project.title">The Project</a></li><li><a href="/faq" data-i18n="faq.breadcrumb">FAQ</a></li></ul>
         </div>
         <div class="footer__col">
           <h4 class="footer__heading" data-i18n="footer.heading_legal">Legal</h4>
-          <ul class="footer__links"><li><a href="/privacy" data-i18n="footer.link_privacy">Privacy Policy</a></li><li><a href="/terms" data-i18n="footer.link_terms">Terms &amp; Conditions</a></li><li><a href="/copyright" data-i18n="footer.link_copyright">Copyright</a></li></ul>
+          <ul class="footer__links"><li><a href="/privacy" data-i18n="privacy.title">Privacy Policy</a></li><li><a href="/terms" data-i18n="terms.title">Terms &amp; Conditions</a></li><li><a href="/copyright" data-i18n="footer.link_copyright">Copyright</a></li></ul>
         </div>
         <div class="footer__col">
           <h4 class="footer__heading" data-i18n="footer.heading_support">Support</h4>
-          <ul class="footer__links"><li><a href="/contact" data-i18n="footer.link_contact">Contact Us</a></li><li><a href="/report" data-i18n="footer.link_report">Report Error</a></li></ul>
+          <ul class="footer__links"><li><a href="/contact" data-i18n="contact.title">Contact Us</a></li><li><a href="/report" data-i18n="footer.link_report">Report Error</a></li></ul>
         </div>
       </div>
       <div class="footer__bottom">
@@ -263,7 +263,7 @@
 
         const btn = document.getElementById('btnSubmitReport');
         btn.disabled = true;
-        btn.textContent = I18n.t('feedback.sending');
+        btn.textContent = I18n.t('common.sending');
 
         // Get Turnstile token
         const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
@@ -307,7 +307,7 @@
           }
 
         } catch (err) {
-          msgEl.textContent = err.message || I18n.t('feedback.err_generic');
+          msgEl.textContent = err.message || I18n.t('common.err_generic');
           msgEl.className = 'report-page__message report-page__message--error';
           msgEl.style.display = 'block';
         } finally {

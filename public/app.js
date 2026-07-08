@@ -1092,7 +1092,7 @@ const ProfilePage = {
     // Update "Songs by {name}" section title
     const songsTitleEl = document.getElementById('songsSectionTitle');
     if (songsTitleEl && data.name) {
-      songsTitleEl.textContent = I18n.t(`${this.type}.songs_by_name`, { name: data.name });
+      songsTitleEl.textContent = I18n.t('common.songs_by_name', { name: data.name });
     }
 
     // Breadcrumb
@@ -1283,7 +1283,7 @@ const CopyrightOwnerPage = {
         { label: I18n.t('copyright_owner.organization'), value: owner.organization },
         { label: I18n.t('copyright_owner.territory'), value: owner.territory },
         { label: I18n.t('copyright_owner.email'), value: owner.email, isEmail: true },
-        { label: I18n.t('copyright_owner.website'), value: owner.website, isUrl: true },
+        { label: I18n.t('common.website'), value: owner.website, isUrl: true },
         { label: I18n.t('copyright_owner.address'), value: owner.address },
         { label: I18n.t('copyright_owner.ipi_number'), value: owner.ipi_number },
         { label: I18n.t('copyright_owner.isrc_prefix'), value: owner.isrc_prefix },

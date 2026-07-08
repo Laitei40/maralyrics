@@ -1,6 +1,5 @@
 {
   "nav": {
-    "home": "Hmiapi",
     "popular": "Mo Hluhpazy"
   },
   "footer": {
@@ -8,12 +7,9 @@
     "copyright": "© 2026 MaraLyrics"
   },
   "offline": {
-    "badge": "Offline Dâh",
     "badge_text": "Offline"
   },
-  "breadcrumb": {
-    "home": "Hmiapi"
-  },
+  "breadcrumb": {},
   "home": {
     "hero_title": "Mara Hlabie",
     "hero_subtitle": "Marasawzy tawhta hlabie pha kawpazy hmô papua la tlua teh",
@@ -26,58 +22,41 @@
   },
   "song": {
     "breadcrumb": "Hla",
-    "feedback_btn": "Khokheina",
-    "meta_desc": "Mara Lyrics liata \"{title}\" kha \"{artist}\" ta reih la.",
     "error_title": "Hla hmôpa y vei",
-    "error_text": "He hla he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
-    "error_go_home": "← Hmiapi Lâ"
+    "error_text": "He hla he thy hawpa a châ chvk link he a pâpa a châ thlo aw."
   },
   "artist": {
-    "breadcrumb": "Hlasatuhpa",
     "role": "Hlasatuhpa",
-    "songs_title": "He Hlasatuhpa hlazy",
     "no_songs": "He hlasatuhpa hla hmôpa y vei.",
     "error_title": "Hlasatuhpa hmôpa châ vei",
-    "error_text": "He hlasatuhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
-    "error_go_home": "← Hmiapi Lâ"
+    "error_text": "He hlasatuhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw."
   },
   "composer": {
-    "breadcrumb": "Hlaphituhpa",
     "role": "Hlaphituhpa",
-    "songs_title": "He Hlaphituhpa Hlazy",
     "no_songs": "He hlaphituhpa hla hmôpa y vei.",
     "error_title": "Hlaphituhpa hmôpa châ vei",
-    "error_text": "He hlaphituhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
-    "error_go_home": "← Hmiapi Lâ"
+    "error_text": "He hlaphituhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw."
   },
   "feedback": {
-    "title": "Khokheina",
     "subtitle": "He hla nata azaopa khokheina na hnei ma? Mia vaw chho bei la, eima vaw moh bei aw.",
     "about_label": "Khokheina kyh:",
     "name_label": "Na Moh",
-    "name_placeholder": "Na moh khô la",
     "email_label": "Na Email",
-    "email_placeholder": "namoh@pamosana.com",
     "body_label": "Na Khokheina",
     "body_placeholder": "Na pachâpa miah chho la — paraih khohpazy, pachâna piepazy, chvk he hla nata azaopa kheih hawhpa rai châ se.",
     "submit_btn": "Khokheina Paphao",
-    "back_btn": "← Kua",
     "back_to_song": "← Hla lâ Kua",
-    "sending": "Paphao hai...",
     "success_title": "Khokheina a sie haw!",
     "success_text": "Mara Lyrics pakiathysa via awpa ta mia na baopa vâta eima châ ly. Eima theina chhôh ta na khokheina he eima vaw moh aw.",
-    "success_back_home": "← Hmiapi lâ Kua",
     "err_fill_all": "Kao zydua pathla khai bei teh.",
     "err_turnstile": "Pasiana pahaopa kha patlô tua bei ta.",
-    "err_send_failed": "Ripaw a paphao vei",
-    "err_generic": "Sâkha kha a sie chhei haw. Azao heih la."
+    "err_send_failed": "Ripaw a paphao vei"
   },
   "error_page": {
     "code": "404",
     "title": "Hmia Hmô Vei",
     "text_line1": "Na tlua haipa hmia cha y vei chvk thy hawpa a châ.",
     "text_line2": "Let's get you back to the music.",
-    "back_home": "← Back to Home",
     "go_back": "Go Back"
   },
   "common": {
@@ -85,13 +64,20 @@
     "unknown": "Unknown",
     "unknown_artist": "Unknown Artist",
     "uncategorized": "Uncategorized",
-    "loading": "Loading...",
-    "views": "views",
     "prev": "← Prev",
     "next": "Next →",
     "found": "({count} found)",
     "cached": "({count} cached)",
-    "website": "Website"
+    "website": "Website",
+    "home": "Hmiapi",
+    "feedback": "Khokheina",
+    "go_home": "← Hmiapi Lâ",
+    "name_placeholder": "Na moh khô la",
+    "email_placeholder": "namoh@pamosana.com",
+    "back": "← Kua",
+    "sending": "Paphao hai...",
+    "back_to_home": "← Hmiapi lâ Kua",
+    "err_generic": "Sâkha kha a sie chhei haw. Azao heih la."
   },
   "about": {
     "breadcrumb": "About Us",
@@ -119,22 +105,17 @@
     "community_p2": "Want to get involved? <a href=\"/contact\">Get in touch with us</a> or <a href=\"/report\">send us feedback</a>."
   },
   "contact": {
-    "breadcrumb": "Contact Us",
     "title": "Contact Us",
     "intro": "Have a question, suggestion, or want to contribute to MaraLyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.",
     "name_label": "Your Name <span class=\"form-required\">*</span>",
-    "name_placeholder": "Enter your name",
     "email_label": "Your Email <span class=\"form-required\">*</span>",
-    "email_placeholder": "you@example.com",
     "subject_label": "Subject",
     "subject_placeholder": "What is this about?",
     "message_label": "Message <span class=\"form-required\">*</span>",
     "message_placeholder": "Write your message here...",
     "submit_btn": "Send Message",
-    "back_btn": "← Back",
     "success_title": "Mesei a Sie haw!",
-    "success_text": "Miah na vaw chareipa vâta eima châ ly kaw. Eima theina chhôh eima châ vaw tyh aw.",
-    "success_back_home": "← Hmiapi lâ Kua"
+    "success_text": "Miah na vaw chareipa vâta eima châ ly kaw. Eima theina chhôh eima châ vaw tyh aw."
   },
   "faq": {
     "breadcrumb": "HHH",
@@ -157,7 +138,6 @@
     "a8": "<p>You can support us by:</p><ul><li>Sharing MaraLyrics with friends and family</li><li>Submitting song lyrics or corrections</li><li>Providing feedback through our <a href=\"/contact\">Contact</a> page</li><li>Spreading the word about Mara music and culture</li></ul>"
   },
   "privacy": {
-    "breadcrumb": "Privacy Policy",
     "title": "Privacy Policy",
     "date": "Last updated: February 15, 2026",
     "h1": "1. Introduction",
@@ -182,7 +162,6 @@
     "s10_content": "<p>If you have any questions about this Privacy Policy, please contact us at:</p><p><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p>"
   },
   "terms": {
-    "breadcrumb": "Terms & Conditions",
     "title": "Terms & Conditions",
     "date": "Last updated: February 15, 2026",
     "h1": "1. Acceptance of Terms",
@@ -209,7 +188,6 @@
     "s11_content": "<p>If you have any questions about these Terms, please contact us at:</p><p><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p>"
   },
   "copyright_page": {
-    "breadcrumb": "Copyright & Removal Request",
     "title": "Copyright & Removal Request",
     "h1": "Our Commitment",
     "s1_content": "<p>MaraLyrics respects the intellectual property rights of songwriters, composers, and artists. Our platform exists to preserve and celebrate Mara musical heritage, and we are committed to handling all copyright matters responsibly and promptly.</p>",
@@ -251,7 +229,6 @@
     "organization": "Organization / Publisher",
     "territory": "Territory / Jurisdiction",
     "email": "Email",
-    "website": "Website",
     "address": "Address",
     "ipi_number": "IPI Number",
     "isrc_prefix": "ISRC Prefix",
