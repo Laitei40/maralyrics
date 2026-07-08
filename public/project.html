@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contact Us — MaraLyrics</title>
-  <meta name="description" content="Get in touch with the MaraLyrics team. Send us a message, suggestion, or inquiry." />
+  <title>The Project — MaraLyrics</title>
+  <meta name="description" content="MaraLyrics by the numbers — songs, artists, composers, and the open-source contributors who help build it." />
   <meta name="theme-color" content="#0a0e1a" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -60,83 +59,74 @@
     </div>
   </header>
 
-  <!-- ═══ Contact Content ═══ -->
+  <!-- ═══ Project Content ═══ -->
   <main class="static-page container">
 
     <nav class="breadcrumb" aria-label="Breadcrumb">
-      <a href="/" class="breadcrumb__link" data-i18n="breadcrumb.home">Home</a>
+      <a href="/" class="breadcrumb__link">Home</a>
       <span class="breadcrumb__sep">›</span>
-      <span class="breadcrumb__current" data-i18n="contact.breadcrumb">Contact Us</span>
+      <span class="breadcrumb__current">The Project</span>
     </nav>
 
     <div class="static-page__card">
 
-      <h1 class="static-page__title">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;color:var(--accent);" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-        </svg>
-        <span data-i18n="contact.title">Contact Us</span>
-      </h1>
+      <h1 class="static-page__title">The Project</h1>
 
       <section class="static-page__section">
-        <p data-i18n="contact.intro">Have a question, suggestion, or want to contribute to MaraLyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.</p>
-        <p class="contact-email">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          <a href="mailto:info@maralyrics.com">info@maralyrics.com</a>
-        </p>
+        <p>MaraLyrics is an open-source, community-driven archive of Mara song lyrics. Everything below is pulled live from the site's own database and its public GitHub repository — no hand-maintained numbers.</p>
       </section>
 
-      <!-- Contact Form -->
-      <form id="contactForm" class="report-page__form">
-
-        <div class="form-group">
-          <label class="form-label" for="contactName" data-i18n="contact.name_label">Your Name <span class="form-required">*</span></label>
-          <input type="text" id="contactName" class="form-input" placeholder="Enter your name" data-i18n-placeholder="contact.name_placeholder" required />
+      <section class="static-page__section">
+        <h2 class="static-page__heading">By the Numbers</h2>
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-tile">
+            <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+            <div class="stat-tile__value" id="statSongs">—</div>
+            <div class="stat-tile__label">Songs</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+            <div class="stat-tile__value" id="statArtists">—</div>
+            <div class="stat-tile__label">Artists</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+            <div class="stat-tile__value" id="statComposers">—</div>
+            <div class="stat-tile__label">Composers</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L11 3.83A2 2 0 009.59 3.17H4a1 1 0 00-1 1v5.59a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.83 0l5.59-5.59a2 2 0 000-2.83z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+            <div class="stat-tile__value" id="statCategories">—</div>
+            <div class="stat-tile__label">Categories</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+            <div class="stat-tile__value" id="statViews">—</div>
+            <div class="stat-tile__label">Total Views</div>
+          </div>
         </div>
+      </section>
 
-        <div class="form-group">
-          <label class="form-label" for="contactEmail" data-i18n="contact.email_label">Your Email <span class="form-required">*</span></label>
-          <input type="email" id="contactEmail" class="form-input" placeholder="you@example.com" data-i18n-placeholder="contact.email_placeholder" required />
+      <section class="static-page__section">
+        <h2 class="static-page__heading">Contributors</h2>
+        <p>MaraLyrics is built in the open. These are the people who have contributed code on GitHub.</p>
+        <div class="contributors-grid" id="contributorsGrid">
+          <p class="contributors-grid__status" id="contributorsStatus">Loading contributors…</p>
         </div>
+      </section>
 
-        <div class="form-group">
-          <label class="form-label" for="contactSubject" data-i18n="contact.subject_label">Subject</label>
-          <input type="text" id="contactSubject" class="form-input" placeholder="What is this about?" data-i18n-placeholder="contact.subject_placeholder" />
+      <section class="static-page__section">
+        <h2 class="static-page__heading">Contribute</h2>
+        <p>Found a bug, want to add a song, fix a translation, or improve the code? Contributions are welcome.</p>
+        <div class="contribute-cta">
+          <a href="https://github.com/Laitei40/maralyrics" target="_blank" rel="noopener noreferrer" class="error-page__btn error-page__btn--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            Contribute on GitHub
+          </a>
         </div>
-
-        <div class="form-group">
-          <label class="form-label" for="contactMessage" data-i18n="contact.message_label">Message <span class="form-required">*</span></label>
-          <textarea id="contactMessage" class="form-input form-textarea" rows="6" placeholder="Write your message here..." data-i18n-placeholder="contact.message_placeholder" required></textarea>
-        </div>
-
-        <div id="contactMsg" class="report-page__message" style="display:none;"></div>
-
-        <!-- Cloudflare Turnstile -->
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAABjildkegfR6T0sd" data-theme="dark"></div>
-
-        <div class="report-page__actions">
-          <button type="submit" class="btn-send-feedback" id="btnSubmitContact">
-            <span class="btn-send-feedback__icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-              </svg>
-            </span>
-            <span class="btn-send-feedback__text" data-i18n="contact.submit_btn">Send Message</span>
-          </button>
-          <a href="/" class="btn btn--ghost" data-i18n="contact.back_btn">← Back</a>
-        </div>
-      </form>
+      </section>
 
     </div>
-
-    <!-- Success State -->
-    <div id="contactSuccess" class="static-page__card report-page__success" style="display:none;">
-      <div class="report-page__success-icon">✅</div>
-      <h2 class="report-page__success-title" data-i18n="contact.success_title">Message Sent!</h2>
-      <p class="report-page__success-text" data-i18n="contact.success_text">Thank you for reaching out. We'll get back to you as soon as possible.</p>
-      <a href="/" class="btn btn--primary" style="margin-top:var(--space-lg);" data-i18n="contact.success_back_home">← Back to Home</a>
-    </div>
-
   </main>
 
   <!-- ═══ Footer ═══ -->
@@ -204,70 +194,57 @@
       }
     })();
 
-    // ─── Contact Form Logic ──────────────────────────
+    // ─── Stats ──────────────────────────────────────────────
     (function () {
-      const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost'))
-        ? 'https://api.maralyrics.com'
-        : '';
+      const WORKER_ORIGIN = 'https://api.maralyrics.com';
+      const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
+      const API_BASE = (IS_PAGES ? WORKER_ORIGIN : '') + '/api/v1';
 
-      document.getElementById('contactForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
+      function formatNumber(n) {
+        if (n == null) return '—';
+        if (n < 1000) return String(n);
+        if (n < 1000000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+        return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+      }
 
-        const name = document.getElementById('contactName').value.trim();
-        const email = document.getElementById('contactEmail').value.trim();
-        const subject = document.getElementById('contactSubject').value.trim();
-        const message = document.getElementById('contactMessage').value.trim();
-        const msgEl = document.getElementById('contactMsg');
+      fetch(API_BASE + '/stats')
+        .then((res) => { if (!res.ok) throw new Error('stats request failed'); return res.json(); })
+        .then((data) => {
+          document.getElementById('statSongs').textContent = formatNumber(data.songs);
+          document.getElementById('statArtists').textContent = formatNumber(data.artists);
+          document.getElementById('statComposers').textContent = formatNumber(data.composers);
+          document.getElementById('statCategories').textContent = formatNumber(data.categories);
+          document.getElementById('statViews').textContent = formatNumber(data.total_views);
+        })
+        .catch(() => {
+          document.querySelectorAll('.stat-tile__value').forEach((el) => { el.textContent = '—'; });
+        });
+    })();
 
-        if (!name || !email || !message) {
-          msgEl.textContent = 'Please fill in all required fields.';
-          msgEl.className = 'report-page__message report-page__message--error';
-          msgEl.style.display = 'block';
-          return;
-        }
+    // ─── Contributors (GitHub) ──────────────────────────────
+    (function () {
+      const grid = document.getElementById('contributorsGrid');
+      const status = document.getElementById('contributorsStatus');
 
-        const btn = document.getElementById('btnSubmitContact');
-        btn.disabled = true;
-        btn.textContent = 'Sending...';
-
-        const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
-        if (!turnstileToken) {
-          msgEl.textContent = 'Please complete the security check.';
-          msgEl.className = 'report-page__message report-page__message--error';
-          msgEl.style.display = 'block';
-          btn.disabled = false;
-          btn.innerHTML = '<span class="btn-send-feedback__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span><span class="btn-send-feedback__text">Send Message</span>';
-          return;
-        }
-
-        try {
-          const res = await fetch(API_BASE + '/api/v1/contacts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name, email, subject, message,
-              turnstile_token: turnstileToken,
-            }),
-          });
-
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || 'Failed to send message.');
+      fetch('https://api.github.com/repos/Laitei40/maralyrics/contributors')
+        .then((res) => { if (!res.ok) throw new Error('GitHub API request failed'); return res.json(); })
+        .then((contributors) => {
+          if (!Array.isArray(contributors) || contributors.length === 0) {
+            status.textContent = 'No contributors found yet.';
+            return;
           }
-
-          document.querySelector('.static-page__card').style.display = 'none';
-          document.getElementById('contactSuccess').style.display = 'block';
-
-        } catch (err) {
-          msgEl.textContent = err.message || 'Something went wrong. Please try again.';
-          msgEl.className = 'report-page__message report-page__message--error';
-          msgEl.style.display = 'block';
-        } finally {
-          btn.disabled = false;
-          btn.innerHTML = '<span class="btn-send-feedback__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span><span class="btn-send-feedback__text">Send Message</span>';
-          if (window.turnstile) turnstile.reset();
-        }
-      });
+          status.remove();
+          grid.innerHTML = contributors.map((c) => `
+            <a href="${c.html_url}" target="_blank" rel="noopener noreferrer" class="contributor-card" title="${c.login} — ${c.contributions} contribution${c.contributions === 1 ? '' : 's'}">
+              <img src="${c.avatar_url}" alt="${c.login}" class="contributor-card__avatar" loading="lazy" />
+              <span class="contributor-card__name">${c.login}</span>
+              <span class="contributor-card__contributions">${c.contributions} commit${c.contributions === 1 ? '' : 's'}</span>
+            </a>
+          `).join('');
+        })
+        .catch(() => {
+          status.textContent = 'Couldn\'t load contributors right now — see them directly on GitHub.';
+        });
     })();
   </script>
 </body>

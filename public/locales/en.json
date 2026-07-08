@@ -122,7 +122,8 @@
     "vision_li5": "Empowering community members to contribute and curate content",
     "community_heading": "Community First",
     "community_p1": "MaraLyrics is built by and for the Mara community. We welcome feedback, song submissions, and corrections from anyone who shares our passion for preserving Mara music. Together, we can ensure that our songs continue to inspire for generations to come.",
-    "community_p2": "Want to get involved? <a href=\"/contact\">Get in touch with us</a> or <a href=\"/report\">send us feedback</a>."
+    "community_p2": "Want to get involved? <a href=\"/contact\">Get in touch with us</a> or <a href=\"/report\">send us feedback</a>.",
+    "community_p3": "Curious how the project is growing, or want to contribute code? See <a href=\"/project\">the project stats and contributors</a>."
   },
   "contact": {
     "breadcrumb": "Contact Us",

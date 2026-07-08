@@ -20,6 +20,22 @@ const app = new Hono();
 
 app.get('/version', (c) => c.json({ version: 1, updated_at: Date.now() }));
 
+app.get('/stats', async (c) => {
+  const row = await c.env.DB
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM songs) AS songs,
+         (SELECT COUNT(*) FROM artists) AS artists,
+         (SELECT COUNT(*) FROM composers) AS composers,
+         (SELECT COUNT(*) FROM copyright_owners) AS copyright_owners,
+         (SELECT COUNT(DISTINCT category) FROM songs WHERE category IS NOT NULL AND category != '') AS categories,
+         (SELECT COALESCE(SUM(views), 0) FROM songs) AS total_views`
+    )
+    .first();
+
+  return c.json(row);
+});
+
 app.get('/bootstrap', async (c) => {
   const db = c.env.DB;
   const [songs, artists, composers, copyrightOwners] = await Promise.all([
