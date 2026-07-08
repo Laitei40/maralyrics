@@ -36,6 +36,37 @@ app.get('/stats', async (c) => {
   return c.json(row);
 });
 
+app.get('/contributors', async (c) => {
+  const cache = caches.default;
+  const cacheKey = new Request('https://api.maralyrics.com/api/v1/contributors', c.req.raw);
+
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
+
+  const ghRes = await fetch('https://api.github.com/repos/Laitei40/maralyrics/contributors', {
+    headers: {
+      'User-Agent': 'maralyrics-worker',
+      Accept: 'application/vnd.github+json',
+      ...(c.env.GITHUB_TOKEN ? { Authorization: `Bearer ${c.env.GITHUB_TOKEN}` } : {}),
+    },
+  });
+
+  if (!ghRes.ok) {
+    return c.json({ error: 'Failed to fetch contributors' }, 502);
+  }
+
+  const contributors = (await ghRes.json()).map((u) => ({
+    login: u.login,
+    avatar_url: u.avatar_url,
+    html_url: u.html_url,
+    contributions: u.contributions,
+  }));
+
+  const response = c.json({ contributors }, 200, { 'Cache-Control': 'public, max-age=3600' });
+  c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
+  return response;
+});
+
 app.get('/bootstrap', async (c) => {
   const db = c.env.DB;
   const [songs, artists, composers, copyrightOwners] = await Promise.all([

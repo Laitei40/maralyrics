@@ -195,12 +195,12 @@
       }
     })();
 
+    const WORKER_ORIGIN = 'https://api.maralyrics.com';
+    const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
+    const API_BASE = (IS_PAGES ? WORKER_ORIGIN : '') + '/api/v1';
+
     // ─── Stats ──────────────────────────────────────────────
     (function () {
-      const WORKER_ORIGIN = 'https://api.maralyrics.com';
-      const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
-      const API_BASE = (IS_PAGES ? WORKER_ORIGIN : '') + '/api/v1';
-
       function formatNumber(n) {
         if (n == null) return '—';
         if (n < 1000) return String(n);
@@ -227,9 +227,10 @@
       const grid = document.getElementById('contributorsGrid');
       const status = document.getElementById('contributorsStatus');
 
-      fetch('https://api.github.com/repos/Laitei40/maralyrics/contributors')
-        .then((res) => { if (!res.ok) throw new Error('GitHub API request failed'); return res.json(); })
-        .then((contributors) => {
+      fetch(API_BASE + '/contributors')
+        .then((res) => { if (!res.ok) throw new Error('contributors request failed'); return res.json(); })
+        .then((data) => {
+          const contributors = data.contributors;
           if (!Array.isArray(contributors) || contributors.length === 0) {
             status.textContent = 'No contributors found yet.';
             return;
