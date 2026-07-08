@@ -1613,7 +1613,7 @@ body::before {
 }
 
 .empty-state .error-page__btn {
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl);
 }
 
 /* ─── Search Suggestions ────────────────────────────────────── */
