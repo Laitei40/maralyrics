@@ -10,63 +10,73 @@ function formatDate(value) {
   return parsed.toISOString().slice(0, 10);
 }
 
+function urlEntry(loc, lastmod, changefreq, priority) {
+  return `
+  <url>
+    <loc>${loc}</loc>
+    <lastmod>${formatDate(lastmod)}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+}
+
+const STATIC_PAGES = [
+  { path: '/about', priority: '0.5' },
+  { path: '/project', priority: '0.5' },
+  { path: '/faq', priority: '0.5' },
+  { path: '/privacy', priority: '0.3' },
+  { path: '/terms', priority: '0.3' },
+  { path: '/copyright', priority: '0.3' },
+  { path: '/contact', priority: '0.4' },
+];
+
 export async function onRequest(context) {
-
   try {
-
     const db = context.env.DB;
 
-    // Query all songs from D1
-    const query = await db.prepare(
-      `SELECT slug, created_at AS lastmod
-       FROM songs
-       WHERE slug IS NOT NULL
-       ORDER BY id DESC`
-    ).all();
+    const [songs, artists, composers, copyrightOwners] = await Promise.all([
+      db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM songs WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
+      db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM artists WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
+      db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM composers WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
+      db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM copyright_owners WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
+    ]);
 
-    const songs = query.results || [];
+    let urls = '';
 
-    let urls = "";
+    urls += urlEntry('https://maralyrics.com/', new Date(), 'daily', '1.0');
 
-    for (const song of songs) {
+    for (const page of STATIC_PAGES) {
+      urls += urlEntry(`https://maralyrics.com${page.path}`, new Date(), 'monthly', page.priority);
+    }
 
-      urls += `
-  <url>
-    <loc>https://maralyrics.com/song/${song.slug}</loc>
-    <lastmod>${formatDate(song.lastmod)}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>`;
+    for (const song of songs.results || []) {
+      urls += urlEntry(`https://maralyrics.com/song/${song.slug}`, song.lastmod, 'weekly', '0.8');
+    }
+
+    for (const artist of artists.results || []) {
+      urls += urlEntry(`https://maralyrics.com/artist/${artist.slug}`, artist.lastmod, 'weekly', '0.6');
+    }
+
+    for (const composer of composers.results || []) {
+      urls += urlEntry(`https://maralyrics.com/composer/${composer.slug}`, composer.lastmod, 'weekly', '0.6');
+    }
+
+    for (const owner of copyrightOwners.results || []) {
+      urls += urlEntry(`https://maralyrics.com/copyright-owner/${owner.slug}`, owner.lastmod, 'monthly', '0.4');
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-  <!-- Homepage -->
-  <url>
-    <loc>https://maralyrics.com/</loc>
-    <lastmod>${formatDate(new Date())}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-
-  ${urls}
-
+${urls}
 </urlset>`;
 
     return new Response(xml, {
       headers: {
-        "Content-Type": "application/xml; charset=UTF-8",
-        "Cache-Control": "public, max-age=300"
-      }
+        'Content-Type': 'application/xml; charset=UTF-8',
+        'Cache-Control': 'public, max-age=300',
+      },
     });
-
   } catch (error) {
-
-    return new Response(
-      `Sitemap generation failed: ${error.message}`,
-      { status: 500 }
-    );
-
+    return new Response(`Sitemap generation failed: ${error.message}`, { status: 500 });
   }
 }

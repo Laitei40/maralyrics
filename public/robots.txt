@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /report
+
+Sitemap: https://maralyrics.com/sitemap.xml

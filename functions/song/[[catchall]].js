@@ -11,6 +11,7 @@ function buildSongSeo(song) {
   const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
   const artist = song.artist_name || song.artist || 'Unknown Artist';
   const description = `Read the full lyrics of ${song.title}, a Mara song by ${artist}. Discover Mara music on MaraLyrics.`;
+  const url = `https://maralyrics.com/song/${song.slug}`;
 
   const schema = {
     '@context': 'https://schema.org',
@@ -21,14 +22,14 @@ function buildSongSeo(song) {
       name: artist,
     },
     inLanguage: 'mrh',
-    url: `https://maralyrics.com/song/${song.slug}`,
+    url,
     publisher: {
       '@type': 'Organization',
       name: 'MaraLyrics',
     },
   };
 
-  return { title, description, schema };
+  return { title, description, url, schema };
 }
 
 async function fetchSong(db, slug) {
@@ -58,13 +59,17 @@ export async function onRequest(context) {
   if (!song) return assetResponse;
 
   const html = await assetResponse.text();
-  const { title, description, schema } = buildSongSeo(song);
+  const { title, description, url, schema } = buildSongSeo(song);
 
   const injected = html
     .replace(/<title id="pageTitle">[\s\S]*?<\/title>/, `<title id="pageTitle">${escapeHtml(title)}</title>`)
     .replace(/<meta name="description" id="metaDesc" content="[^"]*"\s*\/>/, `<meta name="description" id="metaDesc" content="${escapeHtml(description)}" />`)
     .replace(/<meta property="og:title" id="ogTitle" content="[^"]*"\s*\/>/, `<meta property="og:title" id="ogTitle" content="${escapeHtml(title)}" />`)
     .replace(/<meta property="og:description" id="ogDesc" content="[^"]*"\s*\/>/, `<meta property="og:description" id="ogDesc" content="${escapeHtml(description)}" />`)
+    .replace(/<meta property="og:url" id="ogUrl" content="[^"]*"\s*\/>/, `<meta property="og:url" id="ogUrl" content="${escapeHtml(url)}" />`)
+    .replace(/<meta name="twitter:title" id="twTitle" content="[^"]*"\s*\/>/, `<meta name="twitter:title" id="twTitle" content="${escapeHtml(title)}" />`)
+    .replace(/<meta name="twitter:description" id="twDesc" content="[^"]*"\s*\/>/, `<meta name="twitter:description" id="twDesc" content="${escapeHtml(description)}" />`)
+    .replace(/<link rel="canonical" id="canonicalUrl" href="[^"]*"\s*\/>/, `<link rel="canonical" id="canonicalUrl" href="${escapeHtml(url)}" />`)
     .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2)}\n</script>`);
 
   return new Response(injected, {
