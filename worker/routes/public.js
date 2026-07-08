@@ -18,7 +18,35 @@ const SONG_JOINS = `
 
 const app = new Hono();
 
-app.get('/version', (c) => c.json({ version: 1, updated_at: Date.now() }));
+app.get('/version', async (c) => {
+  const row = await c.env.DB
+    .prepare(
+      `SELECT
+         MAX(updated_at) AS updated_at,
+         (SELECT COUNT(*) FROM songs) AS songs,
+         (SELECT COUNT(*) FROM artists) AS artists,
+         (SELECT COUNT(*) FROM composers) AS composers,
+         (SELECT COUNT(*) FROM copyright_owners) AS copyright_owners
+       FROM (
+         SELECT updated_at FROM songs
+         UNION ALL SELECT updated_at FROM artists
+         UNION ALL SELECT updated_at FROM composers
+         UNION ALL SELECT updated_at FROM copyright_owners
+       )`
+    )
+    .first();
+
+  return c.json({
+    version: 1,
+    updated_at: row.updated_at,
+    counts: {
+      songs: row.songs,
+      artists: row.artists,
+      composers: row.composers,
+      copyright_owners: row.copyright_owners,
+    },
+  });
+});
 
 app.get('/stats', async (c) => {
   const row = await c.env.DB
@@ -71,15 +99,36 @@ app.get('/contributors', async (c) => {
 
 app.get('/bootstrap', async (c) => {
   const db = c.env.DB;
-  const [songs, artists, composers, copyrightOwners] = await Promise.all([
-    db.prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} ORDER BY s.title`).all(),
-    db.prepare('SELECT * FROM artists ORDER BY name').all(),
-    db.prepare('SELECT * FROM composers ORDER BY name').all(),
-    db.prepare('SELECT * FROM copyright_owners ORDER BY name').all(),
+  // `since` is a datetime string in the same format as the `updated_at` fields this
+  // endpoint (and /version) return, e.g. "2026-07-08 12:34:56" — pass back the value
+  // from a previous /version or /bootstrap call to fetch only what changed since then.
+  const since = c.req.query('since') || null;
+  const songsWhere = since ? 'WHERE s.updated_at > ?' : '';
+  const peopleWhere = since ? 'WHERE updated_at > ?' : '';
+  const bindings = since ? [since] : [];
+
+  const [songs, artists, composers, copyrightOwners, counts] = await Promise.all([
+    db.prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} ${songsWhere} ORDER BY s.title`).bind(...bindings).all(),
+    db.prepare(`SELECT * FROM artists ${peopleWhere} ORDER BY name`).bind(...bindings).all(),
+    db.prepare(`SELECT * FROM composers ${peopleWhere} ORDER BY name`).bind(...bindings).all(),
+    db.prepare(`SELECT * FROM copyright_owners ${peopleWhere} ORDER BY name`).bind(...bindings).all(),
+    db.prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM songs) AS songs,
+         (SELECT COUNT(*) FROM artists) AS artists,
+         (SELECT COUNT(*) FROM composers) AS composers,
+         (SELECT COUNT(*) FROM copyright_owners) AS copyright_owners`
+    ).first(),
   ]);
 
+  // `counts` are the CURRENT total rows in each table, unaffected by `since`. Since
+  // deletions aren't tracked with tombstones, a delta bootstrap can't tell the caller
+  // what was removed — comparing these counts against locally stored totals is how the
+  // caller detects that something disappeared and a full re-sync (no `since`) is needed.
   return c.json({
     version: 1,
+    since,
+    counts,
     songs: songs.results,
     artists: artists.results,
     composers: composers.results,
