@@ -132,22 +132,22 @@
         <!-- Meta Strip (horizontal) -->
         <div class="song-page__meta">
           <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">🎤</span>
+            <span class="song-page__meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
             <span class="song-page__meta-value" id="songArtist"></span>
           </div>
           <span class="song-page__meta-dot"></span>
           <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">🎼</span>
+            <span class="song-page__meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
             <span class="song-page__meta-value" id="songComposer"></span>
           </div>
           <span class="song-page__meta-dot"></span>
           <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">🏷️</span>
+            <span class="song-page__meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L11 3.83A2 2 0 009.59 3.17H4a1 1 0 00-1 1v5.59a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.83 0l5.59-5.59a2 2 0 000-2.83z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
             <span class="song-page__meta-value" id="songCategory"></span>
           </div>
           <span class="song-page__meta-dot"></span>
           <div class="song-page__meta-item">
-            <span class="song-page__meta-icon">👁️</span>
+            <span class="song-page__meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>
             <span class="song-page__meta-value" id="songViews"></span>
           </div>
         </div>
@@ -164,6 +164,14 @@
             <span id="songCopyrightOwner"></span>
           </div>
           <div class="song-page__report">
+            <button type="button" id="btnCopyLyrics" class="song-page__action-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              <span data-i18n="song.copy_btn">Copy</span>
+            </button>
+            <button type="button" id="btnShareSong" class="song-page__action-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span data-i18n="song.share_btn">Share</span>
+            </button>
             <a href="/report" id="btnReportError" class="btn btn--report">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
@@ -179,10 +187,10 @@
 
     <!-- Error State -->
     <div id="songError" class="empty-state" style="display:none;">
-      <div class="empty-state__icon">😔</div>
+      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
       <h3 class="empty-state__title" data-i18n="song.error_title">Song not found</h3>
       <p class="empty-state__text" data-i18n="song.error_text">This song may have been removed or the link is incorrect.</p>
-      <a href="/" style="display:inline-block;margin-top:var(--space-lg);padding:var(--space-sm) var(--space-lg);background:var(--accent);color:#fff;border-radius:var(--radius-md);font-weight:600;" data-i18n="song.error_go_home">
+      <a href="/" class="error-page__btn error-page__btn--primary" data-i18n="song.error_go_home">
         ← Go Home
       </a>
     </div>

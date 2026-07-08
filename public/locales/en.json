@@ -27,6 +27,12 @@
   "song": {
     "breadcrumb": "Song",
     "feedback_btn": "Feedback",
+    "copy_btn": "Copy",
+    "copy_success": "Lyrics copied to clipboard",
+    "copy_error": "Couldn't copy lyrics",
+    "share_btn": "Share",
+    "share_success": "Link copied to clipboard",
+    "share_error": "Couldn't share song",
     "meta_desc": "Read lyrics of \"{title}\" by {artist} on MaraLyrics.",
     "error_title": "Song not found",
     "error_text": "This song may have been removed or the link is incorrect.",

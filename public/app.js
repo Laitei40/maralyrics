@@ -913,6 +913,54 @@ const SongPage = {
       });
       reportBtn.href = '/report?' + params.toString();
     }
+
+    this._currentSong = song;
+    this.wireSongActions();
+  },
+
+  /** Wire up Copy/Share buttons once; handlers read the current song at click-time. */
+  wireSongActions() {
+    if (this._actionsWired) return;
+    this._actionsWired = true;
+
+    const copyBtn = document.getElementById('btnCopyLyrics');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const song = this._currentSong;
+        if (!song) return;
+        const lyrics = (song.lyrics || '').replace(/\\n/g, '\n');
+        try {
+          await navigator.clipboard.writeText(lyrics);
+          if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.copy_success'), { type: 'success' });
+        } catch {
+          if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.copy_error'), { type: 'error' });
+        }
+      });
+    }
+
+    const shareBtn = document.getElementById('btnShareSong');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async () => {
+        const song = this._currentSong;
+        if (!song) return;
+        const shareData = {
+          title: `${song.title} — MaraLyrics`,
+          text: `${song.title} — ${song.artist_name || song.artist || I18n.t('common.unknown_artist')} — MaraLyrics`,
+          url: window.location.href,
+        };
+        try {
+          if (navigator.share) {
+            await navigator.share(shareData);
+          } else {
+            await navigator.clipboard.writeText(shareData.url);
+            if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.share_success'), { type: 'success' });
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.share_error'), { type: 'error' });
+        }
+      });
+    }
   },
 
   /** Update page title, meta tags, and JSON-LD. */
