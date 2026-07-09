@@ -329,6 +329,17 @@ songsApp.use('*', requireRole('super_admin', 'editor'));
 songsApp.get('/', async (c) => {
   const db = c.env.DB;
   const { page, limit, offset } = parsePagination(c.req.query(), 50);
+  const q = (c.req.query('q') || '').trim();
+
+  // Search matches title, category, or any credited artist/composer — across the WHOLE
+  // table, not just the current page, since the admin UI paginates in batches of 50.
+  const where = q
+    ? `WHERE s.title LIKE ? ESCAPE '\\' OR s.category LIKE ? ESCAPE '\\'
+       OR s.id IN (SELECT sa.song_id FROM song_artists sa JOIN artists a ON a.id = sa.artist_id WHERE a.name LIKE ? ESCAPE '\\')
+       OR s.id IN (SELECT sc.song_id FROM song_composers sc JOIN composers cm ON cm.id = sc.composer_id WHERE cm.name LIKE ? ESCAPE '\\')`
+    : '';
+  const like = `%${q.replace(/[%_]/g, '\\$&')}%`;
+  const bindings = q ? [like, like, like, like] : [];
 
   const [rows, countRow] = await Promise.all([
     db.prepare(
@@ -342,10 +353,11 @@ songsApp.get('/', async (c) => {
             WHERE sc.song_id = s.id ORDER BY sc.position
           )) AS composer_name
        FROM songs s
+       ${where}
        ORDER BY s.created_at DESC
        LIMIT ? OFFSET ?`
-    ).bind(limit, offset).all(),
-    db.prepare('SELECT COUNT(*) AS total FROM songs').first(),
+    ).bind(...bindings, limit, offset).all(),
+    db.prepare(`SELECT COUNT(*) AS total FROM songs s ${where}`).bind(...bindings).first(),
   ]);
 
   const total = countRow.total;

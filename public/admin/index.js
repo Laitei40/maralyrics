@@ -430,19 +430,25 @@ async function populateDropdowns() {
 // ═══ SONGS ════════════════════════════════════════
 // ═══════════════════════════════════════════════════
 
-async function loadSongs(page = 1) {
+let currentSearchQuery = '';
+
+async function loadSongs(page = 1, query = currentSearchQuery) {
   const tbody = document.getElementById('songsTableBody');
   tbody.innerHTML = '<tr><td colspan="7" class="admin-table__empty">Loading...</td></tr>';
+  currentSearchQuery = query || '';
 
   try {
-    const data = await apiGet(`${ADMIN_API}/songs?page=${page}&limit=50`);
+    // Search runs server-side across the whole table, not just the currently loaded
+    // page — filtering only `allSongs` client-side would silently miss matches on
+    // any page other than the one currently displayed.
+    const qParam = currentSearchQuery ? `&q=${encodeURIComponent(currentSearchQuery)}` : '';
+    const data = await apiGet(`${ADMIN_API}/songs?page=${page}&limit=50${qParam}`);
     allSongs = data.songs || [];
     currentPage = data.page;
     totalPages = data.totalPages;
 
     renderSongsTable(allSongs);
     renderPagination();
-    updateStats(data);
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
   }
@@ -452,7 +458,9 @@ function renderSongsTable(songs) {
   const tbody = document.getElementById('songsTableBody');
 
   if (!songs.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="admin-table__empty">No songs found. Click "+ New Song" to add one.</td></tr>';
+    tbody.innerHTML = currentSearchQuery
+      ? '<tr><td colspan="7" class="admin-table__empty">No songs match your search.</td></tr>'
+      : '<tr><td colspan="7" class="admin-table__empty">No songs found. Click "+ New Song" to add one.</td></tr>';
     return;
   }
 
@@ -488,27 +496,15 @@ function renderPagination() {
   el.innerHTML = html;
 }
 
-async function updateStats(data) {
-  document.getElementById('statTotal').textContent = data.total || allSongs.length;
+// Site-wide totals (NOT affected by pagination or search) — sourced from the public
+// /stats endpoint, which aggregates across the whole table, unlike the paginated song list.
+async function refreshStats() {
   try {
-    const catData = await apiGet(`${API_BASE}/categories`);
-    document.getElementById('statCategories').textContent = catData.categories?.length || 0;
-  } catch { /* ignore */ }
-  const totalViews = allSongs.reduce((sum, s) => sum + (s.views || 0), 0);
-  document.getElementById('statViews').textContent = formatViews(totalViews);
-}
-
-function filterSongs(query) {
-  const q = query.toLowerCase().trim();
-  if (!q) { renderSongsTable(allSongs); return; }
-  const filtered = allSongs.filter(
-    (s) =>
-      s.title?.toLowerCase().includes(q) ||
-      (s.artist_name || s.artist || '').toLowerCase().includes(q) ||
-      (s.composer_name || s.composer || '').toLowerCase().includes(q) ||
-      s.category?.toLowerCase().includes(q)
-  );
-  renderSongsTable(filtered);
+    const stats = await apiGet(`${API_BASE}/stats`);
+    document.getElementById('statTotal').textContent = stats.songs ?? 0;
+    document.getElementById('statCategories').textContent = stats.categories ?? 0;
+    document.getElementById('statViews').textContent = formatViews(stats.total_views ?? 0);
+  } catch { /* ignore — stat cards just keep showing the previous values */ }
 }
 
 // Song Modal
@@ -613,6 +609,7 @@ async function saveSong(e) {
     setTimeout(() => {
       closeSongModal();
       loadSongs(currentPage);
+      refreshStats();
     }, 800);
   } catch (err) {
     showFormMessage(err.message, true);
@@ -1167,7 +1164,7 @@ async function deleteItem() {
   try {
     await apiDelete(`${ADMIN_API}/${type}s/${id}`);
     // Reload for accurate counts/pagination
-    if (type === 'song') loadSongs(currentPage);
+    if (type === 'song') { loadSongs(currentPage); refreshStats(); }
     else if (type === 'artist') loadArtists();
     else if (type === 'composer') loadComposers();
     else if (type === 'report') loadReports();
@@ -1343,6 +1340,7 @@ function initDashboard() {
 
   // Load songs + populate dropdowns
   loadSongs();
+  refreshStats();
   populateDropdowns();
 
   // Restore saved tab (persists across page refresh)
@@ -1386,11 +1384,11 @@ function initDashboard() {
   document.getElementById('btnDeleteCancel').addEventListener('click', closeDeleteModal);
   document.getElementById('btnDeleteConfirm').addEventListener('click', deleteItem);
 
-  // Search filter
+  // Search filter (server-side, across all songs — not just the current page)
   let searchTimer;
   document.getElementById('adminSearch').addEventListener('input', (e) => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => filterSongs(e.target.value), 200);
+    searchTimer = setTimeout(() => loadSongs(1, e.target.value), 200);
   });
 
   // Reports filter
