@@ -3,7 +3,11 @@
 // ║       Stale-While-Revalidate · Offline-First                ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const CACHE_VERSION = 'ml-v4';
+// Bump this on every deploy that changes a precached static asset (app.js, style.css,
+// i18n.js, theme.js, consent.js, toast.js, or the locale JSON files) — those are served
+// cache-first below, so a returning visitor's browser keeps the exact bytes it first
+// cached forever otherwise, immune even to a hard refresh, until this version changes.
+const CACHE_VERSION = 'ml-v5';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
