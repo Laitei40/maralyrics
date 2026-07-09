@@ -23,6 +23,6 @@ include = ["**/*"]
 ENVIRONMENT = "production"
 
 # ─── Secrets (set via `wrangler secret put <NAME>`, never committed) ───
-# ADMIN_TOKEN          — bearer token required on all /api/v1/admin/* requests
+# JWT_SECRET           — signs/verifies admin session JWTs (see admin_users table + worker/lib/auth.js)
 # TURNSTILE_SECRET_KEY — Cloudflare Turnstile secret key, verifies /reports and /contacts submissions
 # See .dev.vars.example for local development.

@@ -1,5 +1,5 @@
 # Copy this file to .dev.vars (gitignored) for local `wrangler dev` testing.
 # In production these are set via `wrangler secret put <NAME>`, never committed.
 
-ADMIN_TOKEN=dev-only-change-me
+JWT_SECRET=dev-only-change-me
 TURNSTILE_SECRET_KEY=
