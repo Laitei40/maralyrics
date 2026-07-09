@@ -114,6 +114,23 @@ CREATE TABLE IF NOT EXISTS admin_users (
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Multi-artist / multi-composer credits (a song can have more than one of
+-- each, capped at 20 in the API). songs.artist_id / composer_id remain as
+-- the primary (first) credited person for backward compatibility.
+CREATE TABLE IF NOT EXISTS song_artists (
+    song_id   INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    artist_id INTEGER NOT NULL REFERENCES artists(id) ON DELETE CASCADE,
+    position  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (song_id, artist_id)
+);
+
+CREATE TABLE IF NOT EXISTS song_composers (
+    song_id     INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    composer_id INTEGER NOT NULL REFERENCES composers(id) ON DELETE CASCADE,
+    position    INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (song_id, composer_id)
+);
+
 -- ── Performance indexes ──
 CREATE INDEX IF NOT EXISTS idx_songs_slug              ON songs(slug);
 CREATE INDEX IF NOT EXISTS idx_songs_title              ON songs(title);
@@ -130,6 +147,8 @@ CREATE INDEX IF NOT EXISTS idx_reports_status           ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_song_id          ON reports(song_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_status          ON contacts(status);
 CREATE INDEX IF NOT EXISTS idx_admin_users_username     ON admin_users(username);
+CREATE INDEX IF NOT EXISTS idx_song_artists_artist_id   ON song_artists(artist_id);
+CREATE INDEX IF NOT EXISTS idx_song_composers_composer_id ON song_composers(composer_id);
 
 -- ── updated_at auto-maintenance triggers ──
 CREATE TRIGGER IF NOT EXISTS trg_artists_updated_at

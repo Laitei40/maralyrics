@@ -271,6 +271,58 @@ coApp.delete('/:id', async (c) => {
 app.route('/copyright-owners', coApp);
 
 // ── Songs (content management: super_admin + editor) ──
+const MAX_CREDITED_PEOPLE = 20;
+
+// Dedupes, coerces to positive integers, and caps at MAX_CREDITED_PEOPLE, preserving order.
+function normalizeIds(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const v of raw) {
+    const n = Number(v);
+    if (Number.isInteger(n) && n > 0 && !seen.has(n)) {
+      seen.add(n);
+      out.push(n);
+    }
+  }
+  return out.slice(0, MAX_CREDITED_PEOPLE);
+}
+
+// Confirms every id actually exists in `table` — checked before any song write happens, so a
+// bad id is rejected with a clear 400 instead of leaving a half-written song behind (the songs
+// INSERT/UPDATE and the junction-table writes aren't one atomic transaction).
+async function idsExist(db, table, ids) {
+  if (!ids.length) return true;
+  const placeholders = ids.map(() => '?').join(',');
+  const row = await db.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE id IN (${placeholders})`).bind(...ids).first();
+  return row.count === ids.length;
+}
+
+// Replaces a song's rows in a junction table (song_artists / song_composers) with the given ids, in order.
+async function writeSongPeople(db, songId, table, fkColumn, ids) {
+  const stmts = [db.prepare(`DELETE FROM ${table} WHERE song_id = ?`).bind(songId)];
+  ids.forEach((id, i) => {
+    stmts.push(db.prepare(`INSERT INTO ${table} (song_id, ${fkColumn}, position) VALUES (?, ?, ?)`).bind(songId, id, i));
+  });
+  await db.batch(stmts);
+}
+
+async function getSongWithPeople(db, id) {
+  const song = await db.prepare('SELECT * FROM songs WHERE id = ?').bind(id).first();
+  if (!song) return null;
+  const [artists, composers] = await Promise.all([
+    db.prepare(
+      `SELECT a.id, a.name, a.slug FROM song_artists sa JOIN artists a ON a.id = sa.artist_id
+       WHERE sa.song_id = ? ORDER BY sa.position`
+    ).bind(id).all(),
+    db.prepare(
+      `SELECT c.id, c.name, c.slug FROM song_composers sc JOIN composers c ON c.id = sc.composer_id
+       WHERE sc.song_id = ? ORDER BY sc.position`
+    ).bind(id).all(),
+  ]);
+  return { ...song, artists: artists.results, composers: composers.results };
+}
+
 const songsApp = new Hono();
 songsApp.use('*', requireRole('super_admin', 'editor'));
 
@@ -280,10 +332,16 @@ songsApp.get('/', async (c) => {
 
   const [rows, countRow] = await Promise.all([
     db.prepare(
-      `SELECT s.*, a.name AS artist_name, cm.name AS composer_name
+      `SELECT s.*,
+         (SELECT GROUP_CONCAT(name, ', ') FROM (
+            SELECT a.name AS name FROM song_artists sa JOIN artists a ON a.id = sa.artist_id
+            WHERE sa.song_id = s.id ORDER BY sa.position
+          )) AS artist_name,
+         (SELECT GROUP_CONCAT(name, ', ') FROM (
+            SELECT cm.name AS name FROM song_composers sc JOIN composers cm ON cm.id = sc.composer_id
+            WHERE sc.song_id = s.id ORDER BY sc.position
+          )) AS composer_name
        FROM songs s
-       LEFT JOIN artists a ON s.artist_id = a.id
-       LEFT JOIN composers cm ON s.composer_id = cm.id
        ORDER BY s.created_at DESC
        LIMIT ? OFFSET ?`
     ).bind(limit, offset).all(),
@@ -295,14 +353,16 @@ songsApp.get('/', async (c) => {
 });
 
 songsApp.get('/:id', async (c) => {
-  const row = await c.env.DB.prepare('SELECT * FROM songs WHERE id = ?').bind(c.req.param('id')).first();
+  const row = await getSongWithPeople(c.env.DB, c.req.param('id'));
   if (!row) return c.json({ error: 'Not found' }, 404);
   return c.json(row);
 });
 
 songsApp.post('/', async (c) => {
   const data = await c.req.json().catch(() => ({}));
-  const { title, lyrics, artist_id, composer_id, copyright_owner_id, category } = data;
+  const { title, lyrics, copyright_owner_id, category } = data;
+  const artist_ids = normalizeIds(data.artist_ids);
+  const composer_ids = normalizeIds(data.composer_ids);
 
   if (!title || !lyrics) return c.json({ error: 'title and lyrics are required' }, 400);
   if (category && !CATEGORIES.includes(category)) {
@@ -311,14 +371,27 @@ songsApp.post('/', async (c) => {
   const slug = data.slug?.trim() || slugify(title);
 
   try {
-    const result = await c.env.DB
+    const db = c.env.DB;
+    const [artistsOk, composersOk] = await Promise.all([
+      idsExist(db, 'artists', artist_ids),
+      idsExist(db, 'composers', composer_ids),
+    ]);
+    if (!artistsOk) return c.json({ error: 'One or more selected artists do not exist' }, 400);
+    if (!composersOk) return c.json({ error: 'One or more selected composers do not exist' }, 400);
+
+    const result = await db
       .prepare(
         `INSERT INTO songs (title, slug, artist_id, composer_id, copyright_owner_id, category, lyrics)
          VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-      .bind(title, slug, artist_id || null, composer_id || null, copyright_owner_id || null, category || null, lyrics)
+      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics)
       .run();
-    const row = await c.env.DB.prepare('SELECT * FROM songs WHERE id = ?').bind(result.meta.last_row_id).first();
+    const songId = result.meta.last_row_id;
+
+    await writeSongPeople(db, songId, 'song_artists', 'artist_id', artist_ids);
+    await writeSongPeople(db, songId, 'song_composers', 'composer_id', composer_ids);
+
+    const row = await getSongWithPeople(db, songId);
     return c.json(row, 201);
   } catch (err) {
     return fail(c, err);
@@ -328,7 +401,9 @@ songsApp.post('/', async (c) => {
 songsApp.put('/:id', async (c) => {
   const id = c.req.param('id');
   const data = await c.req.json().catch(() => ({}));
-  const { title, lyrics, artist_id, composer_id, copyright_owner_id, category } = data;
+  const { title, lyrics, copyright_owner_id, category } = data;
+  const artist_ids = normalizeIds(data.artist_ids);
+  const composer_ids = normalizeIds(data.composer_ids);
 
   if (!title || !lyrics) return c.json({ error: 'title and lyrics are required' }, 400);
   if (category && !CATEGORIES.includes(category)) {
@@ -337,15 +412,27 @@ songsApp.put('/:id', async (c) => {
   const slug = data.slug?.trim() || slugify(title);
 
   try {
-    const result = await c.env.DB
+    const db = c.env.DB;
+    const [artistsOk, composersOk] = await Promise.all([
+      idsExist(db, 'artists', artist_ids),
+      idsExist(db, 'composers', composer_ids),
+    ]);
+    if (!artistsOk) return c.json({ error: 'One or more selected artists do not exist' }, 400);
+    if (!composersOk) return c.json({ error: 'One or more selected composers do not exist' }, 400);
+
+    const result = await db
       .prepare(
         `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?
          WHERE id = ?`
       )
-      .bind(title, slug, artist_id || null, composer_id || null, copyright_owner_id || null, category || null, lyrics, id)
+      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics, id)
       .run();
     if (result.meta.changes === 0) return c.json({ error: 'Not found' }, 404);
-    const row = await c.env.DB.prepare('SELECT * FROM songs WHERE id = ?').bind(id).first();
+
+    await writeSongPeople(db, id, 'song_artists', 'artist_id', artist_ids);
+    await writeSongPeople(db, id, 'song_composers', 'composer_id', composer_ids);
+
+    const row = await getSongWithPeople(db, id);
     return c.json(row);
   } catch (err) {
     return fail(c, err);

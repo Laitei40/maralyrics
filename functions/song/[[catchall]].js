@@ -35,9 +35,12 @@ function buildSongSeo(song) {
 async function fetchSong(db, slug) {
   return db
     .prepare(
-      `SELECT s.title, s.slug, a.name AS artist_name
+      `SELECT s.title, s.slug,
+         (SELECT GROUP_CONCAT(name, ', ') FROM (
+            SELECT a.name AS name FROM song_artists sa JOIN artists a ON a.id = sa.artist_id
+            WHERE sa.song_id = s.id ORDER BY sa.position
+          )) AS artist_name
        FROM songs s
-       LEFT JOIN artists a ON s.artist_id = a.id
        WHERE s.slug = ?`
     )
     .bind(slug)

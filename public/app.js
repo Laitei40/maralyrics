@@ -76,6 +76,20 @@ const Utils = {
     return `<span class="meta-link meta-link--disabled">${this.escapeHtml(name || I18n.t('common.unknown'))}</span>`;
   },
 
+  /** Render a comma-separated list of clickable name links (e.g. multiple credited artists/composers). */
+  renderNameLinks(list, type) {
+    if (!list || !list.length) {
+      return `<span class="meta-link meta-link--disabled">${this.escapeHtml(I18n.t('common.unknown'))}</span>`;
+    }
+    return list.map((item) => this.renderNameLink(item.name, item.slug, type)).join(', ');
+  },
+
+  /** Plain-text comma-separated names, for titles/meta/search (no markup). */
+  joinNames(list, fallback) {
+    if (list && list.length) return list.map((item) => item.name).join(', ');
+    return fallback || I18n.t('common.unknown');
+  },
+
   /** Detect social platform from URL and return name + SVG icon. */
   detectSocialPlatform(url) {
     const platforms = [
@@ -385,7 +399,7 @@ const UI = {
          style="animation-delay:${delay}ms"
          data-slug="${Utils.escapeHtml(song.slug)}">
         <h3 class="song-card__title">${Utils.escapeHtml(song.title)}</h3>
-        <p class="song-card__artist">${Utils.escapeHtml(song.artist_name || song.artist || I18n.t('common.unknown_artist'))}</p>
+        <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
         <div class="song-card__meta">
           ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
           <span class="song-card__views">${isCached ? '📌 ' : ''}👁 ${Utils.formatViews(song.views)}</span>
@@ -791,7 +805,8 @@ const HomePage = {
         if (
           song.title?.toLowerCase().includes(q) ||
           song.artist_name?.toLowerCase().includes(q) ||
-          song.artist?.toLowerCase().includes(q)
+          song.artist?.toLowerCase().includes(q) ||
+          song.artists?.some((a) => a.name?.toLowerCase().includes(q))
         ) {
           results.push(song);
         }
@@ -874,9 +889,17 @@ const SongPage = {
     const lyricsEl = document.getElementById('songLyrics');
 
     if (titleEl) titleEl.textContent = song.title;
-    if (artistEl) artistEl.innerHTML = Utils.renderNameLink(song.artist_name || song.artist, song.artist_slug, 'artist');
+    if (artistEl) {
+      artistEl.innerHTML = song.artists?.length
+        ? Utils.renderNameLinks(song.artists, 'artist')
+        : Utils.renderNameLink(song.artist_name || song.artist, song.artist_slug, 'artist');
+    }
     const composerEl = document.getElementById('songComposer');
-    if (composerEl) composerEl.innerHTML = Utils.renderNameLink(song.composer_name || song.composer, song.composer_slug, 'composer');
+    if (composerEl) {
+      composerEl.innerHTML = song.composers?.length
+        ? Utils.renderNameLinks(song.composers, 'composer')
+        : Utils.renderNameLink(song.composer_name || song.composer, song.composer_slug, 'composer');
+    }
     if (categoryEl) categoryEl.textContent = song.category || I18n.t('common.uncategorized');
     if (viewsEl) viewsEl.textContent = Utils.formatViews(song.views);
 
@@ -909,7 +932,7 @@ const SongPage = {
       const params = new URLSearchParams({
         song: song.slug || '',
         title: song.title || '',
-        artist: song.artist_name || song.artist || '',
+        artist: Utils.joinNames(song.artists, song.artist_name || song.artist || ''),
       });
       reportBtn.href = '/report?' + params.toString();
     }
@@ -945,7 +968,7 @@ const SongPage = {
         if (!song) return;
         const shareData = {
           title: `${song.title} — MaraLyrics`,
-          text: `${song.title} — ${song.artist_name || song.artist || I18n.t('common.unknown_artist')} — MaraLyrics`,
+          text: `${song.title} — ${Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist'))} — MaraLyrics`,
           url: window.location.href,
         };
         try {
@@ -965,7 +988,7 @@ const SongPage = {
 
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
-    const artistDisplay = song.artist_name || song.artist || I18n.t('common.unknown');
+    const artistDisplay = Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown'));
     const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
     const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on MaraLyrics.`;
 

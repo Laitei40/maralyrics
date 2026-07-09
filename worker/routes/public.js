@@ -4,17 +4,40 @@ import { verifyTurnstile } from '../lib/turnstile.js';
 
 const SONG_COLUMNS = `
   s.id, s.title, s.slug, s.category, s.lyrics, s.views, s.created_at, s.updated_at,
-  a.name AS artist_name, a.slug AS artist_slug,
-  c.name AS composer_name, c.slug AS composer_slug,
-  co.name AS copyright_owner_name, co.slug AS copyright_owner_slug
+  co.name AS copyright_owner_name, co.slug AS copyright_owner_slug,
+  (SELECT json_group_array(json_object('name', x.name, 'slug', x.slug)) FROM (
+     SELECT a.name AS name, a.slug AS slug FROM song_artists sa JOIN artists a ON a.id = sa.artist_id
+     WHERE sa.song_id = s.id ORDER BY sa.position
+   ) x) AS artists_json,
+  (SELECT json_group_array(json_object('name', x.name, 'slug', x.slug)) FROM (
+     SELECT c.name AS name, c.slug AS slug FROM song_composers sc JOIN composers c ON c.id = sc.composer_id
+     WHERE sc.song_id = s.id ORDER BY sc.position
+   ) x) AS composers_json
 `;
 
 const SONG_JOINS = `
   FROM songs s
-  LEFT JOIN artists a ON s.artist_id = a.id
-  LEFT JOIN composers c ON s.composer_id = c.id
   LEFT JOIN copyright_owners co ON s.copyright_owner_id = co.id
 `;
+
+// Turns the raw artists_json/composers_json text columns into real arrays,
+// and derives the legacy singular artist_name/artist_slug/composer_name/
+// composer_slug fields (first credited person) for backward compatibility.
+function parseSongPeople(song) {
+  if (!song) return song;
+  const artists = song.artists_json ? JSON.parse(song.artists_json) : [];
+  const composers = song.composers_json ? JSON.parse(song.composers_json) : [];
+  const { artists_json, composers_json, ...rest } = song;
+  return {
+    ...rest,
+    artists,
+    composers,
+    artist_name: artists[0]?.name || null,
+    artist_slug: artists[0]?.slug || null,
+    composer_name: composers[0]?.name || null,
+    composer_slug: composers[0]?.slug || null,
+  };
+}
 
 const app = new Hono();
 
@@ -129,7 +152,7 @@ app.get('/bootstrap', async (c) => {
     version: 1,
     since,
     counts,
-    songs: songs.results,
+    songs: songs.results.map(parseSongPeople),
     artists: artists.results,
     composers: composers.results,
     copyright_owners: copyrightOwners.results,
@@ -143,7 +166,7 @@ app.get('/songs/popular', async (c) => {
     .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} ORDER BY s.views DESC LIMIT ?`)
     .bind(limit)
     .all();
-  return c.json({ songs: songs.results });
+  return c.json({ songs: songs.results.map(parseSongPeople) });
 });
 
 app.get('/songs', async (c) => {
@@ -164,7 +187,7 @@ app.get('/songs', async (c) => {
   ]);
 
   const total = countRow.total;
-  return c.json({ songs: rows.results, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+  return c.json({ songs: rows.results.map(parseSongPeople), total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
 });
 
 app.get('/songs/:slug', async (c) => {
@@ -174,7 +197,7 @@ app.get('/songs/:slug', async (c) => {
     .first();
 
   if (!song) return c.json({ error: 'Song not found' }, 404);
-  return c.json(song);
+  return c.json(parseSongPeople(song));
 });
 
 app.post('/songs/:slug/view', async (c) => {
@@ -202,8 +225,6 @@ app.get('/search', async (c) => {
       `SELECT ${SONG_COLUMNS}
        FROM songs_fts f
        JOIN songs s ON s.id = f.rowid
-       LEFT JOIN artists a ON s.artist_id = a.id
-       LEFT JOIN composers c ON s.composer_id = c.id
        LEFT JOIN copyright_owners co ON s.copyright_owner_id = co.id
        WHERE songs_fts MATCH ?
        ORDER BY rank
@@ -223,7 +244,7 @@ app.get('/search', async (c) => {
     suggestions = like.results;
   }
 
-  return c.json({ results: results.results, suggestions });
+  return c.json({ results: results.results.map(parseSongPeople), suggestions });
 });
 
 app.get('/categories', async (c) => {
@@ -238,23 +259,27 @@ async function listPeople(c, table) {
   return c.json({ [table]: rows.results, total: rows.results.length });
 }
 
-async function getPerson(c, table, fkColumn) {
+async function getPerson(c, table, junctionTable, junctionFk) {
   const db = c.env.DB;
   const person = await db.prepare(`SELECT * FROM ${table} WHERE slug = ?`).bind(c.req.param('slug')).first();
   if (!person) return c.json({ error: 'Not found' }, 404);
 
   const songs = await db
-    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.${fkColumn} = ? ORDER BY s.title`)
+    .prepare(
+      `SELECT ${SONG_COLUMNS} ${SONG_JOINS}
+       WHERE s.id IN (SELECT song_id FROM ${junctionTable} WHERE ${junctionFk} = ?)
+       ORDER BY s.title`
+    )
     .bind(person.id)
     .all();
 
-  return c.json({ ...person, songs: songs.results });
+  return c.json({ ...person, songs: songs.results.map(parseSongPeople) });
 }
 
 app.get('/artists', (c) => listPeople(c, 'artists'));
-app.get('/artists/:slug', (c) => getPerson(c, 'artists', 'artist_id'));
+app.get('/artists/:slug', (c) => getPerson(c, 'artists', 'song_artists', 'artist_id'));
 app.get('/composers', (c) => listPeople(c, 'composers'));
-app.get('/composers/:slug', (c) => getPerson(c, 'composers', 'composer_id'));
+app.get('/composers/:slug', (c) => getPerson(c, 'composers', 'song_composers', 'composer_id'));
 
 app.get('/copyright-owners', async (c) => {
   const rows = await c.env.DB.prepare('SELECT * FROM copyright_owners ORDER BY name').all();
@@ -271,7 +296,7 @@ app.get('/copyright-owners/:slug', async (c) => {
     .bind(owner.id)
     .all();
 
-  return c.json({ owner, songs: songs.results });
+  return c.json({ owner, songs: songs.results.map(parseSongPeople) });
 });
 
 app.post('/reports', async (c) => {
