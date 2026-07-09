@@ -11,21 +11,129 @@ const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
 const API_BASE = `${API_ORIGIN}/api/v1`;
 const ADMIN_API = `${API_BASE}/admin`;
 
-// ─── Admin token (Bearer auth) ──────────────────────
-const TOKEN_KEY = 'ml_admin_token';
+// ─── Admin session (JWT, per-account role) ──────────
+const TOKEN_KEY = 'ml_admin_jwt';
+const INFO_KEY = 'ml_admin_info'; // { id, username, role }
+
 function getAdminToken() {
   return localStorage.getItem(TOKEN_KEY) || '';
 }
 function setAdminToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
 }
-function promptForAdminToken() {
-  const token = window.prompt('Enter admin access token:');
-  if (token) setAdminToken(token.trim());
-  return getAdminToken();
+function getAdminInfo() {
+  try { return JSON.parse(localStorage.getItem(INFO_KEY) || 'null'); } catch { return null; }
+}
+function setAdminInfo(info) {
+  localStorage.setItem(INFO_KEY, JSON.stringify(info));
+}
+function clearAdminSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(INFO_KEY);
 }
 function authHeaders(extra = {}) {
   return { ...extra, Authorization: `Bearer ${getAdminToken()}` };
+}
+function hasRole(...roles) {
+  const info = getAdminInfo();
+  return !!info && roles.includes(info.role);
+}
+
+function showLoginOverlay(message) {
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = message || '';
+  errEl.style.display = message ? 'block' : 'none';
+}
+function hideLoginOverlay() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+
+  try {
+    const res = await fetch(`${ADMIN_API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+
+    setAdminToken(data.token);
+    setAdminInfo({ id: data.id, username: data.username, role: data.role });
+    hideLoginOverlay();
+    document.getElementById('loginForm').reset();
+    initDashboard();
+  } catch (err) {
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+
+function logout() {
+  clearAdminSession();
+  location.reload();
+}
+
+async function changePassword() {
+  const current_password = window.prompt('Current password:');
+  if (!current_password) return;
+  const new_password = window.prompt('New password (min 8 characters):');
+  if (!new_password) return;
+
+  try {
+    await apiPost(`${ADMIN_API}/auth/change-password`, { current_password, new_password });
+    if (typeof Toast !== 'undefined') Toast.show('Password updated.', { type: 'success' });
+    else alert('Password updated.');
+  } catch (err) {
+    alert('Failed to change password: ' + err.message);
+  }
+}
+
+// ─── Role-based UI visibility ───────────────────────
+const ROLE_TABS = {
+  songs: ['super_admin', 'editor'],
+  artists: ['super_admin', 'editor'],
+  composers: ['super_admin', 'editor'],
+  'copyright-owners': ['super_admin', 'editor'],
+  reports: ['super_admin', 'moderator'],
+  admins: ['super_admin'],
+};
+
+function applyRoleVisibility() {
+  const info = getAdminInfo();
+  const label = document.getElementById('currentAdminLabel');
+  if (label) label.textContent = info ? `${info.username} (${roleLabel(info.role)})` : 'Admin';
+
+  let firstVisibleTab = null;
+  document.querySelectorAll('.admin__tab').forEach((tab) => {
+    const allowed = ROLE_TABS[tab.dataset.tab] || [];
+    const visible = !!info && allowed.includes(info.role);
+    tab.style.display = visible ? '' : 'none';
+    if (visible && !firstVisibleTab) firstVisibleTab = tab.dataset.tab;
+  });
+
+  const activeTab = document.querySelector('.admin__tab.active');
+  if (firstVisibleTab && (!activeTab || activeTab.style.display === 'none')) {
+    switchTab(firstVisibleTab);
+  }
+}
+
+function roleLabel(role) {
+  return { super_admin: 'Super Admin', editor: 'Editor', moderator: 'Moderator' }[role] || role;
 }
 
 // State
@@ -35,9 +143,10 @@ let allSongs = [];
 let allArtists = [];
 let allComposers = [];
 let deleteTargetId = null;
-let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report'
+let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report' | 'admin-user'
 let allReports = [];
 let allCopyrightOwners = [];
+let allAdminUsers = [];
 
 // ═══════════════════════════════════════════════════
 // ═══ DRAFT MANAGEMENT (localStorage auto-save) ════
@@ -208,7 +317,8 @@ function generateSlug(text) {
 // ─── API Calls ──────────────────────────────────
 async function handleAuthFailure(res) {
   if (res.status === 401) {
-    promptForAdminToken();
+    clearAdminSession();
+    showLoginOverlay('Session expired. Please sign in again.');
   }
 }
 
@@ -271,6 +381,7 @@ function switchTab(tab) {
   if (tab === 'composers') loadComposers();
   if (tab === 'reports') loadReports();
   if (tab === 'copyright-owners') loadCopyrightOwners();
+  if (tab === 'admins') loadAdminUsers();
 }
 
 // ─── Populate Artist/Composer Dropdowns ─────────
@@ -1040,6 +1151,7 @@ async function deleteItem() {
   else if (type === 'composer') allComposers = allComposers.filter(c => c.id !== id);
   else if (type === 'copyright-owner') allCopyrightOwners = allCopyrightOwners.filter(co => co.id !== id);
   else if (type === 'report') allReports = allReports.filter(r => r.id !== id);
+  else if (type === 'admin-user') allAdminUsers = allAdminUsers.filter(u => u.id !== id);
 
   try {
     await apiDelete(`${ADMIN_API}/${type}s/${id}`);
@@ -1049,6 +1161,7 @@ async function deleteItem() {
     else if (type === 'composer') loadComposers();
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
+    else if (type === 'admin-user') loadAdminUsers();
   } catch (err) {
     // Show error and restore list by reloading
     if (typeof Toast !== 'undefined') {
@@ -1061,6 +1174,121 @@ async function deleteItem() {
     else if (type === 'composer') loadComposers();
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
+    else if (type === 'admin-user') loadAdminUsers();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ ADMIN USERS (super_admin only) ═══════════════
+// ═══════════════════════════════════════════════════
+
+async function loadAdminUsers() {
+  const tbody = document.getElementById('adminUsersTableBody');
+  tbody.innerHTML = '<tr><td colspan="4" class="admin-table__empty">Loading...</td></tr>';
+  try {
+    const data = await apiGet(`${ADMIN_API}/admin-users`);
+    allAdminUsers = data.admin_users || [];
+    renderAdminUsersTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderAdminUsersTable() {
+  const tbody = document.getElementById('adminUsersTableBody');
+  if (!allAdminUsers.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="admin-table__empty">No admin accounts found.</td></tr>';
+    return;
+  }
+  const me = getAdminInfo();
+  tbody.innerHTML = allAdminUsers.map(u => `
+    <tr data-id="${u.id}">
+      <td><div class="admin-table__title">${escapeHtml(u.username)}${me && me.id === u.id ? ' <span class="admin-badge" style="font-size:10px;">You</span>' : ''}</div></td>
+      <td>${escapeHtml(roleLabel(u.role))}</td>
+      <td>${formatDate(u.created_at)}</td>
+      <td>
+        <div class="admin-table__actions">
+          <button class="btn btn--sm btn--ghost" onclick="editAdminUser(${u.id})" title="Edit">✏️</button>
+          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${u.id}, '${escapeHtml(u.username).replace(/'/g, "\\'")}', 'admin-user')" title="Delete">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openAdminUserModal() {
+  document.getElementById('adminUserModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeAdminUserModal() {
+  document.getElementById('adminUserModal').style.display = 'none';
+  document.body.style.overflow = '';
+  document.getElementById('adminUserForm').reset();
+  document.getElementById('auFormId').value = '';
+  document.getElementById('auFormMessage').style.display = 'none';
+}
+function showAdminUserMessage(text, isError = false) {
+  const el = document.getElementById('auFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = 'block';
+}
+
+function openNewAdminUser() {
+  closeAdminUserModal();
+  document.getElementById('adminUserModalTitle').textContent = 'New Admin';
+  document.getElementById('auBtnSubmit').textContent = 'Create Admin';
+  document.getElementById('auFormPassword').required = true;
+  document.getElementById('auPasswordRequired').style.display = 'inline';
+  document.getElementById('auFormPassword').placeholder = '';
+  openAdminUserModal();
+  document.getElementById('auFormUsername').focus();
+}
+
+function editAdminUser(id) {
+  const u = allAdminUsers.find(a => a.id === id);
+  if (!u) return;
+  closeAdminUserModal();
+  document.getElementById('adminUserModalTitle').textContent = 'Edit Admin';
+  document.getElementById('auBtnSubmit').textContent = 'Update Admin';
+  document.getElementById('auFormId').value = u.id;
+  document.getElementById('auFormUsername').value = u.username;
+  document.getElementById('auFormRole').value = u.role;
+  document.getElementById('auFormPassword').required = false;
+  document.getElementById('auPasswordRequired').style.display = 'none';
+  document.getElementById('auFormPassword').placeholder = 'Leave blank to keep current password';
+  openAdminUserModal();
+}
+
+async function saveAdminUser(e) {
+  e.preventDefault();
+  const id = document.getElementById('auFormId').value;
+  const username = document.getElementById('auFormUsername').value.trim();
+  const password = document.getElementById('auFormPassword').value;
+  const role = document.getElementById('auFormRole').value;
+
+  if (!username) { showAdminUserMessage('Username is required.', true); return; }
+  if (!id && !password) { showAdminUserMessage('Password is required.', true); return; }
+  if (password && password.length < 8) { showAdminUserMessage('Password must be at least 8 characters.', true); return; }
+
+  const btn = document.getElementById('auBtnSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const body = { username, role };
+    if (password) body.password = password;
+
+    if (id) await apiPut(`${ADMIN_API}/admin-users/${id}`, body);
+    else await apiPost(`${ADMIN_API}/admin-users`, body);
+
+    closeAdminUserModal();
+    loadAdminUsers();
+  } catch (err) {
+    showAdminUserMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = id ? 'Update Admin' : 'Create Admin';
   }
 }
 
@@ -1068,8 +1296,39 @@ async function deleteItem() {
 // ═══ INIT ═════════════════════════════════════════
 // ═══════════════════════════════════════════════════
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (!getAdminToken()) promptForAdminToken();
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+  if (!getAdminToken()) {
+    showLoginOverlay();
+    return;
+  }
+
+  // Verify the stored session is still valid (also refreshes cached role info)
+  try {
+    const me = await apiGet(`${ADMIN_API}/auth/me`);
+    setAdminInfo(me);
+  } catch {
+    clearAdminSession();
+    showLoginOverlay('Session expired. Please sign in again.');
+    return;
+  }
+
+  initDashboard();
+});
+
+function initDashboard() {
+  applyRoleVisibility();
+
+  document.getElementById('btnLogout').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+  document.getElementById('btnChangePassword').addEventListener('click', (e) => { e.preventDefault(); changePassword(); });
+
+  // Admin user management (super_admin only)
+  document.getElementById('btnNewAdminUser')?.addEventListener('click', openNewAdminUser);
+  document.getElementById('adminUserForm')?.addEventListener('submit', saveAdminUser);
+  document.getElementById('adminUserModalClose')?.addEventListener('click', closeAdminUserModal);
+  document.getElementById('adminUserBackdrop')?.addEventListener('click', closeAdminUserModal);
+  document.getElementById('auBtnCancel')?.addEventListener('click', closeAdminUserModal);
 
   // Load songs + populate dropdowns
   loadSongs();
@@ -1206,11 +1465,12 @@ document.addEventListener('DOMContentLoaded', () => {
       closeFeedbackModal();
     }
   });
-});
+}
 
 // Expose to inline onclick handlers
 window.editSong = editSong;
 window.editPerson = editPerson;
+window.editAdminUser = editAdminUser;
 window.editCopyrightOwner = editCopyrightOwner;
 window.confirmDelete = confirmDelete;
 window.loadSongs = loadSongs;

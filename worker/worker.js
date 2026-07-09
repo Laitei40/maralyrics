@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin.js';
-import { requireAdmin } from './lib/auth.js';
+import { requireAuth } from './lib/auth.js';
 
 const BLOCKED_COUNTRIES = new Set(['CN', 'RU', 'KP', 'IR']);
 
@@ -25,7 +25,10 @@ app.use('*', async (c, next) => {
   await next();
 });
 
-app.use('/api/v1/admin/*', requireAdmin);
+app.use('/api/v1/admin/*', async (c, next) => {
+  if (c.req.path === '/api/v1/admin/auth/login') return next(); // public: no session yet
+  return requireAuth(c, next);
+});
 
 app.route('/api/v1', publicRoutes);
 app.route('/api/v1/admin', adminRoutes);

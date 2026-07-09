@@ -102,6 +102,18 @@ CREATE TABLE IF NOT EXISTS contacts (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Admin accounts (role-based: super_admin manages other admins, editor manages
+-- content, moderator handles reports/contacts) — replaces the single shared
+-- ADMIN_TOKEN bearer secret with per-user login + JWT sessions.
+CREATE TABLE IF NOT EXISTS admin_users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL CHECK (role IN ('super_admin', 'editor', 'moderator')),
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ── Performance indexes ──
 CREATE INDEX IF NOT EXISTS idx_songs_slug              ON songs(slug);
 CREATE INDEX IF NOT EXISTS idx_songs_title              ON songs(title);
@@ -117,6 +129,7 @@ CREATE INDEX IF NOT EXISTS idx_copyright_owners_slug    ON copyright_owners(slug
 CREATE INDEX IF NOT EXISTS idx_reports_status           ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_song_id          ON reports(song_id);
 CREATE INDEX IF NOT EXISTS idx_contacts_status          ON contacts(status);
+CREATE INDEX IF NOT EXISTS idx_admin_users_username     ON admin_users(username);
 
 -- ── updated_at auto-maintenance triggers ──
 CREATE TRIGGER IF NOT EXISTS trg_artists_updated_at
@@ -159,6 +172,13 @@ AFTER UPDATE ON contacts
 FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
     UPDATE contacts SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_admin_users_updated_at
+AFTER UPDATE ON admin_users
+FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+    UPDATE admin_users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
 -- ── Full-text search over songs (title + lyrics) ──

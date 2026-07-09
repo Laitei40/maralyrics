@@ -22,6 +22,30 @@
 </head>
 <body>
 
+  <!-- ─── Login Overlay ──────────────────────── -->
+  <div id="loginOverlay" class="modal" style="display:none;">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content modal__content--sm">
+      <div class="modal__header">
+        <h2 class="modal__title">Admin Sign In</h2>
+      </div>
+      <form id="loginForm" class="modal__form">
+        <div id="loginError" class="form-message form-message--error" style="display:none;"></div>
+        <div class="form-group">
+          <label class="form-label" for="loginUsername">Username</label>
+          <input type="text" id="loginUsername" class="form-input" autocomplete="username" required autofocus />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" class="form-input" autocomplete="current-password" required />
+        </div>
+        <div class="modal__actions">
+          <button type="submit" id="loginSubmit" class="btn btn--primary" style="width:100%;">Sign In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ─── Header ─────────────────────────────── -->
   <header class="header">
     <div class="header__inner">
@@ -31,7 +55,9 @@
       </a>
       <nav class="header__nav">
         <a href="https://maralyrics.com" class="header__nav-link">View Site</a>
-        <span class="admin-badge">Admin</span>
+        <span class="admin-badge" id="currentAdminLabel">Admin</span>
+        <a href="#" id="btnChangePassword" class="header__nav-link">Change Password</a>
+        <a href="#" id="btnLogout" class="header__nav-link">Log Out</a>
       </nav>
     </div>
   </header>
@@ -46,6 +72,7 @@
       <button class="admin__tab" data-tab="composers">Composers</button>
       <button class="admin__tab" data-tab="copyright-owners">Copyright Owners</button>
       <button class="admin__tab" data-tab="reports">Reports</button>
+      <button class="admin__tab" data-tab="admins">Admins</button>
     </div>
 
     <!-- ═══ Songs Tab ═══ -->
@@ -212,6 +239,31 @@
           </thead>
           <tbody id="reportsTableBody">
             <tr><td colspan="6" class="admin-table__empty">Loading reports...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Admins Tab (super_admin only) ═══ -->
+    <div class="admin__panel" id="panelAdmins" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Admin Accounts</h1>
+        <button id="btnNewAdminUser" class="btn btn--primary">+ New Admin</button>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="adminUsersTable">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersTableBody">
+            <tr><td colspan="4" class="admin-table__empty">Loading admin accounts...</td></tr>
           </tbody>
         </table>
       </div>
@@ -540,6 +592,46 @@
         <div class="modal__actions">
           <button type="button" id="coBtnCancel" class="btn btn--ghost">Cancel</button>
           <button type="submit" id="coBtnSubmit" class="btn btn--primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── Admin User Modal (Create / Edit) ──── -->
+  <div id="adminUserModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="adminUserBackdrop"></div>
+    <div class="modal__content modal__content--sm">
+      <div class="modal__header">
+        <h2 class="modal__title" id="adminUserModalTitle">New Admin</h2>
+        <button class="modal__close" id="adminUserModalClose">&times;</button>
+      </div>
+      <form id="adminUserForm" class="modal__form">
+        <input type="hidden" id="auFormId" value="" />
+
+        <div id="auFormMessage" class="form-message" style="display:none;"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="auFormUsername">Username <span class="required">*</span></label>
+          <input type="text" id="auFormUsername" class="form-input" required autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="auFormPassword">Password <span class="required" id="auPasswordRequired">*</span></label>
+          <input type="password" id="auFormPassword" class="form-input" autocomplete="new-password" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="auFormRole">Role <span class="required">*</span></label>
+          <select id="auFormRole" class="form-input" required>
+            <option value="super_admin">Super Admin</option>
+            <option value="editor">Editor</option>
+            <option value="moderator">Moderator</option>
+          </select>
+        </div>
+
+        <div class="modal__actions">
+          <button type="button" id="auBtnCancel" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="auBtnSubmit" class="btn btn--primary">Create Admin</button>
         </div>
       </form>
     </div>
