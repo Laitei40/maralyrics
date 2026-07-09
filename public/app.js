@@ -76,12 +76,27 @@ const Utils = {
     return `<span class="meta-link meta-link--disabled">${this.escapeHtml(name || I18n.t('common.unknown'))}</span>`;
   },
 
-  /** Render a comma-separated list of clickable name links (e.g. multiple credited artists/composers). */
-  renderNameLinks(list, type) {
+  /**
+   * Render credited people (artists/composers). A single person renders as a plain link;
+   * two or more collapse into a "Various Artists/Composers" trigger that opens a small
+   * popover listing each person as its own link (see the delegated click handler below).
+   */
+  renderCreditedPeople(list, type, variousLabel) {
     if (!list || !list.length) {
       return `<span class="meta-link meta-link--disabled">${this.escapeHtml(I18n.t('common.unknown'))}</span>`;
     }
-    return list.map((item) => this.renderNameLink(item.name, item.slug, type)).join(', ');
+    if (list.length === 1) {
+      return this.renderNameLink(list[0].name, list[0].slug, type);
+    }
+    const links = list
+      .map((item) => `<a href="/${type}/${this.escapeHtml(item.slug)}" class="credits-popover__link">${this.escapeHtml(item.name)}</a>`)
+      .join('');
+    return `
+      <span class="credits-wrap">
+        <button type="button" class="meta-link credits-trigger" aria-haspopup="true" aria-expanded="false">${this.escapeHtml(variousLabel)}</button>
+        <span class="credits-popover" role="menu">${links}</span>
+      </span>
+    `;
   },
 
   /** Plain-text comma-separated names, for titles/meta/search (no markup). */
@@ -891,13 +906,13 @@ const SongPage = {
     if (titleEl) titleEl.textContent = song.title;
     if (artistEl) {
       artistEl.innerHTML = song.artists?.length
-        ? Utils.renderNameLinks(song.artists, 'artist')
+        ? Utils.renderCreditedPeople(song.artists, 'artist', I18n.t('song.various_artists'))
         : Utils.renderNameLink(song.artist_name || song.artist, song.artist_slug, 'artist');
     }
     const composerEl = document.getElementById('songComposer');
     if (composerEl) {
       composerEl.innerHTML = song.composers?.length
-        ? Utils.renderNameLinks(song.composers, 'composer')
+        ? Utils.renderCreditedPeople(song.composers, 'composer', I18n.t('song.various_composers'))
         : Utils.renderNameLink(song.composer_name || song.composer, song.composer_slug, 'composer');
     }
     if (categoryEl) categoryEl.textContent = song.category || I18n.t('common.uncategorized');
@@ -1427,6 +1442,33 @@ function initOfflineDetection() {
     Toast.initOffline();
   }
 }
+
+// ─── Credited People Popover (Various Artists / Various Composers) ─────
+function closeCreditsPopovers(except) {
+  document.querySelectorAll('.credits-wrap.open').forEach((wrap) => {
+    if (wrap === except) return;
+    wrap.classList.remove('open');
+    wrap.querySelector('.credits-trigger')?.setAttribute('aria-expanded', 'false');
+  });
+}
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest('.credits-trigger');
+  if (trigger) {
+    e.preventDefault();
+    const wrap = trigger.closest('.credits-wrap');
+    const willOpen = !wrap.classList.contains('open');
+    closeCreditsPopovers();
+    if (willOpen) {
+      wrap.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+    }
+    return;
+  }
+  if (!e.target.closest('.credits-popover')) closeCreditsPopovers();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeCreditsPopovers();
+});
 
 // ─── App Initialization ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {

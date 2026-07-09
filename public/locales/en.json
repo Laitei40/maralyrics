@@ -49,7 +49,9 @@
     "share_success": "Link copied to clipboard",
     "share_error": "Couldn't share song",
     "error_title": "Song not found",
-    "error_text": "This song may have been removed or the link is incorrect."
+    "error_text": "This song may have been removed or the link is incorrect.",
+    "various_artists": "Various Artists",
+    "various_composers": "Various Composers"
   },
   "artist": {
     "role": "Artist",
