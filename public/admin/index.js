@@ -272,7 +272,9 @@ function wireCheckboxListFilter(filterEl, containerEl) {
   if (!filterEl || !containerEl) return;
   filterEl.addEventListener('input', () => {
     const q = filterEl.value.trim().toLowerCase();
-    containerEl.querySelectorAll('.checkbox-list__item').forEach((row) => {
+    // "Unknown" is pinned at the top and always stays visible regardless of the filter —
+    // it has no `data-name` since it isn't a real, filterable artist/composer.
+    containerEl.querySelectorAll('.checkbox-list__item:not(.checkbox-list__item--unknown)').forEach((row) => {
       row.classList.toggle('checkbox-list__item--hidden', !!q && !row.dataset.name.includes(q));
     });
   });
