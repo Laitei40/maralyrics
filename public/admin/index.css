@@ -415,6 +415,45 @@
   margin-top: 4px;
 }
 
+/* Checkbox list (Artist/Composer multi-pick) — checking one item never affects
+   the others, unlike a native <select multiple> which silently deselects
+   everything else on a plain click without Ctrl/Cmd held. */
+.checkbox-list {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  background: rgba(255,255,255,0.04);
+}
+.checkbox-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+.checkbox-list__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.checkbox-list__item input[type="checkbox"] {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.checkbox-list__item--hidden {
+  display: none;
+}
+.checkbox-list__empty {
+  padding: 8px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
 .form-message {
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);

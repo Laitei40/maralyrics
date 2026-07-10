@@ -190,14 +190,49 @@ function updateDraftIndicator(indicatorId) {
   ind.style.display = 'block';
 }
 
-// Multi-<select> helpers (Artist/Composer fields allow selecting more than one, up to 20).
-function getSelectedIds(selectEl) {
-  return Array.from(selectEl?.selectedOptions || []).map(o => Number(o.value));
+// Checkbox-list helpers (Artist/Composer fields allow picking more than one, up to 20).
+// A checkbox list is used instead of a native <select multiple> because a plain click on
+// an option in <select multiple> — without holding Ctrl/Cmd — silently deselects every
+// other option, which previously caused real data loss (a song's existing artist/composer
+// credits got wiped just by clicking to add one more without the modifier key held).
+const MAX_CREDITED_PEOPLE_CLIENT = 20;
+
+function getSelectedIds(containerEl) {
+  if (!containerEl) return [];
+  return Array.from(containerEl.querySelectorAll('input[type="checkbox"]:checked')).map(cb => Number(cb.value));
 }
-function setSelectedIds(selectEl, ids) {
-  if (!selectEl) return;
+function setSelectedIds(containerEl, ids) {
+  if (!containerEl) return;
   const set = new Set((ids || []).map(Number));
-  Array.from(selectEl.options).forEach(o => { o.selected = set.has(Number(o.value)); });
+  containerEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = set.has(Number(cb.value)); });
+}
+function buildCheckboxList(containerEl, items) {
+  if (!containerEl) return;
+  containerEl.innerHTML = items.map(item => `
+    <label class="checkbox-list__item" data-name="${escapeHtml(item.name.toLowerCase())}">
+      <input type="checkbox" value="${item.id}" />
+      <span>${escapeHtml(item.name)}</span>
+    </label>
+  `).join('') || '<div class="checkbox-list__empty">None yet.</div>';
+
+  containerEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+    cb.addEventListener('change', () => {
+      if (getSelectedIds(containerEl).length > MAX_CREDITED_PEOPLE_CLIENT) {
+        cb.checked = false;
+        if (typeof Toast !== 'undefined') Toast.show(`You can select up to ${MAX_CREDITED_PEOPLE_CLIENT}.`, { type: 'error' });
+        else alert(`You can select up to ${MAX_CREDITED_PEOPLE_CLIENT}.`);
+      }
+    });
+  });
+}
+function wireCheckboxListFilter(filterEl, containerEl) {
+  if (!filterEl || !containerEl) return;
+  filterEl.addEventListener('input', () => {
+    const q = filterEl.value.trim().toLowerCase();
+    containerEl.querySelectorAll('.checkbox-list__item').forEach((row) => {
+      row.classList.toggle('checkbox-list__item--hidden', !!q && !row.dataset.name.includes(q));
+    });
+  });
 }
 
 // ─── Song Draft ─────────────────────────────────
@@ -395,34 +430,41 @@ function switchTab(tab) {
 }
 
 // ─── Populate Artist/Composer Dropdowns ─────────
+// Deduped: called both at startup and every time the song modal opens. Without this,
+// two concurrent calls could each rebuild the checkbox lists' innerHTML — if the
+// startup call's rebuild lands AFTER a form's selections were just set, it silently
+// wipes them back to unchecked.
+let dropdownsLoadPromise = null;
+
 async function populateDropdowns() {
+  if (dropdownsLoadPromise) return dropdownsLoadPromise;
+  dropdownsLoadPromise = (async () => {
+    try {
+      const [aData, cData, coData] = await Promise.all([
+        apiGet(`${ADMIN_API}/artists`),
+        apiGet(`${ADMIN_API}/composers`),
+        apiGet(`${ADMIN_API}/copyright-owners`),
+      ]);
+      allArtists = aData.artists || [];
+      allComposers = cData.composers || [];
+      allCopyrightOwners = coData.copyright_owners || [];
+    } catch (err) {
+      console.warn('Failed to load dropdowns:', err);
+    }
+
+    buildCheckboxList(document.getElementById('formArtist'), allArtists);
+    buildCheckboxList(document.getElementById('formComposer'), allComposers);
+
+    const coSel = document.getElementById('formCopyrightOwner');
+    if (coSel) {
+      coSel.innerHTML = '<option value="">— None —</option>' +
+        allCopyrightOwners.map(co => `<option value="${co.id}">${escapeHtml(co.name)}</option>`).join('');
+    }
+  })();
   try {
-    const [aData, cData, coData] = await Promise.all([
-      apiGet(`${ADMIN_API}/artists`),
-      apiGet(`${ADMIN_API}/composers`),
-      apiGet(`${ADMIN_API}/copyright-owners`),
-    ]);
-    allArtists = aData.artists || [];
-    allComposers = cData.composers || [];
-    allCopyrightOwners = coData.copyright_owners || [];
-  } catch (err) {
-    console.warn('Failed to load dropdowns:', err);
-  }
-
-  const artistSel = document.getElementById('formArtist');
-  const composerSel = document.getElementById('formComposer');
-  const coSel = document.getElementById('formCopyrightOwner');
-
-  if (artistSel) {
-    // Multi-select: no placeholder option — "no selection" just means nothing is highlighted.
-    artistSel.innerHTML = allArtists.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
-  }
-  if (composerSel) {
-    composerSel.innerHTML = allComposers.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-  }
-  if (coSel) {
-    coSel.innerHTML = '<option value="">— None —</option>' +
-      allCopyrightOwners.map(co => `<option value="${co.id}">${escapeHtml(co.name)}</option>`).join('');
+    await dropdownsLoadPromise;
+  } finally {
+    dropdownsLoadPromise = null;
   }
 }
 
@@ -1358,6 +1400,10 @@ function initDashboard() {
   document.getElementById('modalClose').addEventListener('click', closeSongModal);
   document.getElementById('modalBackdrop').addEventListener('click', closeSongModal);
   document.getElementById('btnCancel').addEventListener('click', closeSongModal);
+
+  // Artist/Composer checkbox-list filters
+  wireCheckboxListFilter(document.getElementById('formArtistFilter'), document.getElementById('formArtist'));
+  wireCheckboxListFilter(document.getElementById('formComposerFilter'), document.getElementById('formComposer'));
 
   // Image upload & social links
   initImageUpload();
