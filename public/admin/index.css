@@ -419,39 +419,92 @@
    the others, unlike a native <select multiple> which silently deselects
    everything else on a plain click without Ctrl/Cmd held. */
 .checkbox-list {
-  max-height: 180px;
+  max-height: 200px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
-  padding: 4px;
-  background: rgba(255,255,255,0.04);
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
 }
+.checkbox-list::-webkit-scrollbar {
+  width: 8px;
+}
+.checkbox-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.checkbox-list::-webkit-scrollbar-thumb {
+  background: var(--border-glass);
+  border-radius: 4px;
+}
+.checkbox-list::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
 .checkbox-list__item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
+  gap: 10px;
+  padding: 7px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: var(--text-sm);
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 .checkbox-list__item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary);
+}
+.checkbox-list__item:has(input:checked) {
+  background: var(--accent-glow, rgba(139, 92, 246, 0.14));
+  color: var(--text-primary);
+  font-weight: 600;
 }
 .checkbox-list__item input[type="checkbox"] {
   flex-shrink: 0;
   cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
 }
 .checkbox-list__item--hidden {
   display: none;
 }
+.checkbox-list__item--unknown {
+  font-style: italic;
+  color: var(--text-muted);
+}
+.checkbox-list__item--unknown:has(input:checked) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.checkbox-list__divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border-glass);
+  flex-shrink: 0;
+}
 .checkbox-list__empty {
-  padding: 8px;
+  padding: 8px 10px;
   font-size: var(--text-sm);
   color: var(--text-muted);
+}
+.checkbox-list__count {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: right;
+}
+.checkbox-list__count--full {
+  color: var(--accent-light);
+  font-weight: 600;
 }
 
 .form-message {

@@ -197,23 +197,64 @@ function updateDraftIndicator(indicatorId) {
 // credits got wiped just by clicking to add one more without the modifier key held).
 const MAX_CREDITED_PEOPLE_CLIENT = 20;
 
+// "Unknown" is a UI-only sentinel — a song can genuinely have no known artist/composer
+// (traditional/folk songs). It isn't a real artist/composer row: checking it just means
+// "confirmed unknown", mutually exclusive with picking real people, and saves as an empty
+// artist_ids/composer_ids array exactly like leaving the list untouched would.
+const UNKNOWN_CHECKBOX_SELECTOR = 'input[data-unknown="1"]';
+
 function getSelectedIds(containerEl) {
   if (!containerEl) return [];
-  return Array.from(containerEl.querySelectorAll('input[type="checkbox"]:checked')).map(cb => Number(cb.value));
+  return Array.from(containerEl.querySelectorAll(`input[type="checkbox"]:checked:not(${UNKNOWN_CHECKBOX_SELECTOR})`))
+    .map(cb => Number(cb.value));
 }
 function setSelectedIds(containerEl, ids) {
   if (!containerEl) return;
   const set = new Set((ids || []).map(Number));
-  containerEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = set.has(Number(cb.value)); });
+  containerEl.querySelectorAll(`input[type="checkbox"]:not(${UNKNOWN_CHECKBOX_SELECTOR})`).forEach(cb => {
+    cb.checked = set.has(Number(cb.value));
+  });
+  const unknownCb = containerEl.querySelector(UNKNOWN_CHECKBOX_SELECTOR);
+  if (unknownCb) unknownCb.checked = false;
+  updateCheckboxListState(containerEl);
 }
+
+function updateCheckboxListState(containerEl) {
+  if (!containerEl) return;
+  const unknownCb = containerEl.querySelector(UNKNOWN_CHECKBOX_SELECTOR);
+  const realBoxes = Array.from(containerEl.querySelectorAll(`input[type="checkbox"]:not(${UNKNOWN_CHECKBOX_SELECTOR})`));
+  const selectedCount = realBoxes.filter(cb => cb.checked).length;
+
+  // Mutually exclusive: picking "Unknown" disables real options, and vice versa.
+  if (unknownCb) {
+    realBoxes.forEach(cb => { cb.disabled = unknownCb.checked; });
+    unknownCb.disabled = selectedCount > 0;
+  }
+
+  const countEl = containerEl.parentElement?.querySelector('.checkbox-list__count');
+  if (countEl) {
+    countEl.textContent = `${selectedCount} / ${MAX_CREDITED_PEOPLE_CLIENT} selected`;
+    countEl.classList.toggle('checkbox-list__count--full', selectedCount >= MAX_CREDITED_PEOPLE_CLIENT);
+  }
+}
+
 function buildCheckboxList(containerEl, items) {
   if (!containerEl) return;
-  containerEl.innerHTML = items.map(item => `
+  const unknownRow = `
+    <label class="checkbox-list__item checkbox-list__item--unknown">
+      <input type="checkbox" data-unknown="1" />
+      <span>Unknown</span>
+    </label>
+    <div class="checkbox-list__divider"></div>
+  `;
+  const itemRows = items.map(item => `
     <label class="checkbox-list__item" data-name="${escapeHtml(item.name.toLowerCase())}">
       <input type="checkbox" value="${item.id}" />
       <span>${escapeHtml(item.name)}</span>
     </label>
   `).join('') || '<div class="checkbox-list__empty">None yet.</div>';
+
+  containerEl.innerHTML = unknownRow + itemRows;
 
   containerEl.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
     cb.addEventListener('change', () => {
@@ -222,8 +263,10 @@ function buildCheckboxList(containerEl, items) {
         if (typeof Toast !== 'undefined') Toast.show(`You can select up to ${MAX_CREDITED_PEOPLE_CLIENT}.`, { type: 'error' });
         else alert(`You can select up to ${MAX_CREDITED_PEOPLE_CLIENT}.`);
       }
+      updateCheckboxListState(containerEl);
     });
   });
+  updateCheckboxListState(containerEl);
 }
 function wireCheckboxListFilter(filterEl, containerEl) {
   if (!filterEl || !containerEl) return;
