@@ -14,6 +14,61 @@
   text-transform: uppercase;
 }
 
+/* ─── Settings Dropdown (header: My Profile / Change Password / Log Out) ─── */
+.settings-menu {
+  position: relative;
+}
+
+.settings-menu__trigger {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.settings-menu__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: 200;
+  min-width: 200px;
+  padding: var(--space-xs);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.15s ease;
+}
+
+.settings-menu__item {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: var(--font-sans);
+  text-align: left;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.settings-menu__item:hover {
+  color: var(--text-primary);
+  background: var(--bg-glass);
+}
+.settings-menu__item--danger:hover {
+  color: var(--danger);
+}
+
+.settings-menu__divider {
+  height: 1px;
+  margin: var(--space-xs) 4px;
+  background: var(--border-glass);
+}
+
 /* ─── Admin Layout ──────────────────────────────────────────── */
 .admin {
   padding-top: var(--space-xl);

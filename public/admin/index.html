@@ -56,9 +56,15 @@
       <nav class="header__nav">
         <a href="https://maralyrics.com" class="header__nav-link">View Site</a>
         <span class="admin-badge" id="currentAdminLabel">Admin</span>
-        <a href="#" id="btnMyProfile" class="header__nav-link">My Profile</a>
-        <a href="#" id="btnChangePassword" class="header__nav-link">Change Password</a>
-        <a href="#" id="btnLogout" class="header__nav-link">Log Out</a>
+        <div class="settings-menu" id="settingsMenu">
+          <button type="button" id="btnSettingsToggle" class="header__nav-link settings-menu__trigger">⚙️ Settings</button>
+          <div class="settings-menu__dropdown" id="settingsDropdown" style="display:none;">
+            <button type="button" id="btnMyProfile" class="settings-menu__item">👤 My Profile</button>
+            <button type="button" id="btnChangePassword" class="settings-menu__item">🔒 Change Password</button>
+            <div class="settings-menu__divider"></div>
+            <button type="button" id="btnLogout" class="settings-menu__item settings-menu__item--danger">🚪 Log Out</button>
+          </div>
+        </div>
       </nav>
     </div>
   </header>

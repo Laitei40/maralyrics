@@ -88,6 +88,15 @@ function logout() {
   location.reload();
 }
 
+// ─── Settings dropdown (My Profile / Change Password / Log Out) ────
+function toggleSettingsMenu() {
+  const dropdown = document.getElementById('settingsDropdown');
+  dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+}
+function closeSettingsMenu() {
+  document.getElementById('settingsDropdown').style.display = 'none';
+}
+
 async function changePassword() {
   const current_password = window.prompt('Current password:');
   if (!current_password) return;
@@ -1660,12 +1669,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initDashboard() {
   applyRoleVisibility();
 
-  document.getElementById('btnLogout').addEventListener('click', (e) => { e.preventDefault(); logout(); });
-  document.getElementById('btnChangePassword').addEventListener('click', (e) => { e.preventDefault(); changePassword(); });
-  document.getElementById('btnMyProfile').addEventListener('click', (e) => {
-    e.preventDefault();
+  // Settings menu (header dropdown: My Profile / Change Password / Log Out)
+  document.getElementById('btnSettingsToggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSettingsMenu();
+  });
+  document.getElementById('btnLogout').addEventListener('click', () => { closeSettingsMenu(); logout(); });
+  document.getElementById('btnChangePassword').addEventListener('click', () => { closeSettingsMenu(); changePassword(); });
+  document.getElementById('btnMyProfile').addEventListener('click', () => {
+    closeSettingsMenu();
     const info = getAdminInfo();
     if (info) openProfileModal(info.id);
+  });
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('settingsMenu');
+    if (menu && !menu.contains(e.target)) closeSettingsMenu();
   });
 
   // Profile modal (view/follow any admin; self-management for your own)
@@ -1845,6 +1863,7 @@ function initDashboard() {
       closeRevisionModal();
       closeContactModal();
       closeProfileModal();
+      closeSettingsMenu();
     }
   });
 }
