@@ -718,17 +718,24 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-md);
-  padding: var(--space-lg) 0;
+  padding: var(--space-lg) var(--space-xl);
 }
 
 .feedback-detail__section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
 }
 
 .feedback-detail__section--full {
   grid-column: 1 / -1;
+  padding: 0;
+  background: none;
+  border: none;
 }
 
 .feedback-detail__label {
@@ -757,6 +764,16 @@
   max-height: 300px;
   overflow-y: auto;
   line-height: 1.6;
+}
+
+#feedbackModal .modal__actions {
+  padding: 0 var(--space-xl) var(--space-xl);
+}
+
+@media (max-width: 480px) {
+  .feedback-detail {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ─── Draft Banner ──────────────────────────────────────────── */
