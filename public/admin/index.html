@@ -56,6 +56,7 @@
       <nav class="header__nav">
         <a href="https://maralyrics.com" class="header__nav-link">View Site</a>
         <span class="admin-badge" id="currentAdminLabel">Admin</span>
+        <a href="#" id="btnMyProfile" class="header__nav-link">My Profile</a>
         <a href="#" id="btnChangePassword" class="header__nav-link">Change Password</a>
         <a href="#" id="btnLogout" class="header__nav-link">Log Out</a>
       </nav>
@@ -597,6 +598,90 @@
       </div>
       <div class="modal__actions">
         <button type="button" id="contactBtnClose" class="btn btn--ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Profile View / Self-Management Modal ── -->
+  <div id="profileModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="profileBackdrop"></div>
+    <div class="modal__content modal__content--sm">
+      <div class="modal__header">
+        <h2 class="modal__title">Profile</h2>
+        <button class="modal__close" id="profileModalClose">&times;</button>
+      </div>
+      <div class="profile-view">
+        <div class="profile-view__header">
+          <div class="profile-avatar profile-avatar--lg" id="profileAvatar">👤</div>
+          <div class="profile-view__info">
+            <div class="profile-view__username" id="profileUsername">—</div>
+            <span class="admin-badge" id="profileRoleBadge">Role</span>
+            <div class="profile-view__joined" id="profileJoined">—</div>
+          </div>
+        </div>
+
+        <div class="profile-view__stats">
+          <div class="profile-stat">
+            <span class="profile-stat__value" id="profileFollowers">0</span>
+            <span class="profile-stat__label">Followers</span>
+          </div>
+          <div class="profile-stat">
+            <span class="profile-stat__value" id="profileFollowing">0</span>
+            <span class="profile-stat__label">Following</span>
+          </div>
+        </div>
+
+        <button type="button" id="profileBtnFollow" class="btn btn--primary" style="display:none;width:100%;">Follow</button>
+
+        <div class="profile-view__divider"></div>
+
+        <!-- Every role can browse and open any other admin's profile from here, not just
+             roles with access to the (Manager+Admin-only) Admins management tab. -->
+        <div class="profile-directory">
+          <div class="form-label">All Admins</div>
+          <div class="profile-directory__list" id="profileDirectoryList"></div>
+        </div>
+
+        <!-- Self-management — shown only when viewing your own profile -->
+        <div id="profileSelfSection" style="display:none;">
+          <div class="profile-view__divider"></div>
+
+          <div class="form-group">
+            <label class="form-label" for="profileFormUsername">Username</label>
+            <input type="text" id="profileFormUsername" class="form-input" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Avatar</label>
+            <div class="avatar-picker" id="avatarPicker"></div>
+          </div>
+
+          <div id="profileFormMessage" class="form-message" style="display:none;"></div>
+
+          <div class="profile-actions-row">
+            <button type="button" id="profileBtnSaveChanges" class="btn btn--primary">Save Changes</button>
+            <button type="button" id="profileBtnChangePassword" class="btn btn--ghost">Change Password</button>
+          </div>
+
+          <div class="profile-view__divider"></div>
+
+          <div class="profile-danger-zone">
+            <div class="profile-danger-zone__label">Danger Zone</div>
+            <button type="button" id="profileBtnDeleteAccount" class="btn btn--danger">Delete My Account</button>
+
+            <div id="profileDeleteConfirm" style="display:none;">
+              <label class="form-label" for="profileDeletePassword">Enter your password to confirm — this cannot be undone</label>
+              <input type="password" id="profileDeletePassword" class="form-input" autocomplete="current-password" placeholder="Current password" />
+              <div class="profile-actions-row">
+                <button type="button" id="profileBtnCancelDelete" class="btn btn--ghost">Cancel</button>
+                <button type="button" id="profileBtnConfirmDelete" class="btn btn--danger">Permanently Delete My Account</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button type="button" id="profileBtnClose" class="btn btn--ghost">Close</button>
       </div>
     </div>
   </div>

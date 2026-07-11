@@ -120,7 +120,15 @@ export async function requireAuth(c, next) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  c.set('admin', payload);
+  // Re-check against the DB (indexed PK lookup, cheap) so a deleted or role-changed account
+  // can't keep acting on a still-valid JWT until it naturally expires (up to 12h) — otherwise
+  // e.g. self-deleting your own account wouldn't actually revoke access until token expiry.
+  const user = await c.env.DB.prepare('SELECT username, role FROM admin_users WHERE id = ?').bind(payload.sub).first();
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  c.set('admin', { ...payload, username: user.username, role: user.role });
   await next();
 }
 

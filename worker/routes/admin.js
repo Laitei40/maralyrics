@@ -18,6 +18,7 @@ import {
   statusChangePermission,
 } from '../lib/permissions.js';
 import { logAudit } from '../lib/audit.js';
+import { AVATARS } from '../lib/avatars.js';
 
 const app = new Hono();
 
@@ -176,6 +177,123 @@ app.delete('/admin-users/:id', requireRole(...CAN_MANAGE_ADMIN_USERS), async (c)
   await logAudit(c.env.DB, admin, 'admin_user.delete', 'admin_user', id, target.username);
   return c.json({ success: true });
 });
+
+// ── Profiles (any authenticated admin — every role, not just Manager/Admin) ──
+// A lightweight directory (id/username/role/avatar only) so every role can browse who to
+// view/follow, distinct from the full-detail `/admin-users` list above which stays
+// restricted to Manager+Admin for account management.
+app.get('/admin-users/directory', async (c) => {
+  const rows = await c.env.DB
+    .prepare('SELECT id, username, role, avatar FROM admin_users ORDER BY username')
+    .all();
+  return c.json({ admin_users: rows.results, total: rows.results.length });
+});
+
+app.get('/admin-users/:id/profile', async (c) => {
+  const id = Number(c.req.param('id'));
+  const admin = c.get('admin');
+
+  const user = await c.env.DB
+    .prepare('SELECT id, username, role, avatar, created_at FROM admin_users WHERE id = ?')
+    .bind(id)
+    .first();
+  if (!user) return c.json({ error: 'Not found' }, 404);
+
+  const [followers, following, isFollowing] = await Promise.all([
+    c.env.DB.prepare('SELECT COUNT(*) AS count FROM admin_follows WHERE followed_id = ?').bind(id).first(),
+    c.env.DB.prepare('SELECT COUNT(*) AS count FROM admin_follows WHERE follower_id = ?').bind(id).first(),
+    c.env.DB.prepare('SELECT 1 FROM admin_follows WHERE follower_id = ? AND followed_id = ?').bind(admin.sub, id).first(),
+  ]);
+
+  return c.json({
+    ...user,
+    follower_count: followers.count,
+    following_count: following.count,
+    is_following: !!isFollowing,
+    is_self: admin.sub === id,
+  });
+});
+
+app.post('/admin-users/:id/follow', async (c) => {
+  const id = Number(c.req.param('id'));
+  const admin = c.get('admin');
+  if (admin.sub === id) return c.json({ error: 'You cannot follow yourself' }, 400);
+
+  const target = await c.env.DB.prepare('SELECT id FROM admin_users WHERE id = ?').bind(id).first();
+  if (!target) return c.json({ error: 'Not found' }, 404);
+
+  try {
+    await c.env.DB.prepare('INSERT OR IGNORE INTO admin_follows (follower_id, followed_id) VALUES (?, ?)').bind(admin.sub, id).run();
+    return c.json({ success: true });
+  } catch (err) {
+    return fail(c, err);
+  }
+});
+
+app.delete('/admin-users/:id/follow', async (c) => {
+  const id = Number(c.req.param('id'));
+  const admin = c.get('admin');
+  await c.env.DB.prepare('DELETE FROM admin_follows WHERE follower_id = ? AND followed_id = ?').bind(admin.sub, id).run();
+  return c.json({ success: true });
+});
+
+// ── Self-service profile management (any role — username, avatar, account deletion).
+// Password change is already handled by /auth/change-password above. ──
+const profileApp = new Hono();
+
+profileApp.put('/', async (c) => {
+  const admin = c.get('admin');
+  const data = await c.req.json().catch(() => ({}));
+  const { username, avatar } = data;
+
+  if (username !== undefined && !username.trim()) return c.json({ error: 'Username cannot be empty' }, 400);
+  if (avatar !== undefined && avatar !== null && !AVATARS.includes(avatar)) {
+    return c.json({ error: 'Invalid avatar selection' }, 400);
+  }
+
+  const current = await c.env.DB.prepare('SELECT username, avatar FROM admin_users WHERE id = ?').bind(admin.sub).first();
+  const newUsername = username !== undefined ? username.trim() : current.username;
+  const newAvatar = avatar !== undefined ? avatar : current.avatar;
+
+  try {
+    await c.env.DB
+      .prepare('UPDATE admin_users SET username = ?, avatar = ? WHERE id = ?')
+      .bind(newUsername, newAvatar, admin.sub)
+      .run();
+    const row = await c.env.DB
+      .prepare('SELECT id, username, role, avatar, created_at, updated_at FROM admin_users WHERE id = ?')
+      .bind(admin.sub)
+      .first();
+    await logAudit(c.env.DB, admin, 'admin_user.self_edit', 'admin_user', admin.sub, `username=${newUsername}`);
+    return c.json(row);
+  } catch (err) {
+    return fail(c, err);
+  }
+});
+
+profileApp.post('/delete', async (c) => {
+  const admin = c.get('admin');
+  const { password } = await c.req.json().catch(() => ({}));
+  if (!password) return c.json({ error: 'Password is required to delete your account' }, 400);
+
+  const user = await c.env.DB.prepare('SELECT * FROM admin_users WHERE id = ?').bind(admin.sub).first();
+  if (!user || !(await verifyPassword(password, user.password_hash))) {
+    return c.json({ error: 'Incorrect password' }, 401);
+  }
+
+  if (user.role === 'super_admin') {
+    const { count } = await c.env.DB.prepare("SELECT COUNT(*) AS count FROM admin_users WHERE role = 'super_admin'").first();
+    if (count <= 1) return c.json({ error: 'Cannot delete the last remaining Super Admin' }, 400);
+  }
+
+  // Log before deleting — audit_log.admin_id has an FK on admin_users(id); logging after
+  // the row is gone would fail that constraint instead of just SET NULL-ing on a future delete.
+  await logAudit(c.env.DB, admin, 'admin_user.self_delete', 'admin_user', admin.sub, user.username);
+  await c.env.DB.prepare('DELETE FROM admin_users WHERE id = ?').bind(admin.sub).run();
+  return c.json({ success: true });
+});
+
+app.route('/profile', profileApp);
 
 // ── Generic CRUD for simple "person" resources: artists, composers ──
 // Read is open to any authenticated admin (all 6 roles); write (create/edit/delete)

@@ -122,6 +122,17 @@ function statusChangePermission(fromStatus, toStatus) {
   return fromStatus === 'archived' || toStatus === 'archived' ? CAN_ARCHIVE_RESTORE : CAN_PUBLISH_UNPUBLISH;
 }
 
+// Keep in sync with worker/lib/avatars.js — the built-in, no-upload avatar set.
+const AVATARS = [
+  '🦊', '🐱', '🐶', '🐼', '🐨', '🐵', '🦁', '🐯',
+  '🐸', '🐧', '🦉', '🦄', '🐝', '🦋', '🐢', '🐙',
+  '🦖', '🐳', '🌵', '🌸', '⭐', '🔥', '🎧', '🎸',
+];
+
+function avatarHtml(avatar, username) {
+  return avatar || (username ? username.charAt(0).toUpperCase() : '👤');
+}
+
 const ROLE_TABS = {
   songs: ROLES_ALL,
   artists: ROLES_ALL,
@@ -194,6 +205,10 @@ let allRevisions = [];
 let allAuditLog = [];
 let allContacts = [];
 let currentRevisionId = null;
+let currentProfileId = null;
+let currentProfileIsFollowing = false;
+let selectedAvatar = null;
+let allAdminDirectory = [];
 
 // ═══════════════════════════════════════════════════
 // ═══ DRAFT MANAGEMENT (localStorage auto-save) ════
@@ -1529,7 +1544,8 @@ function renderAdminUsersTable() {
       <td>${formatDate(u.created_at)}</td>
       <td>
         <div class="admin-table__actions">
-          ${locked ? '—' : `
+          <button class="btn btn--sm btn--ghost" onclick="openProfileModal(${u.id})" title="View Profile">👁️</button>
+          ${locked ? '' : `
           <button class="btn btn--sm btn--ghost" onclick="editAdminUser(${u.id})" title="Edit">✏️</button>
           <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${u.id}, '${escapeHtml(u.username).replace(/'/g, "\\'")}', 'admin-user')" title="Delete">🗑️</button>
           `}
@@ -1646,6 +1662,22 @@ function initDashboard() {
 
   document.getElementById('btnLogout').addEventListener('click', (e) => { e.preventDefault(); logout(); });
   document.getElementById('btnChangePassword').addEventListener('click', (e) => { e.preventDefault(); changePassword(); });
+  document.getElementById('btnMyProfile').addEventListener('click', (e) => {
+    e.preventDefault();
+    const info = getAdminInfo();
+    if (info) openProfileModal(info.id);
+  });
+
+  // Profile modal (view/follow any admin; self-management for your own)
+  document.getElementById('profileModalClose').addEventListener('click', closeProfileModal);
+  document.getElementById('profileBackdrop').addEventListener('click', closeProfileModal);
+  document.getElementById('profileBtnClose').addEventListener('click', closeProfileModal);
+  document.getElementById('profileBtnFollow').addEventListener('click', toggleProfileFollow);
+  document.getElementById('profileBtnSaveChanges').addEventListener('click', saveProfileChanges);
+  document.getElementById('profileBtnChangePassword').addEventListener('click', changePassword);
+  document.getElementById('profileBtnDeleteAccount').addEventListener('click', showDeleteAccountConfirm);
+  document.getElementById('profileBtnCancelDelete').addEventListener('click', cancelDeleteAccountConfirm);
+  document.getElementById('profileBtnConfirmDelete').addEventListener('click', confirmDeleteAccount);
 
   // Admin user management (super_admin only)
   document.getElementById('btnNewAdminUser')?.addEventListener('click', openNewAdminUser);
@@ -1812,6 +1844,7 @@ function initDashboard() {
       closeFeedbackModal();
       closeRevisionModal();
       closeContactModal();
+      closeProfileModal();
     }
   });
 }
@@ -1829,6 +1862,8 @@ window.changeSongStatus = changeSongStatus;
 window.openRevisionModal = openRevisionModal;
 window.updateContactStatus = updateContactStatus;
 window.viewContact = viewContact;
+window.openProfileModal = openProfileModal;
+window.selectAvatar = selectAvatar;
 
 // ═══════════════════════════════════════════════════
 // ═══ COPYRIGHT OWNERS ═════════════════════════════
@@ -2379,4 +2414,182 @@ function viewContact(id) {
 
 function closeContactModal() {
   document.getElementById('contactModal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ PROFILES (any admin can view/follow any profile;
+// ═══ the owner manages avatar/username/password/deletion) ═══
+// ═══════════════════════════════════════════════════
+
+async function openProfileModal(id) {
+  currentProfileId = id;
+  document.getElementById('profileModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('profileUsername').textContent = 'Loading...';
+  document.getElementById('profileFormMessage').style.display = 'none';
+  cancelDeleteAccountConfirm();
+
+  try {
+    const profile = await apiGet(`${ADMIN_API}/admin-users/${id}/profile`);
+    document.getElementById('profileAvatar').textContent = avatarHtml(profile.avatar, profile.username);
+    document.getElementById('profileUsername').textContent = profile.username;
+    document.getElementById('profileRoleBadge').textContent = roleLabel(profile.role);
+    document.getElementById('profileJoined').textContent = 'Joined ' + formatDate(profile.created_at);
+    document.getElementById('profileFollowers').textContent = profile.follower_count;
+    document.getElementById('profileFollowing').textContent = profile.following_count;
+
+    currentProfileIsFollowing = !!profile.is_following;
+    const followBtn = document.getElementById('profileBtnFollow');
+    if (profile.is_self) {
+      followBtn.style.display = 'none';
+    } else {
+      followBtn.style.display = '';
+      followBtn.textContent = currentProfileIsFollowing ? 'Unfollow' : 'Follow';
+      followBtn.className = 'btn ' + (currentProfileIsFollowing ? 'btn--ghost' : 'btn--primary');
+      followBtn.style.width = '100%';
+    }
+
+    const selfSection = document.getElementById('profileSelfSection');
+    selfSection.style.display = profile.is_self ? 'block' : 'none';
+    if (profile.is_self) {
+      document.getElementById('profileFormUsername').value = profile.username;
+      selectedAvatar = profile.avatar || null;
+      renderAvatarPicker();
+    }
+  } catch (err) {
+    document.getElementById('profileUsername').textContent = 'Failed to load: ' + err.message;
+  }
+
+  loadProfileDirectory();
+}
+
+function closeProfileModal() {
+  document.getElementById('profileModal').style.display = 'none';
+  document.body.style.overflow = '';
+  currentProfileId = null;
+}
+
+function renderAvatarPicker() {
+  const picker = document.getElementById('avatarPicker');
+  picker.innerHTML = AVATARS.map(a => `
+    <button type="button" class="avatar-picker__option${a === selectedAvatar ? ' avatar-picker__option--selected' : ''}" onclick="selectAvatar('${a}')">${a}</button>
+  `).join('');
+}
+
+function selectAvatar(avatar) {
+  selectedAvatar = avatar;
+  renderAvatarPicker();
+}
+
+// Every role can browse this list, even roles without access to the Admins management tab —
+// it's how a Viewer/Translator/Reviewer/Editor discovers other admins to view/follow at all.
+async function loadProfileDirectory() {
+  const listEl = document.getElementById('profileDirectoryList');
+  listEl.innerHTML = '<div class="admin-table__empty">Loading...</div>';
+  try {
+    const data = await apiGet(`${ADMIN_API}/admin-users/directory`);
+    allAdminDirectory = data.admin_users || [];
+    renderProfileDirectory();
+  } catch (err) {
+    listEl.innerHTML = `<div class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderProfileDirectory() {
+  const listEl = document.getElementById('profileDirectoryList');
+  if (!allAdminDirectory.length) {
+    listEl.innerHTML = '<div class="admin-table__empty">No admins found.</div>';
+    return;
+  }
+  listEl.innerHTML = allAdminDirectory.map(u => `
+    <button type="button" class="profile-directory__item${u.id === currentProfileId ? ' profile-directory__item--active' : ''}" onclick="openProfileModal(${u.id})">
+      <span class="profile-avatar profile-avatar--sm">${avatarHtml(u.avatar, u.username)}</span>
+      <span class="profile-directory__name">${escapeHtml(u.username)}</span>
+      <span class="profile-directory__role">${escapeHtml(roleLabel(u.role))}</span>
+    </button>
+  `).join('');
+}
+
+async function toggleProfileFollow() {
+  if (!currentProfileId) return;
+  const btn = document.getElementById('profileBtnFollow');
+  btn.disabled = true;
+  try {
+    if (currentProfileIsFollowing) {
+      await apiDelete(`${ADMIN_API}/admin-users/${currentProfileId}/follow`);
+    } else {
+      await apiPost(`${ADMIN_API}/admin-users/${currentProfileId}/follow`, {});
+    }
+    await openProfileModal(currentProfileId);
+  } catch (err) {
+    if (typeof Toast !== 'undefined') Toast.show('Failed: ' + err.message, { type: 'error' });
+    else alert('Failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function showProfileMessage(text, isError = false) {
+  const el = document.getElementById('profileFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = 'block';
+}
+
+async function saveProfileChanges() {
+  const username = document.getElementById('profileFormUsername').value.trim();
+  if (!username) { showProfileMessage('Username is required.', true); return; }
+
+  const btn = document.getElementById('profileBtnSaveChanges');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const updated = await apiPut(`${ADMIN_API}/profile`, { username, avatar: selectedAvatar });
+    showProfileMessage('Profile updated successfully!');
+    // Keep the cached session info (header label, role checks) in sync with the new username.
+    const info = getAdminInfo();
+    if (info) setAdminInfo({ ...info, username: updated.username });
+    applyRoleVisibility();
+    document.getElementById('profileUsername').textContent = updated.username;
+    document.getElementById('profileAvatar').textContent = avatarHtml(updated.avatar, updated.username);
+    loadProfileDirectory();
+  } catch (err) {
+    showProfileMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+function showDeleteAccountConfirm() {
+  document.getElementById('profileBtnDeleteAccount').style.display = 'none';
+  document.getElementById('profileDeleteConfirm').style.display = 'block';
+  document.getElementById('profileDeletePassword').focus();
+}
+
+function cancelDeleteAccountConfirm() {
+  document.getElementById('profileBtnDeleteAccount').style.display = '';
+  document.getElementById('profileDeleteConfirm').style.display = 'none';
+  document.getElementById('profileDeletePassword').value = '';
+}
+
+async function confirmDeleteAccount() {
+  const password = document.getElementById('profileDeletePassword').value;
+  if (!password) { alert('Enter your password to confirm.'); return; }
+
+  const btn = document.getElementById('profileBtnConfirmDelete');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+
+  try {
+    await apiPost(`${ADMIN_API}/profile/delete`, { password });
+    clearAdminSession();
+    alert('Your account has been deleted.');
+    location.reload();
+  } catch (err) {
+    alert('Failed to delete account: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Permanently Delete My Account';
+  }
 }

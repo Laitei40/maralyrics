@@ -118,8 +118,18 @@ CREATE TABLE IF NOT EXISTS admin_users (
     username      TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role          TEXT NOT NULL CHECK (role IN ('viewer', 'translator', 'reviewer', 'editor', 'manager', 'super_admin')),
+    avatar        TEXT, -- a built-in emoji identifier from worker/lib/avatars.js, or NULL (falls back to initial)
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Any admin can follow/unfollow any other admin's profile.
+CREATE TABLE IF NOT EXISTS admin_follows (
+    follower_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    followed_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, followed_id),
+    CHECK (follower_id != followed_id)
 );
 
 -- Multi-artist / multi-composer credits (a song can have more than one of
@@ -196,6 +206,7 @@ CREATE INDEX IF NOT EXISTS idx_song_revisions_submitted_by ON song_revisions(sub
 CREATE INDEX IF NOT EXISTS idx_audit_log_created_at        ON audit_log(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_log_target            ON audit_log(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_audit_log_admin_id           ON audit_log(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_follows_followed_id    ON admin_follows(followed_id);
 
 -- ── updated_at auto-maintenance triggers ──
 CREATE TRIGGER IF NOT EXISTS trg_artists_updated_at
