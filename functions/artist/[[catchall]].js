@@ -42,7 +42,11 @@ async function fetchArtist(db, slug) {
   if (!artist) return null;
 
   const countRow = await db
-    .prepare('SELECT COUNT(*) AS count FROM song_artists WHERE artist_id = ?')
+    .prepare(
+      `SELECT COUNT(*) AS count FROM song_artists sa
+       JOIN songs s ON s.id = sa.song_id
+       WHERE sa.artist_id = ? AND s.status = 'published'`
+    )
     .bind(artist.id)
     .first();
 

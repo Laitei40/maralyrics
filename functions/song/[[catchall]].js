@@ -41,7 +41,7 @@ async function fetchSong(db, slug) {
             WHERE sa.song_id = s.id ORDER BY sa.position
           )) AS artist_name
        FROM songs s
-       WHERE s.slug = ?`
+       WHERE s.slug = ? AND s.status = 'published'`
     )
     .bind(slug)
     .first();

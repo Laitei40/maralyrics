@@ -72,6 +72,9 @@
       <button class="admin__tab" data-tab="composers">Composers</button>
       <button class="admin__tab" data-tab="copyright-owners">Copyright Owners</button>
       <button class="admin__tab" data-tab="reports">Reports</button>
+      <button class="admin__tab" data-tab="revisions">Revisions</button>
+      <button class="admin__tab" data-tab="auditlog">Audit Log</button>
+      <button class="admin__tab" data-tab="contacts">Feedback Inbox</button>
       <button class="admin__tab" data-tab="admins">Admins</button>
     </div>
 
@@ -117,13 +120,14 @@
               <th>Artist</th>
               <th>Composer</th>
               <th>Category</th>
+              <th>Status</th>
               <th>Views</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="songsTableBody">
-            <tr><td colspan="7" class="admin-table__empty">Loading songs...</td></tr>
+            <tr><td colspan="8" class="admin-table__empty">Loading songs...</td></tr>
           </tbody>
         </table>
       </div>
@@ -213,7 +217,7 @@
     <div class="admin__panel" id="panelReports" style="display:none;">
 
       <div class="admin__topbar">
-        <h1 class="admin__title">Feedback</h1>
+        <h1 class="admin__title">Reports</h1>
         <div class="admin__topbar-actions">
           <select id="reportFilterStatus" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Statuses</option>
@@ -244,7 +248,110 @@
       </div>
     </div>
 
-    <!-- ═══ Admins Tab (super_admin only) ═══ -->
+    <!-- ═══ Revisions Tab ═══ -->
+    <div class="admin__panel" id="panelRevisions" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Revisions</h1>
+        <div class="admin__topbar-actions">
+          <select id="revisionFilterStatus" class="form-input form-input--sm" style="width:auto;">
+            <option value="">All Statuses</option>
+            <option value="pending" selected>Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="revisionsTable">
+          <thead>
+            <tr>
+              <th>Song</th>
+              <th>Submitted By</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="revisionsTableBody">
+            <tr><td colspan="5" class="admin-table__empty">Loading revisions...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Audit Log Tab ═══ -->
+    <div class="admin__panel" id="panelAuditlog" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Audit Log</h1>
+        <div class="admin__topbar-actions">
+          <select id="auditFilterTarget" class="form-input form-input--sm" style="width:auto;">
+            <option value="">All Targets</option>
+            <option value="song">Songs</option>
+            <option value="song_revision">Revisions</option>
+            <option value="admin_user">Admin Users</option>
+            <option value="artist">Artists</option>
+            <option value="composer">Composers</option>
+            <option value="copyright_owner">Copyright Owners</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="auditLogTable">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Admin</th>
+              <th>Action</th>
+              <th>Target</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody id="auditLogTableBody">
+            <tr><td colspan="5" class="admin-table__empty">Loading audit log...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Feedback Inbox Tab (Admin only) ═══ -->
+    <div class="admin__panel" id="panelContacts" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Feedback Inbox</h1>
+        <div class="admin__topbar-actions">
+          <select id="contactFilterStatus" class="form-input form-input--sm" style="width:auto;">
+            <option value="">All Statuses</option>
+            <option value="unread" selected>Unread</option>
+            <option value="read">Read</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="contactsTable">
+          <thead>
+            <tr>
+              <th>Name / Email</th>
+              <th>Subject</th>
+              <th>Message</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="contactsTableBody">
+            <tr><td colspan="6" class="admin-table__empty">Loading messages...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Admins Tab (Manager + Admin) ═══ -->
     <div class="admin__panel" id="panelAdmins" style="display:none;">
 
       <div class="admin__topbar">
@@ -336,6 +443,13 @@
           </div>
         </div>
 
+        <!-- Status badge + Publish/Set-Pending/Archive/Restore actions — edit mode only, a
+             new song has no id yet to target PUT /songs/:id/status against. -->
+        <div class="song-modal__status-row" id="songStatusRow" style="display:none;">
+          <span class="status-badge" id="songStatusBadge">—</span>
+          <div class="song-modal__status-actions" id="songStatusActions"></div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="formTitle">Title <span class="required">*</span></label>
           <input type="text" id="formTitle" class="form-input" required placeholder="Song title" />
@@ -390,9 +504,100 @@
 
         <div class="modal__actions">
           <button type="button" id="btnCancel" class="btn btn--ghost">Cancel</button>
+          <button type="button" id="btnSubmitRevision" class="btn btn--ghost" style="display:none;">Submit for Revision</button>
           <button type="submit" id="btnSubmit" class="btn btn--primary">Save Song</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ─── Revision Review Modal ──────────────── -->
+  <div id="revisionModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="revisionBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title" id="revisionModalTitle">Revision Detail</h2>
+        <button class="modal__close" id="revisionModalClose">&times;</button>
+      </div>
+      <div class="feedback-detail">
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Song</div>
+          <div class="feedback-detail__value" id="rdSong">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Submitted By</div>
+          <div class="feedback-detail__value" id="rdSubmittedBy">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Submitted At</div>
+          <div class="feedback-detail__value" id="rdSubmittedAt">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Status</div>
+          <div class="feedback-detail__value" id="rdStatus">—</div>
+        </div>
+        <div class="feedback-detail__section feedback-detail__section--full">
+          <div class="feedback-detail__label">Current</div>
+          <div class="feedback-detail__body" id="rdCurrent">—</div>
+        </div>
+        <div class="feedback-detail__section feedback-detail__section--full">
+          <div class="feedback-detail__label">Proposed</div>
+          <div class="feedback-detail__body" id="rdProposed">—</div>
+        </div>
+        <div class="feedback-detail__section feedback-detail__section--full" id="rdNoteRow" style="display:none;">
+          <div class="feedback-detail__label">Reviewer Note</div>
+          <div class="feedback-detail__body" id="rdReviewerNote">—</div>
+        </div>
+        <div class="feedback-detail__section feedback-detail__section--full" id="rdNoteInputRow">
+          <label class="form-label" for="rdNoteInput">Reviewer Note <span class="form-hint">(required to reject)</span></label>
+          <textarea id="rdNoteInput" class="form-input" rows="3" style="min-height:auto;resize:vertical;" placeholder="Explain why this revision is being approved or rejected..."></textarea>
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button type="button" id="revisionBtnClose" class="btn btn--ghost">Close</button>
+        <button type="button" id="revisionBtnReject" class="btn btn--danger">Reject</button>
+        <button type="button" id="revisionBtnApprove" class="btn btn--primary">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Contact Detail Modal ────────────────── -->
+  <div id="contactModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="contactBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title" id="contactModalTitle">Message Detail</h2>
+        <button class="modal__close" id="contactModalClose">&times;</button>
+      </div>
+      <div class="feedback-detail">
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Name</div>
+          <div class="feedback-detail__value" id="cdName">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Email</div>
+          <div class="feedback-detail__value" id="cdEmail">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Subject</div>
+          <div class="feedback-detail__value" id="cdSubject">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Status</div>
+          <div class="feedback-detail__value" id="cdStatus">—</div>
+        </div>
+        <div class="feedback-detail__section">
+          <div class="feedback-detail__label">Date</div>
+          <div class="feedback-detail__value" id="cdDate">—</div>
+        </div>
+        <div class="feedback-detail__section feedback-detail__section--full">
+          <div class="feedback-detail__label">Message</div>
+          <div class="feedback-detail__body" id="cdMessage">—</div>
+        </div>
+      </div>
+      <div class="modal__actions">
+        <button type="button" id="contactBtnClose" class="btn btn--ghost">Close</button>
+      </div>
     </div>
   </div>
 
@@ -623,9 +828,12 @@
         <div class="form-group">
           <label class="form-label" for="auFormRole">Role <span class="required">*</span></label>
           <select id="auFormRole" class="form-input" required>
-            <option value="super_admin">Super Admin</option>
+            <option value="viewer">Viewer</option>
+            <option value="translator">Translator</option>
+            <option value="reviewer">Reviewer</option>
             <option value="editor">Editor</option>
-            <option value="moderator">Moderator</option>
+            <option value="manager">Manager</option>
+            <option value="super_admin">Admin (Super Admin)</option>
           </select>
         </div>
 

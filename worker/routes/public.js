@@ -126,7 +126,7 @@ app.get('/bootstrap', async (c) => {
   // endpoint (and /version) return, e.g. "2026-07-08 12:34:56" — pass back the value
   // from a previous /version or /bootstrap call to fetch only what changed since then.
   const since = c.req.query('since') || null;
-  const songsWhere = since ? 'WHERE s.updated_at > ?' : '';
+  const songsWhere = since ? "WHERE s.updated_at > ? AND s.status = 'published'" : "WHERE s.status = 'published'";
   const peopleWhere = since ? 'WHERE updated_at > ?' : '';
   const bindings = since ? [since] : [];
 
@@ -163,7 +163,7 @@ app.get('/bootstrap', async (c) => {
 app.get('/songs/popular', async (c) => {
   const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit'), 10) || 6));
   const songs = await c.env.DB
-    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} ORDER BY s.views DESC LIMIT ?`)
+    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.status = 'published' ORDER BY s.views DESC LIMIT ?`)
     .bind(limit)
     .all();
   return c.json({ songs: songs.results.map(parseSongPeople) });
@@ -174,7 +174,7 @@ app.get('/songs', async (c) => {
   const { page, limit, offset } = parsePagination(c.req.query());
   const category = c.req.query('category') || null;
 
-  const where = category ? 'WHERE s.category = ?' : '';
+  const where = category ? "WHERE s.category = ? AND s.status = 'published'" : "WHERE s.status = 'published'";
   const bindings = category ? [category] : [];
 
   const [rows, countRow] = await Promise.all([
@@ -192,7 +192,7 @@ app.get('/songs', async (c) => {
 
 app.get('/songs/:slug', async (c) => {
   const song = await c.env.DB
-    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.slug = ?`)
+    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.slug = ? AND s.status = 'published'`)
     .bind(c.req.param('slug'))
     .first();
 
@@ -226,7 +226,7 @@ app.get('/search', async (c) => {
        FROM songs_fts f
        JOIN songs s ON s.id = f.rowid
        LEFT JOIN copyright_owners co ON s.copyright_owner_id = co.id
-       WHERE songs_fts MATCH ?
+       WHERE songs_fts MATCH ? AND s.status = 'published'
        ORDER BY rank
        LIMIT 30`
     )
@@ -238,7 +238,7 @@ app.get('/search', async (c) => {
   if (results.results.length === 0) {
     const firstWord = q.split(/\s+/)[0];
     const like = await c.env.DB
-      .prepare('SELECT slug, title FROM songs WHERE title LIKE ? LIMIT 5')
+      .prepare("SELECT slug, title FROM songs WHERE title LIKE ? AND status = 'published' LIMIT 5")
       .bind(`%${firstWord}%`)
       .all();
     suggestions = like.results;
@@ -267,7 +267,7 @@ async function getPerson(c, table, junctionTable, junctionFk) {
   const songs = await db
     .prepare(
       `SELECT ${SONG_COLUMNS} ${SONG_JOINS}
-       WHERE s.id IN (SELECT song_id FROM ${junctionTable} WHERE ${junctionFk} = ?)
+       WHERE s.id IN (SELECT song_id FROM ${junctionTable} WHERE ${junctionFk} = ?) AND s.status = 'published'
        ORDER BY s.title`
     )
     .bind(person.id)
@@ -292,7 +292,7 @@ app.get('/copyright-owners/:slug', async (c) => {
   if (!owner) return c.json({ error: 'Not found' }, 404);
 
   const songs = await db
-    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.copyright_owner_id = ? ORDER BY s.title`)
+    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.copyright_owner_id = ? AND s.status = 'published' ORDER BY s.title`)
     .bind(owner.id)
     .all();
 

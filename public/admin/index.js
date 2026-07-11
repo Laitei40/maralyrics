@@ -104,13 +104,34 @@ async function changePassword() {
 }
 
 // ─── Role-based UI visibility ───────────────────────
+// Keep in sync with worker/lib/permissions.js — index.js is a plain <script>,
+// not a module, so it can't import that file directly; the lists are duplicated here.
+const ROLES_ALL = ['viewer', 'translator', 'reviewer', 'editor', 'manager', 'super_admin'];
+
+const CAN_CREATE_SONG        = ['translator', 'editor', 'manager', 'super_admin'];
+const CAN_EDIT_SONG_DIRECT   = ['editor', 'manager', 'super_admin'];
+const CAN_SUBMIT_REVISION    = ['translator', 'editor', 'manager', 'super_admin'];
+const CAN_REVIEW_REVISIONS   = ['reviewer', 'manager', 'super_admin'];
+const CAN_PUBLISH_UNPUBLISH  = ['reviewer', 'editor', 'manager', 'super_admin'];
+const CAN_ARCHIVE_RESTORE    = ['reviewer', 'manager', 'super_admin'];
+const CAN_DELETE_SONG        = ['manager', 'super_admin'];
+const CAN_MANAGE_REFERENCE_DATA = ['manager', 'super_admin'];
+const CAN_MANAGE_ADMIN_USERS = ['manager', 'super_admin'];
+
+function statusChangePermission(fromStatus, toStatus) {
+  return fromStatus === 'archived' || toStatus === 'archived' ? CAN_ARCHIVE_RESTORE : CAN_PUBLISH_UNPUBLISH;
+}
+
 const ROLE_TABS = {
-  songs: ['super_admin', 'editor'],
-  artists: ['super_admin', 'editor'],
-  composers: ['super_admin', 'editor'],
-  'copyright-owners': ['super_admin', 'editor'],
-  reports: ['super_admin', 'moderator'],
-  admins: ['super_admin'],
+  songs: ROLES_ALL,
+  artists: ROLES_ALL,
+  composers: ROLES_ALL,
+  'copyright-owners': ROLES_ALL,
+  reports: ['translator', 'reviewer', 'editor', 'manager', 'super_admin'],
+  revisions: ['reviewer', 'manager', 'super_admin'],
+  auditlog: ['reviewer', 'manager', 'super_admin'],
+  contacts: ['super_admin'],
+  admins: ['manager', 'super_admin'],
 };
 
 function applyRoleVisibility() {
@@ -130,10 +151,32 @@ function applyRoleVisibility() {
   if (firstVisibleTab && (!activeTab || activeTab.style.display === 'none')) {
     switchTab(firstVisibleTab);
   }
+
+  // Per-button gating within a visible tab — a role can see a tab but not every action in it.
+  toggleEl('btnNewSong', hasRole(...CAN_CREATE_SONG));
+  toggleEl('btnNewArtist', hasRole(...CAN_MANAGE_REFERENCE_DATA));
+  toggleEl('btnNewComposer', hasRole(...CAN_MANAGE_REFERENCE_DATA));
+  toggleEl('btnNewCopyrightOwner', hasRole(...CAN_MANAGE_REFERENCE_DATA));
+  toggleEl('btnNewAdminUser', hasRole(...CAN_MANAGE_ADMIN_USERS));
+
+  const superAdminOption = document.querySelector('#auFormRole option[value="super_admin"]');
+  if (superAdminOption) superAdminOption.style.display = hasRole('super_admin') ? '' : 'none';
+}
+
+function toggleEl(id, visible) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = visible ? '' : 'none';
 }
 
 function roleLabel(role) {
-  return { super_admin: 'Super Admin', editor: 'Editor', moderator: 'Moderator' }[role] || role;
+  return {
+    viewer: 'Viewer',
+    translator: 'Translator',
+    reviewer: 'Reviewer',
+    editor: 'Editor',
+    manager: 'Manager',
+    super_admin: 'Admin (Super Admin)',
+  }[role] || role;
 }
 
 // State
@@ -143,10 +186,14 @@ let allSongs = [];
 let allArtists = [];
 let allComposers = [];
 let deleteTargetId = null;
-let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report' | 'admin-user'
+let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report' | 'admin-user' | 'contact'
 let allReports = [];
 let allCopyrightOwners = [];
 let allAdminUsers = [];
+let allRevisions = [];
+let allAuditLog = [];
+let allContacts = [];
+let currentRevisionId = null;
 
 // ═══════════════════════════════════════════════════
 // ═══ DRAFT MANAGEMENT (localStorage auto-save) ════
@@ -472,6 +519,9 @@ function switchTab(tab) {
   if (tab === 'reports') loadReports();
   if (tab === 'copyright-owners') loadCopyrightOwners();
   if (tab === 'admins') loadAdminUsers();
+  if (tab === 'revisions') loadRevisions();
+  if (tab === 'auditlog') loadAuditLog();
+  if (tab === 'contacts') loadContacts();
 }
 
 // ─── Populate Artist/Composer Dropdowns ─────────
@@ -521,7 +571,7 @@ let currentSearchQuery = '';
 
 async function loadSongs(page = 1, query = currentSearchQuery) {
   const tbody = document.getElementById('songsTableBody');
-  tbody.innerHTML = '<tr><td colspan="7" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" class="admin-table__empty">Loading...</td></tr>';
   currentSearchQuery = query || '';
 
   try {
@@ -537,7 +587,51 @@ async function loadSongs(page = 1, query = currentSearchQuery) {
     renderSongsTable(allSongs);
     renderPagination();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function statusBadgeHtml(status) {
+  const labels = { pending: 'Pending', published: 'Published', archived: 'Archived' };
+  return `<span class="status-badge status-badge--${status}">${labels[status] || status}</span>`;
+}
+
+// Inline Publish/Set-Pending/Archive/Restore icons for the songs table row — same
+// permission split as the backend's PUT /songs/:id/status (Editor gets publish/unpublish
+// but never archive/restore).
+function songStatusActionsHtml(song) {
+  const info = getAdminInfo();
+  if (!info) return '';
+  const allowed = (target) => statusChangePermission(song.status, target).includes(info.role);
+  const buttons = [];
+
+  if (song.status !== 'published' && allowed('published')) {
+    buttons.push(`<button class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'published')" title="Publish">📢</button>`);
+  }
+  if (song.status === 'published' && allowed('pending')) {
+    buttons.push(`<button class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'pending')" title="Set Pending">⏸️</button>`);
+  }
+  if (song.status !== 'archived' && allowed('archived')) {
+    buttons.push(`<button class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'archived')" title="Archive">🗄️</button>`);
+  }
+  if (song.status === 'archived' && allowed('pending')) {
+    buttons.push(`<button class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'pending')" title="Restore">♻️</button>`);
+  }
+  return buttons.join('');
+}
+
+async function changeSongStatus(id, status) {
+  try {
+    const updated = await apiPut(`${ADMIN_API}/songs/${id}/status`, { status });
+    const song = allSongs.find(s => s.id === id);
+    if (song) song.status = updated.status;
+    renderSongsTable(allSongs);
+    if (document.getElementById('formSongId')?.value == id) {
+      renderSongStatusRow(updated);
+    }
+  } catch (err) {
+    if (typeof Toast !== 'undefined') Toast.show('Failed to update status: ' + err.message, { type: 'error' });
+    else alert('Failed to update status: ' + err.message);
   }
 }
 
@@ -546,10 +640,12 @@ function renderSongsTable(songs) {
 
   if (!songs.length) {
     tbody.innerHTML = currentSearchQuery
-      ? '<tr><td colspan="7" class="admin-table__empty">No songs match your search.</td></tr>'
-      : '<tr><td colspan="7" class="admin-table__empty">No songs found. Click "+ New Song" to add one.</td></tr>';
+      ? '<tr><td colspan="8" class="admin-table__empty">No songs match your search.</td></tr>'
+      : '<tr><td colspan="8" class="admin-table__empty">No songs found. Click "+ New Song" to add one.</td></tr>';
     return;
   }
+
+  const canDelete = hasRole(...CAN_DELETE_SONG);
 
   tbody.innerHTML = songs.map((song) => `
     <tr data-id="${song.id}">
@@ -560,12 +656,14 @@ function renderSongsTable(songs) {
       <td>${escapeHtml(song.artist_name || song.artist || '—')}</td>
       <td>${escapeHtml(song.composer_name || song.composer || '—')}</td>
       <td>${song.category ? `<span class="song-card__category">${escapeHtml(song.category)}</span>` : '—'}</td>
+      <td>${statusBadgeHtml(song.status || 'published')}</td>
       <td>${formatViews(song.views)}</td>
       <td>${formatDate(song.created_at)}</td>
       <td>
         <div class="admin-table__actions">
           <button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>
-          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, '${escapeHtml(song.title).replace(/'/g, "\\'")}', 'song')" title="Delete">🗑️</button>
+          ${songStatusActionsHtml(song)}
+          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, '${escapeHtml(song.title).replace(/'/g, "\\'")}', 'song')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
@@ -617,12 +715,92 @@ function showFormMessage(text, isError = false) {
   el.style.display = 'block';
 }
 
+// Disables/enables the song content fields (everything except the status row) — used by
+// applySongModalPermissions so a role that can only view or only change status never gets
+// a form it can silently edit and lose.
+function setSongFieldsDisabled(disabled) {
+  ['formTitle', 'formCopyrightOwner', 'formCategory', 'formSlug', 'formLyrics'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
+  ['formArtist', 'formComposer'].forEach((id) => {
+    const container = document.getElementById(id);
+    if (!container) return;
+    container.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.disabled = disabled; });
+    if (!disabled) updateCheckboxListState(container); // reconcile Unknown/real mutual exclusivity
+  });
+}
+
+// Populates the status badge + Publish/Set-Pending/Archive/Restore buttons, each shown only
+// if the current role has that specific permission for the song's current status — mirrors
+// the backend's statusChangePermission() split (Editor: publish/unpublish, not archive/restore).
+function renderSongStatusRow(song) {
+  const row = document.getElementById('songStatusRow');
+  const badge = document.getElementById('songStatusBadge');
+  const actions = document.getElementById('songStatusActions');
+  if (!row || !badge || !actions) return;
+  if (!song || !song.status) { row.style.display = 'none'; return; }
+
+  row.style.display = 'flex';
+  badge.className = 'status-badge status-badge--' + song.status;
+  badge.textContent = { pending: 'Pending', published: 'Published', archived: 'Archived' }[song.status] || song.status;
+
+  const info = getAdminInfo();
+  const allowed = (target) => !!info && statusChangePermission(song.status, target).includes(info.role);
+  const buttons = [];
+  if (song.status !== 'published' && allowed('published')) {
+    buttons.push(`<button type="button" class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'published')">Publish</button>`);
+  }
+  if (song.status === 'published' && allowed('pending')) {
+    buttons.push(`<button type="button" class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'pending')">Set Pending</button>`);
+  }
+  if (song.status !== 'archived' && allowed('archived')) {
+    buttons.push(`<button type="button" class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'archived')">Archive</button>`);
+  }
+  if (song.status === 'archived' && allowed('pending')) {
+    buttons.push(`<button type="button" class="btn btn--sm btn--ghost" onclick="changeSongStatus(${song.id}, 'pending')">Restore</button>`);
+  }
+  actions.innerHTML = buttons.join('');
+}
+
+// Drives every role-conditional part of the song modal (field editability, status row,
+// which of Update Song / Submit for Revision are offered) from two facts: are we creating
+// or editing, and what can this role do. See migrations/0004 + worker/lib/permissions.js.
+function applySongModalPermissions(mode, role, song) {
+  const btnSubmit = document.getElementById('btnSubmit');
+  const btnSubmitRevision = document.getElementById('btnSubmitRevision');
+  const statusRow = document.getElementById('songStatusRow');
+
+  if (mode === 'create') {
+    setSongFieldsDisabled(false);
+    statusRow.style.display = 'none';
+    btnSubmit.style.display = '';
+    btnSubmit.textContent = 'Create Song';
+    btnSubmitRevision.style.display = 'none';
+    return;
+  }
+
+  renderSongStatusRow(song);
+
+  const canEditDirect = CAN_EDIT_SONG_DIRECT.includes(role);
+  const canSubmitRevision = CAN_SUBMIT_REVISION.includes(role);
+
+  setSongFieldsDisabled(!canEditDirect && !canSubmitRevision);
+
+  btnSubmit.style.display = canEditDirect ? '' : 'none';
+  btnSubmit.textContent = 'Update Song';
+
+  btnSubmitRevision.style.display = canSubmitRevision ? '' : 'none';
+  btnSubmitRevision.textContent = 'Submit for Revision';
+}
+
 function openNewSong() {
+  if (!hasRole(...CAN_CREATE_SONG)) return;
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'New Song';
-  document.getElementById('btnSubmit').textContent = 'Create Song';
   populateDropdowns();
   openSongModal();
+  applySongModalPermissions('create', getAdminInfo()?.role, null);
   document.getElementById('formTitle').focus();
   // Check for unsaved draft
   const draft = loadDraft('song', null);
@@ -634,7 +812,6 @@ function openNewSong() {
 async function editSong(id) {
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'Edit Song';
-  document.getElementById('btnSubmit').textContent = 'Update Song';
   await populateDropdowns();
   openSongModal();
 
@@ -648,6 +825,7 @@ async function editSong(id) {
     document.getElementById('formCopyrightOwner').value = song.copyright_owner_id || '';
     document.getElementById('formSlug').value = song.slug || '';
     document.getElementById('formLyrics').value = song.lyrics || '';
+    applySongModalPermissions('edit', getAdminInfo()?.role, song);
     // Check for unsaved draft for this song
     const draft = loadDraft('song', song.id);
     if (draft && (draft.title || draft.lyrics)) {
@@ -658,30 +836,41 @@ async function editSong(id) {
   }
 }
 
-async function saveSong(e) {
+function gatherSongFormData() {
+  return {
+    title: document.getElementById('formTitle').value.trim(),
+    artist_ids: getSelectedIds(document.getElementById('formArtist')),
+    composer_ids: getSelectedIds(document.getElementById('formComposer')),
+    copyright_owner_id: document.getElementById('formCopyrightOwner').value || null,
+    category: document.getElementById('formCategory').value.trim(),
+    slug: document.getElementById('formSlug').value.trim(),
+    lyrics: document.getElementById('formLyrics').value.trim(),
+  };
+}
+
+function validateSongFormData(body) {
+  if (!body.title) return 'Title is required.';
+  if (!body.lyrics) return 'Lyrics are required.';
+  if (body.artist_ids.length > 20) return 'A song can have at most 20 artists.';
+  if (body.composer_ids.length > 20) return 'A song can have at most 20 composers.';
+  return null;
+}
+
+// Direct save — creates a new song, or applies an edit immediately for roles allowed to
+// bypass the revision queue (Editor/Manager/Admin). Never touches status.
+async function saveSongDirect(e) {
   e.preventDefault();
 
   const id = document.getElementById('formSongId').value;
-  const title = document.getElementById('formTitle').value.trim();
-  const artist_ids = getSelectedIds(document.getElementById('formArtist'));
-  const composer_ids = getSelectedIds(document.getElementById('formComposer'));
-  const copyright_owner_id = document.getElementById('formCopyrightOwner').value || null;
-  const category = document.getElementById('formCategory').value.trim();
-  const slug = document.getElementById('formSlug').value.trim();
-  const lyrics = document.getElementById('formLyrics').value.trim();
-
-  if (!title) { showFormMessage('Title is required.', true); return; }
-  if (!lyrics) { showFormMessage('Lyrics are required.', true); return; }
-  if (artist_ids.length > 20) { showFormMessage('A song can have at most 20 artists.', true); return; }
-  if (composer_ids.length > 20) { showFormMessage('A song can have at most 20 composers.', true); return; }
+  const body = gatherSongFormData();
+  const error = validateSongFormData(body);
+  if (error) { showFormMessage(error, true); return; }
 
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true;
   btn.textContent = 'Saving...';
 
   try {
-    const body = { title, artist_ids, composer_ids, copyright_owner_id, category, slug, lyrics };
-
     if (id) {
       await apiPut(`${ADMIN_API}/songs/${id}`, body);
       showFormMessage('Song updated successfully!');
@@ -703,6 +892,34 @@ async function saveSong(e) {
   } finally {
     btn.disabled = false;
     btn.textContent = id ? 'Update Song' : 'Create Song';
+  }
+}
+
+// Proposes an edit to an EXISTING song for Reviewer approval instead of applying it
+// directly — used by Translator always, and optionally by Editor/Manager/Admin.
+async function submitSongRevision() {
+  const id = document.getElementById('formSongId').value;
+  if (!id) return;
+
+  const body = gatherSongFormData();
+  const error = validateSongFormData(body);
+  if (error) { showFormMessage(error, true); return; }
+
+  const btn = document.getElementById('btnSubmitRevision');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    await apiPost(`${ADMIN_API}/songs/${id}/revisions`, body);
+    showFormMessage('Revision submitted for review!');
+    clearDraft('song', id);
+    hideDraftBanner('songDraftBanner', 'songDraftIndicator');
+    setTimeout(() => closeSongModal(), 800);
+  } catch (err) {
+    showFormMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit for Revision';
   }
 }
 
@@ -748,6 +965,7 @@ function renderPersonTable(type, items, tbody) {
     tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">No ${type}s found.</td></tr>`;
     return;
   }
+  const canManage = hasRole(...CAN_MANAGE_REFERENCE_DATA);
   tbody.innerHTML = items.map(item => `
     <tr data-id="${item.id}">
       <td><div class="admin-table__title">${escapeHtml(item.name)}</div></td>
@@ -755,8 +973,8 @@ function renderPersonTable(type, items, tbody) {
       <td>${escapeHtml((item.bio || '').substring(0, 60))}${item.bio && item.bio.length > 60 ? '...' : ''}</td>
       <td>
         <div class="admin-table__actions">
-          <button class="btn btn--sm btn--ghost" onclick="editPerson('${type}', ${item.id})" title="Edit">✏️</button>
-          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', '${type}')" title="Delete">🗑️</button>
+          ${canManage ? `<button class="btn btn--sm btn--ghost" onclick="editPerson('${type}', ${item.id})" title="Edit">✏️</button>` : ''}
+          ${canManage ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', '${type}')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/${type}/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
@@ -1247,6 +1465,7 @@ async function deleteItem() {
   else if (type === 'copyright-owner') allCopyrightOwners = allCopyrightOwners.filter(co => co.id !== id);
   else if (type === 'report') allReports = allReports.filter(r => r.id !== id);
   else if (type === 'admin-user') allAdminUsers = allAdminUsers.filter(u => u.id !== id);
+  else if (type === 'contact') allContacts = allContacts.filter(c => c.id !== id);
 
   try {
     await apiDelete(`${ADMIN_API}/${type}s/${id}`);
@@ -1257,6 +1476,7 @@ async function deleteItem() {
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
     else if (type === 'admin-user') loadAdminUsers();
+    else if (type === 'contact') loadContacts();
   } catch (err) {
     // Show error and restore list by reloading
     if (typeof Toast !== 'undefined') {
@@ -1270,6 +1490,7 @@ async function deleteItem() {
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
     else if (type === 'admin-user') loadAdminUsers();
+    else if (type === 'contact') loadContacts();
   }
 }
 
@@ -1296,19 +1517,27 @@ function renderAdminUsersTable() {
     return;
   }
   const me = getAdminInfo();
-  tbody.innerHTML = allAdminUsers.map(u => `
+  // A Manager may not touch an existing Admin (Super Admin) account at all — same rule the
+  // backend enforces on PUT/DELETE /admin-users/:id — so hide those rows' actions client-side too.
+  const canGrantSuperAdmin = hasRole('super_admin');
+  tbody.innerHTML = allAdminUsers.map(u => {
+    const locked = u.role === 'super_admin' && !canGrantSuperAdmin;
+    return `
     <tr data-id="${u.id}">
       <td><div class="admin-table__title">${escapeHtml(u.username)}${me && me.id === u.id ? ' <span class="admin-badge" style="font-size:10px;">You</span>' : ''}</div></td>
       <td>${escapeHtml(roleLabel(u.role))}</td>
       <td>${formatDate(u.created_at)}</td>
       <td>
         <div class="admin-table__actions">
+          ${locked ? '—' : `
           <button class="btn btn--sm btn--ghost" onclick="editAdminUser(${u.id})" title="Edit">✏️</button>
           <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${u.id}, '${escapeHtml(u.username).replace(/'/g, "\\'")}', 'admin-user')" title="Delete">🗑️</button>
+          `}
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function openAdminUserModal() {
@@ -1441,7 +1670,8 @@ function initDashboard() {
 
   // Song buttons
   document.getElementById('btnNewSong').addEventListener('click', openNewSong);
-  document.getElementById('songForm').addEventListener('submit', saveSong);
+  document.getElementById('songForm').addEventListener('submit', saveSongDirect);
+  document.getElementById('btnSubmitRevision').addEventListener('click', submitSongRevision);
   document.getElementById('modalClose').addEventListener('click', closeSongModal);
   document.getElementById('modalBackdrop').addEventListener('click', closeSongModal);
   document.getElementById('btnCancel').addEventListener('click', closeSongModal);
@@ -1489,6 +1719,23 @@ function initDashboard() {
   document.getElementById('feedbackModalClose').addEventListener('click', closeFeedbackModal);
   document.getElementById('feedbackBackdrop').addEventListener('click', closeFeedbackModal);
   document.getElementById('feedbackBtnClose').addEventListener('click', closeFeedbackModal);
+
+  // Revisions tab + review modal
+  document.getElementById('revisionFilterStatus')?.addEventListener('change', () => renderRevisionsTable());
+  document.getElementById('revisionModalClose')?.addEventListener('click', closeRevisionModal);
+  document.getElementById('revisionBackdrop')?.addEventListener('click', closeRevisionModal);
+  document.getElementById('revisionBtnClose')?.addEventListener('click', closeRevisionModal);
+  document.getElementById('revisionBtnApprove')?.addEventListener('click', approveRevision);
+  document.getElementById('revisionBtnReject')?.addEventListener('click', rejectRevision);
+
+  // Audit log filter
+  document.getElementById('auditFilterTarget')?.addEventListener('change', () => loadAuditLog());
+
+  // Feedback Inbox (contacts) filter + detail modal
+  document.getElementById('contactFilterStatus')?.addEventListener('change', () => renderContactsTable());
+  document.getElementById('contactModalClose')?.addEventListener('click', closeContactModal);
+  document.getElementById('contactBackdrop')?.addEventListener('click', closeContactModal);
+  document.getElementById('contactBtnClose')?.addEventListener('click', closeContactModal);
 
   // Auto-slug on title/name typing
   document.getElementById('formTitle').addEventListener('input', autoSongSlug);
@@ -1563,6 +1810,8 @@ function initDashboard() {
       closeCopyrightOwnerModal();
       closeDeleteModal();
       closeFeedbackModal();
+      closeRevisionModal();
+      closeContactModal();
     }
   });
 }
@@ -1576,6 +1825,10 @@ window.confirmDelete = confirmDelete;
 window.loadSongs = loadSongs;
 window.updateReportStatus = updateReportStatus;
 window.viewFeedback = viewFeedback;
+window.changeSongStatus = changeSongStatus;
+window.openRevisionModal = openRevisionModal;
+window.updateContactStatus = updateContactStatus;
+window.viewContact = viewContact;
 
 // ═══════════════════════════════════════════════════
 // ═══ COPYRIGHT OWNERS ═════════════════════════════
@@ -1598,6 +1851,7 @@ function renderCopyrightOwnersTable(items, tbody) {
     tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">No copyright owners found.</td></tr>';
     return;
   }
+  const canManage = hasRole(...CAN_MANAGE_REFERENCE_DATA);
   tbody.innerHTML = items.map(item => `
     <tr data-id="${item.id}">
       <td><div class="admin-table__title">${escapeHtml(item.name)}</div></td>
@@ -1606,8 +1860,8 @@ function renderCopyrightOwnersTable(items, tbody) {
       <td>${escapeHtml(item.territory || '—')}</td>
       <td>
         <div class="admin-table__actions">
-          <button class="btn btn--sm btn--ghost" onclick="editCopyrightOwner(${item.id})" title="Edit">✏️</button>
-          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', 'copyright-owner')" title="Delete">🗑️</button>
+          ${canManage ? `<button class="btn btn--sm btn--ghost" onclick="editCopyrightOwner(${item.id})" title="Edit">✏️</button>` : ''}
+          ${canManage ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', 'copyright-owner')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/copyright-owner/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
@@ -1854,4 +2108,275 @@ function viewFeedback(id) {
 
 function closeFeedbackModal() {
   document.getElementById('feedbackModal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ REVISIONS ════════════════════════════════════
+// ═══════════════════════════════════════════════════
+
+async function loadRevisions() {
+  const tbody = document.getElementById('revisionsTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  try {
+    const data = await apiGet(`${ADMIN_API}/revisions`);
+    allRevisions = data.revisions || [];
+    renderRevisionsTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderRevisionsTable() {
+  const tbody = document.getElementById('revisionsTableBody');
+  const filterEl = document.getElementById('revisionFilterStatus');
+  const statusFilter = filterEl ? filterEl.value : '';
+
+  let filtered = allRevisions;
+  if (statusFilter) filtered = allRevisions.filter(r => r.status === statusFilter);
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">${statusFilter ? 'No ' + statusFilter + ' revisions.' : 'No revisions yet.'}</td></tr>`;
+    return;
+  }
+
+  const statusColors = { pending: '#f59e0b', approved: '#10b981', rejected: '#ef4444' };
+
+  tbody.innerHTML = filtered.map((r) => {
+    const color = statusColors[r.status] || '#6b7280';
+    return `
+      <tr data-id="${r.id}">
+        <td>
+          <div class="admin-table__title">${escapeHtml(r.song_title || '—')}</div>
+          <div class="admin-table__slug">/song/${escapeHtml(r.song_slug || '')}</div>
+        </td>
+        <td>${escapeHtml(r.submitted_by_username || '—')}</td>
+        <td>${formatDate(r.created_at)}</td>
+        <td><span class="status-badge" style="background:${color}22;color:${color};border-color:${color}44;">${escapeHtml(r.status)}</span></td>
+        <td>
+          <div class="admin-table__actions">
+            <button class="btn btn--sm btn--ghost" onclick="openRevisionModal(${r.id})" title="Review">👁️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Plain-text before/after summary of a song's editable fields — used for both the "Current"
+// and "Proposed" sides of the revision diff modal.
+function describeSongFields(song) {
+  if (!song) return '—';
+  const artists = (song.artists || []).map(a => a.name).join(', ') || '—';
+  const composers = (song.composers || []).map(c => c.name).join(', ') || '—';
+  const co = song.copyright_owner_id
+    ? (allCopyrightOwners.find(c => c.id === song.copyright_owner_id)?.name || `#${song.copyright_owner_id}`)
+    : '—';
+  return `Title: ${song.title || '—'}\nSlug: ${song.slug || '—'}\nCategory: ${song.category || '—'}\nCopyright Owner: ${co}\nArtists: ${artists}\nComposers: ${composers}\n\nLyrics:\n${song.lyrics || '—'}`;
+}
+
+async function openRevisionModal(id) {
+  currentRevisionId = id;
+  document.getElementById('revisionModal').style.display = 'flex';
+  document.getElementById('rdSong').textContent = 'Loading...';
+  document.getElementById('rdCurrent').textContent = '';
+  document.getElementById('rdProposed').textContent = '';
+  document.getElementById('rdNoteInput').value = '';
+
+  try {
+    const { revision, current } = await apiGet(`${ADMIN_API}/revisions/${id}`);
+    document.getElementById('revisionModalTitle').textContent = `Revision #${revision.id}`;
+    document.getElementById('rdSong').textContent = current ? current.title : `Song #${revision.song_id}`;
+    document.getElementById('rdSubmittedBy').textContent = revision.submitted_by_username || '—';
+    document.getElementById('rdSubmittedAt').textContent = formatDate(revision.created_at);
+    document.getElementById('rdStatus').textContent = revision.status;
+
+    document.getElementById('rdCurrent').textContent = describeSongFields(current);
+    const proposedArtistIds = JSON.parse(revision.artist_ids || '[]');
+    const proposedComposerIds = JSON.parse(revision.composer_ids || '[]');
+    document.getElementById('rdProposed').textContent = describeSongFields({
+      title: revision.title,
+      slug: revision.slug,
+      category: revision.category,
+      lyrics: revision.lyrics,
+      copyright_owner_id: revision.copyright_owner_id,
+      artists: proposedArtistIds.map(aid => ({ name: allArtists.find(a => a.id === aid)?.name || `#${aid}` })),
+      composers: proposedComposerIds.map(cid => ({ name: allComposers.find(c => c.id === cid)?.name || `#${cid}` })),
+    });
+
+    const isPending = revision.status === 'pending';
+    document.getElementById('rdNoteInputRow').style.display = isPending ? 'block' : 'none';
+    document.getElementById('rdNoteRow').style.display = isPending ? 'none' : 'block';
+    if (!isPending) document.getElementById('rdReviewerNote').textContent = revision.reviewer_note || '—';
+    document.getElementById('revisionBtnApprove').style.display = isPending ? '' : 'none';
+    document.getElementById('revisionBtnReject').style.display = isPending ? '' : 'none';
+  } catch (err) {
+    document.getElementById('rdSong').textContent = 'Failed to load: ' + err.message;
+  }
+}
+
+function closeRevisionModal() {
+  document.getElementById('revisionModal').style.display = 'none';
+  currentRevisionId = null;
+}
+
+async function approveRevision() {
+  if (!currentRevisionId) return;
+  const reviewer_note = document.getElementById('rdNoteInput').value.trim();
+  try {
+    await apiPut(`${ADMIN_API}/revisions/${currentRevisionId}/approve`, reviewer_note ? { reviewer_note } : {});
+    if (typeof Toast !== 'undefined') Toast.show('Revision approved.', { type: 'success' });
+    closeRevisionModal();
+    loadRevisions();
+    loadSongs(currentPage);
+  } catch (err) {
+    alert('Failed to approve: ' + err.message);
+  }
+}
+
+async function rejectRevision() {
+  if (!currentRevisionId) return;
+  const reviewer_note = document.getElementById('rdNoteInput').value.trim();
+  if (!reviewer_note) { alert('A reviewer note is required to reject a revision.'); return; }
+  try {
+    await apiPut(`${ADMIN_API}/revisions/${currentRevisionId}/reject`, { reviewer_note });
+    if (typeof Toast !== 'undefined') Toast.show('Revision rejected.', { type: 'success' });
+    closeRevisionModal();
+    loadRevisions();
+  } catch (err) {
+    alert('Failed to reject: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ AUDIT LOG ════════════════════════════════════
+// ═══════════════════════════════════════════════════
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('auditLogTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  try {
+    const targetType = document.getElementById('auditFilterTarget')?.value || '';
+    const params = new URLSearchParams({ limit: '100' });
+    if (targetType) params.set('target_type', targetType);
+    const data = await apiGet(`${ADMIN_API}/audit-log?${params.toString()}`);
+    allAuditLog = data.audit_log || [];
+    renderAuditLogTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderAuditLogTable() {
+  const tbody = document.getElementById('auditLogTableBody');
+  if (!allAuditLog.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">No audit entries yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allAuditLog.map((entry) => `
+    <tr>
+      <td>${formatDate(entry.created_at)}</td>
+      <td>${escapeHtml(entry.admin_username || '—')}</td>
+      <td>${escapeHtml(entry.action)}</td>
+      <td>${escapeHtml(entry.target_type)}${entry.target_id ? ' #' + entry.target_id : ''}</td>
+      <td>${escapeHtml(entry.detail || '—')}</td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ FEEDBACK INBOX (contacts — Admin only) ═══════
+// ═══════════════════════════════════════════════════
+
+async function loadContacts() {
+  const tbody = document.getElementById('contactsTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" class="admin-table__empty">Loading...</td></tr>';
+  try {
+    const data = await apiGet(`${ADMIN_API}/contacts`);
+    allContacts = data.contacts || [];
+    renderContactsTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderContactsTable() {
+  const tbody = document.getElementById('contactsTableBody');
+  const filterEl = document.getElementById('contactFilterStatus');
+  const statusFilter = filterEl ? filterEl.value : '';
+
+  let filtered = allContacts;
+  if (statusFilter) filtered = allContacts.filter(c => c.status === statusFilter);
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${statusFilter ? 'No ' + statusFilter + ' messages.' : 'No messages yet.'}</td></tr>`;
+    return;
+  }
+
+  const statusColors = { unread: '#f59e0b', read: '#3b82f6', archived: '#6b7280' };
+
+  tbody.innerHTML = filtered.map((c) => {
+    const color = statusColors[c.status] || '#6b7280';
+    const preview = (c.message || '').length > 80 ? c.message.substring(0, 80) + '...' : (c.message || '');
+    return `
+      <tr data-id="${c.id}">
+        <td>
+          <div class="admin-table__title">${escapeHtml(c.name || '—')}</div>
+          <div class="admin-table__slug">${escapeHtml(c.email || '')}</div>
+        </td>
+        <td>${escapeHtml(c.subject || 'General')}</td>
+        <td><div class="admin-table__desc" title="${escapeHtml(c.message || '')}">${escapeHtml(preview)}</div></td>
+        <td>
+          <select class="report-status-select" onchange="updateContactStatus(${c.id}, this.value)" style="background:${color}22;color:${color};border:1px solid ${color}44;border-radius:var(--radius-md);padding:2px 8px;font-size:var(--text-xs);font-weight:600;cursor:pointer;">
+            <option value="unread" ${c.status === 'unread' ? 'selected' : ''}>Unread</option>
+            <option value="read" ${c.status === 'read' ? 'selected' : ''}>Read</option>
+            <option value="archived" ${c.status === 'archived' ? 'selected' : ''}>Archived</option>
+          </select>
+        </td>
+        <td>${formatDate(c.created_at)}</td>
+        <td>
+          <div class="admin-table__actions">
+            <button class="btn btn--sm btn--ghost" onclick="viewContact(${c.id})" title="View Detail">📝</button>
+            <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${c.id}, 'Message #${c.id}', 'contact')" title="Delete">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function updateContactStatus(id, status) {
+  try {
+    await apiPut(`${ADMIN_API}/contacts/${id}`, { status });
+    const contact = allContacts.find(c => c.id === id);
+    if (contact) contact.status = status;
+    renderContactsTable();
+  } catch (err) {
+    alert('Failed to update status: ' + err.message);
+    loadContacts();
+  }
+}
+
+function viewContact(id) {
+  const c = allContacts.find(x => x.id === id);
+  if (!c) return;
+
+  const statusLabels = { unread: 'Unread', read: 'Read', archived: 'Archived' };
+  const statusColors = { unread: '#f59e0b', read: '#3b82f6', archived: '#6b7280' };
+  const color = statusColors[c.status] || '#6b7280';
+
+  document.getElementById('contactModalTitle').textContent = `Message #${c.id}`;
+  document.getElementById('cdName').textContent = c.name || '—';
+  document.getElementById('cdEmail').innerHTML = c.email
+    ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--accent);">${escapeHtml(c.email)}</a>`
+    : '—';
+  document.getElementById('cdSubject').textContent = c.subject || 'General';
+  document.getElementById('cdStatus').innerHTML = `<span style="color:${color};font-weight:600;">${statusLabels[c.status] || c.status}</span>`;
+  document.getElementById('cdDate').textContent = formatDate(c.created_at);
+  document.getElementById('cdMessage').textContent = c.message || '—';
+
+  document.getElementById('contactModal').style.display = 'flex';
+}
+
+function closeContactModal() {
+  document.getElementById('contactModal').style.display = 'none';
 }

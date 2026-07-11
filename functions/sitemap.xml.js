@@ -35,7 +35,7 @@ export async function onRequest(context) {
     const db = context.env.DB;
 
     const [songs, artists, composers, copyrightOwners] = await Promise.all([
-      db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM songs WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
+      db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM songs WHERE slug IS NOT NULL AND status = 'published' ORDER BY id DESC`).all(),
       db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM artists WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
       db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM composers WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
       db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM copyright_owners WHERE slug IS NOT NULL ORDER BY id DESC`).all(),

@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS songs (
     category            TEXT CHECK (category IS NULL OR category IN ('Gospel', 'Love', 'Traditional', 'Patriotic')),
     lyrics              TEXT NOT NULL,
     views               INTEGER DEFAULT 0,
+    status              TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'published', 'archived')),
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE SET NULL,
@@ -102,14 +103,21 @@ CREATE TABLE IF NOT EXISTS contacts (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Admin accounts (role-based: super_admin manages other admins, editor manages
--- content, moderator handles reports/contacts) — replaces the single shared
+-- Admin accounts (role-based, 6 roles from least to most privileged:
+-- viewer — read-only; translator — creates songs directly, edits existing
+-- songs only via a revision for review; reviewer — approves/rejects
+-- revisions, publishes/archives songs, views the audit log; editor —
+-- creates/edits/publishes songs directly, no archive/restore; manager —
+-- reviewer + editor combined, plus manages reference data (artists/
+-- composers/copyright owners) and admin accounts (except granting
+-- super_admin); super_admin — everything, plus the Feedback Inbox and
+-- granting the super_admin role itself. Replaces the single shared
 -- ADMIN_TOKEN bearer secret with per-user login + JWT sessions.
 CREATE TABLE IF NOT EXISTS admin_users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     username      TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    role          TEXT NOT NULL CHECK (role IN ('super_admin', 'editor', 'moderator')),
+    role          TEXT NOT NULL CHECK (role IN ('viewer', 'translator', 'reviewer', 'editor', 'manager', 'super_admin')),
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -131,6 +139,38 @@ CREATE TABLE IF NOT EXISTS song_composers (
     PRIMARY KEY (song_id, composer_id)
 );
 
+-- Proposed edits to an existing song, awaiting Reviewer approval/rejection.
+-- Approving applies the snapshot to the live song row; rejecting leaves it untouched.
+CREATE TABLE IF NOT EXISTS song_revisions (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_id             INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    title               TEXT NOT NULL,
+    slug                TEXT NOT NULL,
+    lyrics              TEXT NOT NULL,
+    category            TEXT CHECK (category IS NULL OR category IN ('Gospel', 'Love', 'Traditional', 'Patriotic')),
+    copyright_owner_id  INTEGER REFERENCES copyright_owners(id) ON DELETE SET NULL,
+    artist_ids          TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(artist_ids)),
+    composer_ids        TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(composer_ids)),
+    submitted_by        INTEGER REFERENCES admin_users(id) ON DELETE SET NULL,
+    status              TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewer_id         INTEGER REFERENCES admin_users(id) ON DELETE SET NULL,
+    reviewer_note       TEXT,
+    created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at         DATETIME
+);
+
+-- Accountability trail for meaningful admin mutations (song lifecycle, revisions, admin accounts, reference data).
+CREATE TABLE IF NOT EXISTS audit_log (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    admin_id       INTEGER REFERENCES admin_users(id) ON DELETE SET NULL,
+    admin_username TEXT NOT NULL,
+    action         TEXT NOT NULL,
+    target_type    TEXT NOT NULL,
+    target_id      INTEGER,
+    detail         TEXT,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ── Performance indexes ──
 CREATE INDEX IF NOT EXISTS idx_songs_slug              ON songs(slug);
 CREATE INDEX IF NOT EXISTS idx_songs_title              ON songs(title);
@@ -149,6 +189,13 @@ CREATE INDEX IF NOT EXISTS idx_contacts_status          ON contacts(status);
 CREATE INDEX IF NOT EXISTS idx_admin_users_username     ON admin_users(username);
 CREATE INDEX IF NOT EXISTS idx_song_artists_artist_id   ON song_artists(artist_id);
 CREATE INDEX IF NOT EXISTS idx_song_composers_composer_id ON song_composers(composer_id);
+CREATE INDEX IF NOT EXISTS idx_songs_status             ON songs(status);
+CREATE INDEX IF NOT EXISTS idx_song_revisions_song_id      ON song_revisions(song_id);
+CREATE INDEX IF NOT EXISTS idx_song_revisions_status       ON song_revisions(status);
+CREATE INDEX IF NOT EXISTS idx_song_revisions_submitted_by ON song_revisions(submitted_by);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at        ON audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_target            ON audit_log(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_admin_id           ON audit_log(admin_id);
 
 -- ── updated_at auto-maintenance triggers ──
 CREATE TRIGGER IF NOT EXISTS trg_artists_updated_at

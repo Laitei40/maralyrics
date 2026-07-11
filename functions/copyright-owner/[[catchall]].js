@@ -31,7 +31,7 @@ async function fetchOwner(db, slug) {
   if (!owner) return null;
 
   const countRow = await db
-    .prepare('SELECT COUNT(*) AS count FROM songs WHERE copyright_owner_id = ?')
+    .prepare("SELECT COUNT(*) AS count FROM songs WHERE copyright_owner_id = ? AND status = 'published'")
     .bind(owner.id)
     .first();
 
