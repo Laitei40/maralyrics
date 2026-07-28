@@ -446,11 +446,20 @@ function restoreCoDraftData(draft) {
 }
 
 // Helpers
+// Escapes all 5 HTML-significant characters, not just &/</> — this value gets embedded both
+// in text content AND inside double-quoted HTML attributes (title="...", value="...", data-*)
+// throughout this file. A DOM textContent round-trip only escapes &/</>, which left a real
+// stored-XSS hole: a double quote in a song title, username, or report body could break out
+// of an attribute and inject a new one (e.g. onmouseover=) — exploitable by anyone who could
+// set that field, including anonymous public report/contact submissions.
 function escapeHtml(str) {
   if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function formatDate(dateStr) {
@@ -687,7 +696,7 @@ function renderSongsTable(songs) {
         <div class="admin-table__actions">
           <button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>
           ${songStatusActionsHtml(song)}
-          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, '${escapeHtml(song.title).replace(/'/g, "\\'")}', 'song')" title="Delete">🗑️</button>` : ''}
+          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, 'song')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
@@ -998,7 +1007,7 @@ function renderPersonTable(type, items, tbody) {
       <td>
         <div class="admin-table__actions">
           ${canManage ? `<button class="btn btn--sm btn--ghost" onclick="editPerson('${type}', ${item.id})" title="Edit">✏️</button>` : ''}
-          ${canManage ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', '${type}')" title="Delete">🗑️</button>` : ''}
+          ${canManage ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${type}')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/${type}/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
@@ -1457,11 +1466,27 @@ function autoPersonSlug() {
 // ═══ DELETE (shared) ══════════════════════════════
 // ═══════════════════════════════════════════════════
 
-function confirmDelete(id, name, type) {
+// Looks up the display name from already-loaded state by id, rather than trusting a name
+// string passed in through an inline onclick="" attribute — free-text fields (song titles,
+// usernames, etc.) can contain a literal double-quote, which breaks out of a double-quoted
+// HTML attribute and lets stored content inject new attributes (e.g. onmouseover=) on the
+// element. Only numeric ids and fixed type literals ever reach an onclick string now.
+const DELETE_NAME_LOOKUP = {
+  song: (id) => allSongs.find(s => s.id === id)?.title,
+  artist: (id) => allArtists.find(a => a.id === id)?.name,
+  composer: (id) => allComposers.find(c => c.id === id)?.name,
+  'copyright-owner': (id) => allCopyrightOwners.find(c => c.id === id)?.name,
+  'admin-user': (id) => allAdminUsers.find(u => u.id === id)?.username,
+  report: (id) => `Report #${id}`,
+  contact: (id) => `Message #${id}`,
+};
+
+function confirmDelete(id, type) {
   deleteTargetId = id;
   deleteTargetType = type;
+  const name = DELETE_NAME_LOOKUP[type]?.(id) || `#${id}`;
   document.getElementById('deleteModalTitle').textContent = 'Delete ' + (type.charAt(0).toUpperCase() + type.slice(1));
-  document.getElementById('deleteName').textContent = name;
+  document.getElementById('deleteName').textContent = name; // .textContent — safe regardless of what `name` contains
   document.getElementById('deleteModal').style.display = 'flex';
 }
 
@@ -1556,7 +1581,7 @@ function renderAdminUsersTable() {
           <button class="btn btn--sm btn--ghost" onclick="openProfileModal(${u.id})" title="View Profile">👁️</button>
           ${locked ? '' : `
           <button class="btn btn--sm btn--ghost" onclick="editAdminUser(${u.id})" title="Edit">✏️</button>
-          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${u.id}, '${escapeHtml(u.username).replace(/'/g, "\\'")}', 'admin-user')" title="Delete">🗑️</button>
+          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${u.id}, 'admin-user')" title="Delete">🗑️</button>
           `}
         </div>
       </td>
@@ -1915,7 +1940,7 @@ function renderCopyrightOwnersTable(items, tbody) {
       <td>
         <div class="admin-table__actions">
           ${canManage ? `<button class="btn btn--sm btn--ghost" onclick="editCopyrightOwner(${item.id})" title="Edit">✏️</button>` : ''}
-          ${canManage ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${escapeHtml(item.name).replace(/'/g, "\\'")}', 'copyright-owner')" title="Delete">🗑️</button>` : ''}
+          ${canManage ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, 'copyright-owner')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/copyright-owner/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
         </div>
       </td>
@@ -2108,7 +2133,7 @@ function renderReportsTable() {
           <div class="admin-table__actions">
             <button class="btn btn--sm btn--ghost" onclick="viewFeedback(${r.id})" title="View Detail">📝</button>
             ${r.song_slug ? `<a href="${SITE_ORIGIN}/song/${escapeHtml(r.song_slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View Song">👁️</a>` : ''}
-            <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${r.id}, 'Report #${r.id}', 'report')" title="Delete">🗑️</button>
+            <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${r.id}, 'report')" title="Delete">🗑️</button>
           </div>
         </td>
       </tr>
@@ -2390,7 +2415,7 @@ function renderContactsTable() {
         <td>
           <div class="admin-table__actions">
             <button class="btn btn--sm btn--ghost" onclick="viewContact(${c.id})" title="View Detail">📝</button>
-            <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${c.id}, 'Message #${c.id}', 'contact')" title="Delete">🗑️</button>
+            <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${c.id}, 'contact')" title="Delete">🗑️</button>
           </div>
         </td>
       </tr>

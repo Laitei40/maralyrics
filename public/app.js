@@ -21,12 +21,17 @@ const CONFIG = {
 
 // ─── Utility Module ────────────────────────────────────────────
 const Utils = {
-  /** Escape HTML to prevent XSS. */
+  /** Escape all 5 HTML-significant characters — safe in both text content and quoted
+   *  attributes (href=, data-*=). A DOM textContent round-trip only escapes &/</>, which
+   *  leaves a double quote free to break out of an attribute value. */
   escapeHtml(str) {
     if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   },
 
   /** Debounce function calls. */

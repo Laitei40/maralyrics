@@ -36,6 +36,11 @@ function statusAction(from, to) {
   return 'unpublish';
 }
 
+// Not a real account — exists only so a nonexistent username still pays the same PBKDF2 cost
+// as a real one below, instead of short-circuiting instantly and leaking (via response
+// timing) which usernames exist.
+const DUMMY_PASSWORD_HASH = 'pbkdf2$100000$4nula02FmgoXy-aLB5wSGw$E1Lhp2PKZX5qQM5g7XTEOHkfbn_g9-q2_jSYJbAF-IY';
+
 // ── Auth: login is public (exempted in worker.js); /me and /change-password
 // run behind requireAuth like everything else under /api/v1/admin/*. ──
 app.post('/auth/login', async (c) => {
@@ -43,7 +48,8 @@ app.post('/auth/login', async (c) => {
   if (!username || !password) return c.json({ error: 'Username and password are required' }, 400);
 
   const user = await c.env.DB.prepare('SELECT * FROM admin_users WHERE username = ?').bind(username).first();
-  if (!user || !(await verifyPassword(password, user.password_hash))) {
+  const passwordOk = await verifyPassword(password, user ? user.password_hash : DUMMY_PASSWORD_HASH);
+  if (!user || !passwordOk) {
     return c.json({ error: 'Invalid username or password' }, 401);
   }
 
