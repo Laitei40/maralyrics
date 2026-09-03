@@ -22,6 +22,11 @@
         <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
         MaraLyrics
       </a>
+      <button class="header__menu-btn" aria-label="Open navigation menu" data-i18n-aria="mobile_drawer.open_aria" aria-expanded="false" aria-controls="mobileDrawer">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
       <nav class="header__nav">
         <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
@@ -59,6 +64,31 @@
       </nav>
     </div>
   </header>
+  <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
+       header does not create a containing block that clips position:fixed. -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <div class="mobile-drawer__backdrop"></div>
+    <aside class="mobile-drawer__panel" role="dialog" aria-label="Mobile navigation" data-i18n-aria="mobile_drawer.aria_label">
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__title-wrap">
+          <p class="mobile-drawer__eyebrow" data-i18n="mobile_drawer.eyebrow">Navigation</p>
+          <h2 class="mobile-drawer__title" data-i18n="mobile_drawer.title">Explore</h2>
+        </div>
+        <button class="mobile-drawer__close" aria-label="Close navigation menu" data-i18n-aria="mobile_drawer.close_aria">&times;</button>
+      </div>
+      <div class="mobile-drawer__content">
+        <a href="/" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🏠</span>
+          <span data-i18n="common.home">Home</span>
+        </a>
+        <a href="/#popular" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🔥</span>
+          <span data-i18n="nav.popular">Popular</span>
+        </a>
+      </div>
+    </aside>
+  </div>
+
 
   <!-- ═══ About Content ═══ -->
   <main class="static-page container">
@@ -164,20 +194,6 @@
   <script src="/toast.js"></script>
   <script src="/i18n.js"></script>
   <script src="/theme.js"></script>
-  <script>
-    CookieConsent.init();
-    I18n.init();
-    Theme.init();
-    Toast.initOffline();
-    if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
-    (function() {
-      const togBtn = document.querySelector('.settings-toggle__btn');
-      const togWrap = document.querySelector('.settings-toggle');
-      if (togBtn && togWrap) {
-        togBtn.addEventListener('click', (e) => { e.stopPropagation(); togWrap.classList.toggle('open'); });
-        document.addEventListener('click', (e) => { if (!togWrap.contains(e.target)) togWrap.classList.remove('open'); });
-      }
-    })();
-  </script>
+  <script src="/app.js"></script>
 </body>
 </html>

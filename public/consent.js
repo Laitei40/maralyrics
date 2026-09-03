@@ -65,9 +65,16 @@ const CookieConsent = (() => {
     banner.id = 'cookieConsent';
     banner.className = 'cookie-consent';
     banner.setAttribute('role', 'dialog');
+    banner.setAttribute('data-i18n-aria', 'consent.aria_label');
     banner.setAttribute('aria-label', typeof I18n !== 'undefined' ? I18n.t('consent.aria_label') : 'Cookie consent');
 
-    const _t = (key, fallback) => (typeof I18n !== 'undefined' ? I18n.t(key) : fallback);
+    // Falls back to the literal default both when I18n isn't loaded yet AND when it's
+    // loaded but the locale fetch hasn't resolved (t() then just echoes the raw key back).
+    const _t = (key, fallback) => {
+      if (typeof I18n === 'undefined') return fallback;
+      const val = I18n.t(key);
+      return val === key ? fallback : val;
+    };
 
     banner.innerHTML = `
       <div class="cookie-consent__inner">
@@ -83,13 +90,13 @@ const CookieConsent = (() => {
             </svg>
           </div>
           <div class="cookie-consent__text">
-            <p class="cookie-consent__title">${_t('consent.title', 'We use cookies')}</p>
-            <p class="cookie-consent__desc">${_t('consent.desc', 'This site uses cookies and local storage to save your language, theme, and search history for a better experience.')} <a href="/privacy" class="cookie-consent__link">${_t('consent.learn_more', 'Learn more')}</a></p>
+            <p class="cookie-consent__title" data-i18n="consent.title">${_t('consent.title', 'We use cookies')}</p>
+            <p class="cookie-consent__desc"><span data-i18n="consent.desc">${_t('consent.desc', 'This site uses cookies and local storage to save your language, theme, and search history for a better experience.')}</span> <a href="/privacy" class="cookie-consent__link" data-i18n="consent.learn_more">${_t('consent.learn_more', 'Learn more')}</a></p>
           </div>
         </div>
         <div class="cookie-consent__actions">
-          <button class="cookie-consent__btn cookie-consent__btn--accept" id="cookieAccept">${_t('consent.accept_all', 'Accept All')}</button>
-          <button class="cookie-consent__btn cookie-consent__btn--decline" id="cookieDecline">${_t('consent.essential_only', 'Essential Only')}</button>
+          <button class="cookie-consent__btn cookie-consent__btn--accept" id="cookieAccept" data-i18n="consent.accept_all">${_t('consent.accept_all', 'Accept All')}</button>
+          <button class="cookie-consent__btn cookie-consent__btn--decline" id="cookieDecline" data-i18n="consent.essential_only">${_t('consent.essential_only', 'Essential Only')}</button>
         </div>
       </div>
     `;
