@@ -3,8 +3,19 @@
     "popular": "Mo Hluhpazy"
   },
   "footer": {
-    "made_with": "Marasaw châta <span class=\"footer__heart\">♥</span> ta taopa",
-    "copyright": "© 2026 MaraLyrics"
+    "tagline": "Chhâtliasawzy châta Mara Hla pabohsana.",
+    "heading_information": "Chhichâna",
+    "heading_legal": "Dâh ta Pasaina",
+    "heading_support": "Deichhyna",
+    "link_copyright": "Biehneina",
+    "link_report": "Pâna Chho",
+    "made_with": "Marasawzy châta <span class=\"footer__heart\">♥</span> Mararâh liata apalai khei kawpa ta taopa a châ.",
+    "copyright": "© 2026 MaraLyrics. Biehneina zydua a paso khai."
+  },
+  "settings_panel": {
+    "toggle": "Paraihnazy",
+    "language": "Reih",
+    "theme": "Hnôhbai"
   },
   "offline": {
     "badge_text": "Offline"
@@ -14,16 +25,33 @@
     "hero_title": "Mara Hlabie",
     "hero_subtitle": "Marasawzy tawhta hlabie pha kawpazy hmô papua la tlua teh",
     "search_placeholder": "Hlasatuhpa moh ta chvk chôtlâhpi ta tlua...",
+    "search_aria": "Hlazy tlua",
+    "search_clear_aria": "Tluapa pathai",
     "search_results": "Hmôpazy",
     "popular_songs": "Alualâpa Hlazy",
     "all_songs": "Hla Zydua",
     "no_songs_title": "Hla hmôpa y vei",
     "no_songs_text": "A hropa ta tlua chhi chvk achô liata phozy khi tlua chhi."
   },
+  "mobile_drawer": {
+    "aria_label": "Mobai chhihthana",
+    "open_aria": "Chhihthana menu pahy",
+    "eyebrow": "Chhihthana",
+    "title": "Tlua",
+    "close_aria": "Chhihthana menu khaw"
+  },
   "song": {
     "breadcrumb": "Hla",
+    "copy_btn": "Patly",
+    "copy_success": "Hlabie patly hawpa a châ",
+    "copy_error": "Hlabie a patly thei vei",
+    "share_btn": "Rai",
+    "share_success": "Link patly hawpa a châ",
+    "share_error": "Hla a rai thei vei",
     "error_title": "Hla hmôpa y vei",
-    "error_text": "He hla he thy hawpa a châ chvk link he a pâpa a châ thlo aw."
+    "error_text": "He hla he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
+    "various_artists": "Hlasatuh Hluhpizy",
+    "various_composers": "Hlaphituh Hluhpizy"
   },
   "artist": {
     "role": "Hlasatuhpa",
@@ -71,13 +99,14 @@
     "website": "Website",
     "home": "Hmiapi",
     "feedback": "Khokheina",
-    "go_home": "← Hmiapi Lâ",
-    "name_placeholder": "Na moh khô la",
+    "go_home": "← Hmiapi lâ",
+    "songs_by_name": "{name} hlazy",
+    "name_placeholder": "Na moh roh la",
     "email_placeholder": "namoh@pamosana.com",
     "back": "← Kua",
     "sending": "Paphao hai...",
     "back_to_home": "← Hmiapi lâ Kua",
-    "err_generic": "Sâkha kha a sie chhei haw. Azao heih la."
+    "err_generic": "Sâkha kha a sie chhei haw. Azaoh heih la."
   },
   "about": {
     "breadcrumb": "About Us",
@@ -102,7 +131,8 @@
     "vision_li5": "Empowering community members to contribute and curate content",
     "community_heading": "Community First",
     "community_p1": "MaraLyrics is built by and for the Mara community. We welcome feedback, song submissions, and corrections from anyone who shares our passion for preserving Mara music. Together, we can ensure that our songs continue to inspire for generations to come.",
-    "community_p2": "Want to get involved? <a href=\"/contact\">Get in touch with us</a> or <a href=\"/report\">send us feedback</a>."
+    "community_p2": "Want to get involved? <a href=\"/contact\">Get in touch with us</a> or <a href=\"/report\">send us feedback</a>.",
+    "community_p3": "Prawche siezie nata code deichhy dâh na pahno khoh ma? <a href=\"/project\">Parawche chhichâna nata deichhytuhzy</a> he moh teh."
   },
   "contact": {
     "title": "Contact Us",
@@ -115,7 +145,10 @@
     "message_placeholder": "Write your message here...",
     "submit_btn": "Send Message",
     "success_title": "Mesei a Sie haw!",
-    "success_text": "Miah na vaw chareipa vâta eima châ ly kaw. Eima theina chhôh eima châ vaw tyh aw."
+    "success_text": "Miah na vaw chareipa vâta eima châ ly kaw. Eima theina chhôh eima châ vaw tyh aw.",
+    "err_fill_all": "Abyuhpa kao zydua pathla khai bei teh.",
+    "err_turnstile": "Thlalôhna pasiana kha patlô tua bei teh.",
+    "err_send_failed": "Mesei a paphao vei."
   },
   "faq": {
     "breadcrumb": "HHH",
@@ -213,7 +246,9 @@
     "dark": "Dark",
     "light": "Light",
     "system": "System",
-    "auto_time": "Auto Time"
+    "auto_time": "Auto Time",
+    "title_system": "Khaw Hawhta",
+    "title_time": "Daihti Hawhta"
   },
   "search_history": {
     "recent": "Recent",
@@ -223,8 +258,30 @@
   "search": {
     "did_you_mean": "Did you mean:"
   },
+  "project": {
+    "title": "Parawche",
+    "intro": "MaraLyrics cha hnawh pahypa, khitlâh ta a chhihthapa Mara hlabiezy pahmaohna su a châ. Ary liata zydua he ano eih database nata GitHub repository tawhta adaopa ta chaluahpa a châ. Ku ta khâsiapa y tlâ vei.",
+    "stats_heading": "Nuhby hawhta",
+    "stat_songs": "Hlazy",
+    "stat_artists": "Hlasatuhzy",
+    "stat_composers": "Hlaphituhzy",
+    "stat_categories": "Phozy",
+    "stat_views": "Motuhpa Zydua",
+    "contributors_heading": "Deichhytuhzy",
+    "contributors_intro": "MaraLyrics is cha â pahypa ta taopa a châ. Hezy he GitHub liata code deichhytuhzy ama châ.",
+    "contributors_loading": "Deichhytuhzy Khâh hai...",
+    "contributors_none": "Deichhytuhzy y mâh veih ei.",
+    "contributors_error": "Deichhytuhzy a khâh thei mâh vei — GitHub lia moh teh.",
+    "commits_one": "kawmie",
+    "commits_other": "kawmiezy",
+    "contribute_heading": "Deichhy teh",
+    "contribute_intro": "A pâna ma na hmôpa tlya, hla na so khohpa tlyma, reihpaliepa na paraih khohpa tlyma, cha leipa ta code ma na pakiathysa khoh tly? Deichhytuhpazy eima byuh kaw.",
+    "contribute_btn": "GitHub lia Deichhy teh"
+  },
   "copyright_owner": {
     "role": "Copyright Owner",
+    "error_title": "Biehneituhpa hmôpa châ vei",
+    "error_text": "He biehneituhpa he thy hawpa a châ chvk link he a pâpa a châ thlo aw.",
     "full_legal_name": "Full Legal Name",
     "organization": "Organization / Publisher",
     "territory": "Territory / Jurisdiction",
