@@ -11,6 +11,11 @@ const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
 const API_BASE = `${API_ORIGIN}/api/v1`;
 const ADMIN_API = `${API_BASE}/admin`;
 
+// ─── Shared status color maps (feedback/reports, revisions, contacts tables) ──
+const REPORT_STATUS_COLORS = { pending: '#f59e0b', reviewed: '#3b82f6', resolved: '#10b981', dismissed: '#6b7280' };
+const REVISION_STATUS_COLORS = { pending: '#f59e0b', approved: '#10b981', rejected: '#ef4444' };
+const CONTACT_STATUS_COLORS = { unread: '#f59e0b', read: '#3b82f6', archived: '#6b7280' };
+
 // ─── Admin session (JWT, per-account role) ──────────
 const TOKEN_KEY = 'ml_admin_jwt';
 const INFO_KEY = 'ml_admin_info'; // { id, username, role }
@@ -508,7 +513,7 @@ async function apiPost(url, body) {
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     await handleAuthFailure(res);
     throw new Error(data.error || `Error ${res.status}`);
@@ -522,7 +527,7 @@ async function apiPut(url, body) {
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     await handleAuthFailure(res);
     throw new Error(data.error || `Error ${res.status}`);
@@ -532,7 +537,7 @@ async function apiPut(url, body) {
 
 async function apiDelete(url) {
   const res = await fetch(url, { method: 'DELETE', headers: authHeaders() });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     await handleAuthFailure(res);
     throw new Error(data.error || `Error ${res.status}`);
@@ -546,6 +551,7 @@ function switchTab(tab) {
   document.querySelectorAll('.admin__panel').forEach(p => p.style.display = 'none');
   const panel = document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1));
   if (panel) panel.style.display = 'block';
+  try { sessionStorage.setItem('admin_tab', tab); } catch {}
 
   if (tab === 'artists') loadArtists();
   if (tab === 'composers') loadComposers();
@@ -827,11 +833,11 @@ function applySongModalPermissions(mode, role, song) {
   btnSubmitRevision.textContent = 'Submit for Revision';
 }
 
-function openNewSong() {
+async function openNewSong() {
   if (!hasRole(...CAN_CREATE_SONG)) return;
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'New Song';
-  populateDropdowns();
+  await populateDropdowns();
   openSongModal();
   applySongModalPermissions('create', getAdminInfo()?.role, null);
   document.getElementById('formTitle').focus();
@@ -1112,7 +1118,14 @@ function initImageUpload() {
 
   // File select
   fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) loadImageFile(fileInput.files[0]);
+    const file = fileInput.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file.');
+      fileInput.value = '';
+      return;
+    }
+    loadImageFile(file);
   });
 
   // URL toggle/load
@@ -1888,6 +1901,7 @@ function initDashboard() {
       closeRevisionModal();
       closeContactModal();
       closeProfileModal();
+      closeAdminUserModal();
       closeSettingsMenu();
     }
   });
@@ -2105,8 +2119,7 @@ function renderReportsTable() {
   }
 
   tbody.innerHTML = filtered.map(r => {
-    const statusColors = { pending: '#f59e0b', reviewed: '#3b82f6', resolved: '#10b981', dismissed: '#6b7280' };
-    const statusColor = statusColors[r.status] || '#6b7280';
+    const statusColor = REPORT_STATUS_COLORS[r.status] || '#6b7280';
     const bodyPreview = (r.body || '').length > 80 ? r.body.substring(0, 80) + '...' : (r.body || '');
 
     return `
@@ -2160,8 +2173,7 @@ function viewFeedback(id) {
   if (!r) return;
 
   const statusLabels = { pending: 'Pending', reviewed: 'Reviewed', resolved: 'Resolved', dismissed: 'Dismissed' };
-  const statusColors = { pending: '#f59e0b', reviewed: '#3b82f6', resolved: '#10b981', dismissed: '#6b7280' };
-  const color = statusColors[r.status] || '#6b7280';
+  const color = REPORT_STATUS_COLORS[r.status] || '#6b7280';
 
   document.getElementById('feedbackModalTitle').textContent = `Feedback #${r.id}`;
   document.getElementById('fdSong').textContent = r.song_title || r.song_slug || '—';
@@ -2218,10 +2230,8 @@ function renderRevisionsTable() {
     return;
   }
 
-  const statusColors = { pending: '#f59e0b', approved: '#10b981', rejected: '#ef4444' };
-
   tbody.innerHTML = filtered.map((r) => {
-    const color = statusColors[r.status] || '#6b7280';
+    const color = REVISION_STATUS_COLORS[r.status] || '#6b7280';
     return `
       <tr data-id="${r.id}">
         <td>
@@ -2391,10 +2401,8 @@ function renderContactsTable() {
     return;
   }
 
-  const statusColors = { unread: '#f59e0b', read: '#3b82f6', archived: '#6b7280' };
-
   tbody.innerHTML = filtered.map((c) => {
-    const color = statusColors[c.status] || '#6b7280';
+    const color = CONTACT_STATUS_COLORS[c.status] || '#6b7280';
     const preview = (c.message || '').length > 80 ? c.message.substring(0, 80) + '...' : (c.message || '');
     return `
       <tr data-id="${c.id}">
@@ -2440,8 +2448,7 @@ function viewContact(id) {
   if (!c) return;
 
   const statusLabels = { unread: 'Unread', read: 'Read', archived: 'Archived' };
-  const statusColors = { unread: '#f59e0b', read: '#3b82f6', archived: '#6b7280' };
-  const color = statusColors[c.status] || '#6b7280';
+  const color = CONTACT_STATUS_COLORS[c.status] || '#6b7280';
 
   document.getElementById('contactModalTitle').textContent = `Message #${c.id}`;
   document.getElementById('cdName').textContent = c.name || '—';

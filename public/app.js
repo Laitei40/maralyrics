@@ -110,6 +110,12 @@ const Utils = {
     return fallback || I18n.t('common.unknown');
   },
 
+  /** Prefix a bare domain (e.g. "example.com") with https:// so it resolves as an absolute URL. */
+  normalizeUrl(url) {
+    if (!url) return url;
+    return /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
+  },
+
   /** Detect social platform from URL and return name + SVG icon. */
   detectSocialPlatform(url) {
     const platforms = [
@@ -476,16 +482,10 @@ const UI = {
     return html;
   },
 
-  /** Show/hide the offline badge (header + legacy). */
+  /** Show/hide the offline badge (header). */
   setOfflineMode(offline) {
-    // Use Toast module's badge manager if available
     if (typeof Toast !== 'undefined') {
       Toast.setBadge(offline);
-    }
-    // Fallback for legacy badge
-    const badge = document.getElementById('offlineBadge');
-    if (badge) {
-      badge.classList.toggle('visible', offline);
     }
   },
 
@@ -1011,6 +1011,7 @@ const SongPage = {
     const artistDisplay = Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown'));
     const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
     const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on MaraLyrics.`;
+    const url = `https://maralyrics.com/song/${song.slug}`;
 
     document.title = title;
 
@@ -1022,6 +1023,18 @@ const SongPage = {
 
     const ogDesc = document.getElementById('ogDesc');
     if (ogDesc) ogDesc.content = desc;
+
+    const ogUrl = document.getElementById('ogUrl');
+    if (ogUrl) ogUrl.content = url;
+
+    const twTitle = document.getElementById('twTitle');
+    if (twTitle) twTitle.content = title;
+
+    const twDesc = document.getElementById('twDesc');
+    if (twDesc) twDesc.content = desc;
+
+    const canonicalUrl = document.getElementById('canonicalUrl');
+    if (canonicalUrl) canonicalUrl.href = url;
 
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) pageTitle.textContent = title;
@@ -1038,7 +1051,7 @@ const SongPage = {
           name: artistDisplay,
         },
         inLanguage: 'mrh',
-        url: `https://maralyrics.com/song/${song.slug}`,
+        url,
         publisher: {
           '@type': 'Organization',
           name: 'MaraLyrics',
@@ -1213,6 +1226,18 @@ const ProfilePage = {
     const ogDesc = document.getElementById('ogDesc');
     if (ogDesc) ogDesc.content = desc;
 
+    const ogUrl = document.getElementById('ogUrl');
+    if (ogUrl) ogUrl.content = window.location.href;
+
+    const twTitle = document.getElementById('twTitle');
+    if (twTitle) twTitle.content = title;
+
+    const twDesc = document.getElementById('twDesc');
+    if (twDesc) twDesc.content = desc;
+
+    const canonicalUrl = document.getElementById('canonicalUrl');
+    if (canonicalUrl) canonicalUrl.href = window.location.href;
+
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) pageTitle.textContent = title;
 
@@ -1339,7 +1364,7 @@ const CopyrightOwnerPage = {
         visibleFields.forEach(f => {
           let val = Utils.escapeHtml(f.value);
           if (f.isEmail) val = `<a href="mailto:${val}" class="meta-link">${val}</a>`;
-          if (f.isUrl) val = `<a href="${val}" target="_blank" rel="noopener noreferrer" class="meta-link">${val}</a>`;
+          if (f.isUrl) val = `<a href="${Utils.escapeHtml(Utils.normalizeUrl(f.value))}" target="_blank" rel="noopener noreferrer" class="meta-link">${val}</a>`;
           html += `<div class="copyright-info__row"><span class="copyright-info__label">${f.label}</span><span class="copyright-info__value">${val}</span></div>`;
         });
         if (owner.notes) {
@@ -1389,6 +1414,14 @@ const CopyrightOwnerPage = {
     if (ogTitle) ogTitle.content = title;
     const ogDesc = document.getElementById('ogDesc');
     if (ogDesc) ogDesc.content = desc;
+    const ogUrl = document.getElementById('ogUrl');
+    if (ogUrl) ogUrl.content = window.location.href;
+    const twTitle = document.getElementById('twTitle');
+    if (twTitle) twTitle.content = title;
+    const twDesc = document.getElementById('twDesc');
+    if (twDesc) twDesc.content = desc;
+    const canonicalUrl = document.getElementById('canonicalUrl');
+    if (canonicalUrl) canonicalUrl.href = window.location.href;
     const pageTitle = document.getElementById('pageTitle');
     if (pageTitle) pageTitle.textContent = title;
 
@@ -1481,7 +1514,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof CookieConsent !== 'undefined') CookieConsent.init();
 
   // Initialize i18n first
-  await I18n.init();
+  try {
+    await I18n.init();
+  } catch (err) {
+    console.warn('I18n.init failed:', err);
+  }
 
   // Initialize theme
   Theme.init();

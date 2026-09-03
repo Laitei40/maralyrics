@@ -2,7 +2,7 @@
  * Admin auth: per-account username/password login backed by the admin_users
  * table, sessions represented as signed JWTs (HS256). Replaces the old
  * single shared ADMIN_TOKEN bearer secret with individual accounts that
- * each carry a role (super_admin / editor / moderator).
+ * each carry a role (viewer / translator / reviewer / editor / manager / super_admin).
  */
 
 const encoder = new TextEncoder();

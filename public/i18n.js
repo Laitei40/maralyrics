@@ -138,7 +138,8 @@ const I18n = (() => {
 
   /** Get saved language or detect from browser. */
   function getSavedLanguage() {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    let saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch (_) {}
     if (saved && SUPPORTED_LANGS.find((l) => l.code === saved)) {
       return saved;
     }

@@ -107,7 +107,7 @@ const Toast = (() => {
       badge.className = 'offline-header-badge';
       badge.innerHTML =
         '<span class="offline-header-badge__dot"></span>' +
-        '<span class="offline-header-badge__text">' + (typeof I18n !== 'undefined' ? I18n.t('offline.badge_text') : 'Offline') + '</span>';
+        '<span class="offline-header-badge__text" data-i18n="offline.badge_text">' + (typeof I18n !== 'undefined' ? I18n.t('offline.badge_text') : 'Offline') + '</span>';
       // Insert after logo, before nav
       const logo = headerInner.querySelector('.header__logo');
       if (logo && logo.nextElementSibling) {
@@ -150,9 +150,6 @@ const Toast = (() => {
   function setBadge(offline) {
     const badge = document.getElementById('offlineHeaderBadge');
     if (badge) badge.classList.toggle('visible', offline);
-    // Also toggle old static badges if any still exist
-    const oldBadge = document.getElementById('offlineBadge');
-    if (oldBadge) oldBadge.classList.toggle('visible', offline);
   }
 
   // ─── Public API ──────────────────────────────────────

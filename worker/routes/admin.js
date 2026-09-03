@@ -167,21 +167,25 @@ app.delete('/admin-users/:id', requireRole(...CAN_MANAGE_ADMIN_USERS), async (c)
   const admin = c.get('admin');
   if (admin.sub === id) return c.json({ error: 'Cannot delete your own account' }, 400);
 
-  const target = await c.env.DB.prepare('SELECT username, role FROM admin_users WHERE id = ?').bind(id).first();
-  if (!target) return c.json({ error: 'Not found' }, 404);
+  try {
+    const target = await c.env.DB.prepare('SELECT username, role FROM admin_users WHERE id = ?').bind(id).first();
+    if (!target) return c.json({ error: 'Not found' }, 404);
 
-  if (target.role === 'super_admin' && !canGrantSuperAdmin(admin.role)) {
-    return c.json({ error: 'Only an Admin (Super Admin) can delete an Admin account' }, 403);
+    if (target.role === 'super_admin' && !canGrantSuperAdmin(admin.role)) {
+      return c.json({ error: 'Only an Admin (Super Admin) can delete an Admin account' }, 403);
+    }
+
+    if (target.role === 'super_admin') {
+      const { count } = await c.env.DB.prepare("SELECT COUNT(*) AS count FROM admin_users WHERE role = 'super_admin'").first();
+      if (count <= 1) return c.json({ error: 'Cannot delete the last remaining Super Admin' }, 400);
+    }
+
+    await c.env.DB.prepare('DELETE FROM admin_users WHERE id = ?').bind(id).run();
+    await logAudit(c.env.DB, admin, 'admin_user.delete', 'admin_user', id, target.username);
+    return c.json({ success: true });
+  } catch (err) {
+    return fail(c, err);
   }
-
-  if (target.role === 'super_admin') {
-    const { count } = await c.env.DB.prepare("SELECT COUNT(*) AS count FROM admin_users WHERE role = 'super_admin'").first();
-    if (count <= 1) return c.json({ error: 'Cannot delete the last remaining Super Admin' }, 400);
-  }
-
-  await c.env.DB.prepare('DELETE FROM admin_users WHERE id = ?').bind(id).run();
-  await logAudit(c.env.DB, admin, 'admin_user.delete', 'admin_user', id, target.username);
-  return c.json({ success: true });
 });
 
 // ── Profiles (any authenticated admin — every role, not just Manager/Admin) ──
@@ -282,21 +286,25 @@ profileApp.post('/delete', async (c) => {
   const { password } = await c.req.json().catch(() => ({}));
   if (!password) return c.json({ error: 'Password is required to delete your account' }, 400);
 
-  const user = await c.env.DB.prepare('SELECT * FROM admin_users WHERE id = ?').bind(admin.sub).first();
-  if (!user || !(await verifyPassword(password, user.password_hash))) {
-    return c.json({ error: 'Incorrect password' }, 401);
-  }
+  try {
+    const user = await c.env.DB.prepare('SELECT * FROM admin_users WHERE id = ?').bind(admin.sub).first();
+    if (!user || !(await verifyPassword(password, user.password_hash))) {
+      return c.json({ error: 'Incorrect password' }, 401);
+    }
 
-  if (user.role === 'super_admin') {
-    const { count } = await c.env.DB.prepare("SELECT COUNT(*) AS count FROM admin_users WHERE role = 'super_admin'").first();
-    if (count <= 1) return c.json({ error: 'Cannot delete the last remaining Super Admin' }, 400);
-  }
+    if (user.role === 'super_admin') {
+      const { count } = await c.env.DB.prepare("SELECT COUNT(*) AS count FROM admin_users WHERE role = 'super_admin'").first();
+      if (count <= 1) return c.json({ error: 'Cannot delete the last remaining Super Admin' }, 400);
+    }
 
-  // Log before deleting — audit_log.admin_id has an FK on admin_users(id); logging after
-  // the row is gone would fail that constraint instead of just SET NULL-ing on a future delete.
-  await logAudit(c.env.DB, admin, 'admin_user.self_delete', 'admin_user', admin.sub, user.username);
-  await c.env.DB.prepare('DELETE FROM admin_users WHERE id = ?').bind(admin.sub).run();
-  return c.json({ success: true });
+    // Log before deleting — audit_log.admin_id has an FK on admin_users(id); logging after
+    // the row is gone would fail that constraint instead of just SET NULL-ing on a future delete.
+    await logAudit(c.env.DB, admin, 'admin_user.self_delete', 'admin_user', admin.sub, user.username);
+    await c.env.DB.prepare('DELETE FROM admin_users WHERE id = ?').bind(admin.sub).run();
+    return c.json({ success: true });
+  } catch (err) {
+    return fail(c, err);
+  }
 });
 
 app.route('/profile', profileApp);
@@ -475,13 +483,24 @@ async function idsExist(db, table, ids) {
   return row.count === ids.length;
 }
 
-// Replaces a song's rows in a junction table (song_artists / song_composers) with the given ids, in order.
-async function writeSongPeople(db, songId, table, fkColumn, ids) {
+// Builds the DELETE+INSERT statements that replace a song's rows in a junction table
+// (song_artists / song_composers) with the given ids, in order. Returned unexecuted so
+// callers can batch them together with the artist and composer side (and optionally the
+// song row write itself) as a single atomic db.batch() call.
+function songPeopleStmts(db, songId, table, fkColumn, ids) {
   const stmts = [db.prepare(`DELETE FROM ${table} WHERE song_id = ?`).bind(songId)];
   ids.forEach((id, i) => {
     stmts.push(db.prepare(`INSERT INTO ${table} (song_id, ${fkColumn}, position) VALUES (?, ?, ?)`).bind(songId, id, i));
   });
-  await db.batch(stmts);
+  return stmts;
+}
+
+// Atomically replaces both junction tables for a song in one batch.
+async function writeSongPeople(db, songId, artistIds, composerIds) {
+  await db.batch([
+    ...songPeopleStmts(db, songId, 'song_artists', 'artist_id', artistIds),
+    ...songPeopleStmts(db, songId, 'song_composers', 'composer_id', composerIds),
+  ]);
 }
 
 async function getSongWithPeople(db, id) {
@@ -578,8 +597,7 @@ songsApp.post('/', requireRole(...CAN_CREATE_SONG), async (c) => {
       .run();
     const songId = result.meta.last_row_id;
 
-    await writeSongPeople(db, songId, 'song_artists', 'artist_id', artist_ids);
-    await writeSongPeople(db, songId, 'song_composers', 'composer_id', composer_ids);
+    await writeSongPeople(db, songId, artist_ids, composer_ids);
     await logAudit(db, c.get('admin'), 'song.create', 'song', songId, title);
 
     const row = await getSongWithPeople(db, songId);
@@ -611,18 +629,23 @@ songsApp.put('/:id', requireRole(...CAN_EDIT_SONG_DIRECT), async (c) => {
     if (!artistsOk) return c.json({ error: 'One or more selected artists do not exist' }, 400);
     if (!composersOk) return c.json({ error: 'One or more selected composers do not exist' }, 400);
 
+    const existing = await db.prepare('SELECT id FROM songs WHERE id = ?').bind(id).first();
+    if (!existing) return c.json({ error: 'Not found' }, 404);
+
     // status is deliberately never touched here — status changes go through PUT /:id/status.
-    const result = await db
+    // The song row write and both junction-table rewrites run as one atomic batch so a
+    // failure partway through can't leave the song out of sync with its credited people.
+    const updateStmt = db
       .prepare(
         `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?
          WHERE id = ?`
       )
-      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics, id)
-      .run();
-    if (result.meta.changes === 0) return c.json({ error: 'Not found' }, 404);
-
-    await writeSongPeople(db, id, 'song_artists', 'artist_id', artist_ids);
-    await writeSongPeople(db, id, 'song_composers', 'composer_id', composer_ids);
+      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics, id);
+    await db.batch([
+      updateStmt,
+      ...songPeopleStmts(db, id, 'song_artists', 'artist_id', artist_ids),
+      ...songPeopleStmts(db, id, 'song_composers', 'composer_id', composer_ids),
+    ]);
     await logAudit(db, c.get('admin'), 'song.edit', 'song', Number(id), title);
 
     const row = await getSongWithPeople(db, id);
@@ -795,7 +818,8 @@ revisionsApp.put('/:id/approve', async (c) => {
     if (!artistsOk) return c.json({ error: 'One or more selected artists no longer exist' }, 400);
     if (!composersOk) return c.json({ error: 'One or more selected composers no longer exist' }, 400);
 
-    await db
+    const admin = c.get('admin');
+    const songUpdateStmt = db
       .prepare(
         `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?
          WHERE id = ?`
@@ -803,19 +827,21 @@ revisionsApp.put('/:id/approve', async (c) => {
       .bind(
         revision.title, revision.slug, artist_ids[0] || null, composer_ids[0] || null,
         revision.copyright_owner_id, revision.category, revision.lyrics, revision.song_id
-      )
-      .run();
-
-    await writeSongPeople(db, revision.song_id, 'song_artists', 'artist_id', artist_ids);
-    await writeSongPeople(db, revision.song_id, 'song_composers', 'composer_id', composer_ids);
-
-    const admin = c.get('admin');
-    await db
+      );
+    const revisionUpdateStmt = db
       .prepare(
         `UPDATE song_revisions SET status = 'approved', reviewer_id = ?, reviewer_note = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?`
       )
-      .bind(admin.sub, reviewer_note || null, id)
-      .run();
+      .bind(admin.sub, reviewer_note || null, id);
+
+    // Song row, both junction tables, and the revision's own status all commit as one
+    // atomic batch — a failure partway through can't leave any of them out of sync.
+    await db.batch([
+      songUpdateStmt,
+      ...songPeopleStmts(db, revision.song_id, 'song_artists', 'artist_id', artist_ids),
+      ...songPeopleStmts(db, revision.song_id, 'song_composers', 'composer_id', composer_ids),
+      revisionUpdateStmt,
+    ]);
 
     await logAudit(db, admin, 'revision.approve', 'song_revision', Number(id), `song_id=${revision.song_id}`);
 
@@ -867,7 +893,10 @@ reportsApp.get('/', async (c) => {
 
 reportsApp.put('/:id', async (c) => {
   const data = await c.req.json().catch(() => ({}));
-  if (!data.status) return c.json({ error: 'status is required' }, 400);
+  const validStatuses = ['pending', 'reviewed', 'resolved', 'dismissed'];
+  if (!validStatuses.includes(data.status)) {
+    return c.json({ error: `status must be one of: ${validStatuses.join(', ')}` }, 400);
+  }
 
   try {
     const result = await c.env.DB
@@ -905,7 +934,10 @@ contactsApp.get('/', async (c) => {
 
 contactsApp.put('/:id', async (c) => {
   const data = await c.req.json().catch(() => ({}));
-  if (!data.status) return c.json({ error: 'status is required' }, 400);
+  const validStatuses = ['unread', 'read', 'archived'];
+  if (!validStatuses.includes(data.status)) {
+    return c.json({ error: `status must be one of: ${validStatuses.join(', ')}` }, 400);
+  }
 
   try {
     const result = await c.env.DB
@@ -939,16 +971,25 @@ auditApp.get('/', async (c) => {
   const conditions = [];
   const bindings = [];
   if (targetType) { conditions.push('target_type = ?'); bindings.push(targetType); }
-  if (adminId) { conditions.push('admin_id = ?'); bindings.push(Number(adminId)); }
+  if (adminId) {
+    const parsedAdminId = Number(adminId);
+    if (!Number.isInteger(parsedAdminId)) return c.json({ error: 'admin_id must be an integer' }, 400);
+    conditions.push('admin_id = ?');
+    bindings.push(parsedAdminId);
+  }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  const [rows, countRow] = await Promise.all([
-    c.env.DB.prepare(`SELECT * FROM audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).bind(...bindings, limit, offset).all(),
-    c.env.DB.prepare(`SELECT COUNT(*) AS total FROM audit_log ${where}`).bind(...bindings).first(),
-  ]);
+  try {
+    const [rows, countRow] = await Promise.all([
+      c.env.DB.prepare(`SELECT * FROM audit_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).bind(...bindings, limit, offset).all(),
+      c.env.DB.prepare(`SELECT COUNT(*) AS total FROM audit_log ${where}`).bind(...bindings).first(),
+    ]);
 
-  const total = countRow.total;
-  return c.json({ audit_log: rows.results, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+    const total = countRow.total;
+    return c.json({ audit_log: rows.results, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+  } catch (err) {
+    return fail(c, err);
+  }
 });
 
 app.route('/audit-log', auditApp);

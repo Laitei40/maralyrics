@@ -722,23 +722,6 @@ body::before {
   padding: var(--space-2xl) var(--space-lg);
 }
 
-.song-page__back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  margin-bottom: var(--space-xl);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-.song-page__back:hover {
-  color: var(--text-primary);
-  background: var(--bg-glass);
-}
-
 .song-page__card {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -1562,11 +1545,6 @@ body::before {
 @keyframes dotBlink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
-}
-
-/* Legacy offline badge (backward compat) */
-.offline-badge {
-  display: none;
 }
 
 /* ─── Toast Notification ────────────────────────────────────── */
@@ -2477,7 +2455,8 @@ body::before {
   z-index: 1;
 }
 
-.error-page__btn {
+.error-page__btn,
+.btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
@@ -2492,23 +2471,27 @@ body::before {
   border: none;
 }
 
-.error-page__btn--primary {
+.error-page__btn--primary,
+.btn--primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   box-shadow: var(--shadow-glow);
 }
-.error-page__btn--primary:hover {
+.error-page__btn--primary:hover,
+.btn--primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 30px var(--accent-glow);
   color: #fff;
 }
 
-.error-page__btn--ghost {
+.error-page__btn--ghost,
+.btn--ghost {
   background: var(--bg-glass);
   color: var(--text-secondary);
   border: 1px solid var(--border-glass);
 }
-.error-page__btn--ghost:hover {
+.error-page__btn--ghost:hover,
+.btn--ghost:hover {
   color: var(--text-primary);
   border-color: var(--accent);
   background: rgba(139, 92, 246, 0.1);
@@ -2702,11 +2685,6 @@ body::before {
 }
 
 /* Profile page */
-[data-theme="light"] .profile-page__card {
-  background: rgba(255, 255, 255, 0.80);
-  border-color: rgba(0, 0, 0, 0.06);
-  box-shadow: var(--shadow-sm);
-}
 [data-theme="light"] .profile-page__name {
   color: var(--text-primary);
 }
@@ -2817,15 +2795,18 @@ body::before {
 [data-theme="light"] .error-page__text {
   color: var(--text-secondary);
 }
-[data-theme="light"] .error-page__btn--primary {
+[data-theme="light"] .error-page__btn--primary,
+[data-theme="light"] .btn--primary {
   color: #fff;
 }
-[data-theme="light"] .error-page__btn--ghost {
+[data-theme="light"] .error-page__btn--ghost,
+[data-theme="light"] .btn--ghost {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.10);
   color: var(--text-secondary);
 }
-[data-theme="light"] .error-page__btn--ghost:hover {
+[data-theme="light"] .error-page__btn--ghost:hover,
+[data-theme="light"] .btn--ghost:hover {
   color: var(--text-primary);
 }
 

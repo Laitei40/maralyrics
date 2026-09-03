@@ -9,7 +9,7 @@ function escapeHtml(value = '') {
 
 function buildSongSeo(song) {
   const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
-  const artist = song.artist_name || song.artist || 'Unknown Artist';
+  const artist = song.artist_name || 'Unknown Artist';
   const description = `Read the full lyrics of ${song.title}, a Mara song by ${artist}. Discover Mara music on MaraLyrics.`;
   const url = `https://maralyrics.com/song/${song.slug}`;
 
@@ -73,7 +73,7 @@ export async function onRequest(context) {
     .replace(/<meta name="twitter:title" id="twTitle" content="[^"]*"\s*\/>/, `<meta name="twitter:title" id="twTitle" content="${escapeHtml(title)}" />`)
     .replace(/<meta name="twitter:description" id="twDesc" content="[^"]*"\s*\/>/, `<meta name="twitter:description" id="twDesc" content="${escapeHtml(description)}" />`)
     .replace(/<link rel="canonical" id="canonicalUrl" href="[^"]*"\s*\/>/, `<link rel="canonical" id="canonicalUrl" href="${escapeHtml(url)}" />`)
-    .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2)}\n</script>`);
+    .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2).replace(/</g, '\\u003c')}\n</script>`);
 
   return new Response(injected, {
     headers: {

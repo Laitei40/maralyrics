@@ -32,6 +32,11 @@
         <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
         MaraLyrics
       </a>
+      <button class="header__menu-btn" aria-label="Open navigation menu" data-i18n-aria="mobile_drawer.open_aria" aria-expanded="false" aria-controls="mobileDrawer">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
       <nav class="header__nav">
         <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
@@ -79,6 +84,31 @@
       </nav>
     </div>
   </header>
+  <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
+       header does not create a containing block that clips position:fixed. -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <div class="mobile-drawer__backdrop"></div>
+    <aside class="mobile-drawer__panel" role="dialog" aria-label="Mobile navigation" data-i18n-aria="mobile_drawer.aria_label">
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__title-wrap">
+          <p class="mobile-drawer__eyebrow" data-i18n="mobile_drawer.eyebrow">Navigation</p>
+          <h2 class="mobile-drawer__title" data-i18n="mobile_drawer.title">Explore</h2>
+        </div>
+        <button class="mobile-drawer__close" aria-label="Close navigation menu" data-i18n-aria="mobile_drawer.close_aria">&times;</button>
+      </div>
+      <div class="mobile-drawer__content">
+        <a href="/" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🏠</span>
+          <span data-i18n="common.home">Home</span>
+        </a>
+        <a href="/#popular" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🔥</span>
+          <span data-i18n="nav.popular">Popular</span>
+        </a>
+      </div>
+    </aside>
+  </div>
+
 
   <!-- ═══ Report Content ═══ -->
   <main class="report-page container">
@@ -200,30 +230,11 @@
   <script src="/i18n.js"></script>
   <!-- Theme -->
   <script src="/theme.js"></script>
+  <!-- App Script -->
+  <script src="/app.js"></script>
   <script>
-    // Initialize consent, i18n, and theme
-    CookieConsent.init();
-    I18n.init();
-    Theme.init();
-    Toast.initOffline();
-    if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
-
-    // Settings panel toggle
-    (function() {
-      const togBtn = document.querySelector('.settings-toggle__btn');
-      const togWrap = document.querySelector('.settings-toggle');
-      if (togBtn && togWrap) {
-        togBtn.addEventListener('click', (e) => { e.stopPropagation(); togWrap.classList.toggle('open'); });
-        document.addEventListener('click', (e) => { if (!togWrap.contains(e.target)) togWrap.classList.remove('open'); });
-      }
-    })();
-
     // ─── Report Page Logic ──────────────────────────
     (function () {
-      const API_BASE = (location.hostname.includes('.pages.dev') || location.hostname.includes('localhost') || location.hostname.includes('maralyrics.com'))
-        ? 'https://api.maralyrics.com'
-        : '';
-
       // Parse URL params: ?song=slug&title=...&artist=...
       const params = new URLSearchParams(window.location.search);
       const songSlug = params.get('song') || '';
@@ -262,8 +273,10 @@
         }
 
         const btn = document.getElementById('btnSubmitReport');
+        const btnText = btn.querySelector('.btn-send-feedback__text');
+        const originalText = btnText.textContent;
         btn.disabled = true;
-        btn.textContent = I18n.t('common.sending');
+        btnText.textContent = I18n.t('common.sending');
 
         // Get Turnstile token
         const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
@@ -272,12 +285,12 @@
           msgEl.className = 'report-page__message report-page__message--error';
           msgEl.style.display = 'block';
           btn.disabled = false;
-          btn.innerHTML = '<span class="btn-send-feedback__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span><span class="btn-send-feedback__text">' + I18n.t('feedback.submit_btn') + '</span>';
+          btnText.textContent = originalText;
           return;
         }
 
         try {
-          const res = await fetch(API_BASE + '/api/v1/reports', {
+          const res = await fetch(CONFIG.API_BASE + '/reports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -312,7 +325,7 @@
           msgEl.style.display = 'block';
         } finally {
           btn.disabled = false;
-          btn.innerHTML = '<span class="btn-send-feedback__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span><span class="btn-send-feedback__text">' + I18n.t('feedback.submit_btn') + '</span>';
+          btnText.textContent = originalText;
           // Reset Turnstile
           if (window.turnstile) turnstile.reset();
         }
