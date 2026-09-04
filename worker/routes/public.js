@@ -170,16 +170,30 @@ app.get('/songs/popular', async (c) => {
   return c.json({ songs: songs.results.map(parseSongPeople) });
 });
 
+// Whitelisted sort keys → ORDER BY clause. `s.id` is a tiebreaker for stable pagination
+// (views/created_at both have plenty of duplicate values across songs).
+const SONG_SORTS = {
+  name_asc: 's.title COLLATE NOCASE ASC, s.id ASC',
+  name_desc: 's.title COLLATE NOCASE DESC, s.id DESC',
+  views_asc: 's.views ASC, s.id ASC',
+  views_desc: 's.views DESC, s.id DESC',
+  created_asc: 's.created_at ASC, s.id ASC',
+  created_desc: 's.created_at DESC, s.id DESC',
+};
+const DEFAULT_SONG_SORT = 'name_asc';
+
 app.get('/songs', async (c) => {
   const db = c.env.DB;
   const { page, limit, offset } = parsePagination(c.req.query());
   const category = c.req.query('category') || null;
+  const sortKey = SONG_SORTS[c.req.query('sort')] ? c.req.query('sort') : DEFAULT_SONG_SORT;
+  const orderBy = SONG_SORTS[sortKey];
 
   const where = category ? "WHERE s.category = ? AND s.status = 'published'" : "WHERE s.status = 'published'";
   const bindings = category ? [category] : [];
 
   const [rows, countRow] = await Promise.all([
-    db.prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} ${where} ORDER BY s.title LIMIT ? OFFSET ?`)
+    db.prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
       .bind(...bindings, limit, offset)
       .all(),
     db.prepare(`SELECT COUNT(*) AS total FROM songs s ${where}`)
@@ -188,7 +202,7 @@ app.get('/songs', async (c) => {
   ]);
 
   const total = countRow.total;
-  return c.json({ songs: rows.results.map(parseSongPeople), total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+  return c.json({ songs: rows.results.map(parseSongPeople), total, page, totalPages: Math.max(1, Math.ceil(total / limit)), sort: sortKey });
 });
 
 app.get('/songs/:slug', async (c) => {

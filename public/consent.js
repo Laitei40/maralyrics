@@ -43,6 +43,9 @@ const CookieConsent = (() => {
       localStorage.removeItem('ml_theme');
       localStorage.removeItem('ml_lang');
       localStorage.removeItem('ml_search_history');
+      // Favorites live in a cookie, not localStorage — expire it directly rather than
+      // depending on Cache/Favorites (defined later, in app.js) having loaded yet.
+      document.cookie = 'ml_favorites=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';
     } catch {}
     hideBanner();
   }

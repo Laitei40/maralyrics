@@ -631,6 +631,113 @@ body::before {
   font-size: var(--text-lg);
 }
 
+/* ─── Section Header (title + list display/sort controls) ────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.section-header .section-title {
+  margin-bottom: 0;
+}
+
+.list-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.list-controls__favorites {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+}
+
+.list-controls__favorites:hover {
+  color: var(--text-primary);
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.1);
+}
+
+.list-controls__favorites.active {
+  color: #fff;
+  background: linear-gradient(135deg, #fb7185, #e11d48);
+  border-color: #fb7185;
+}
+
+.list-controls__favorites.active svg {
+  fill: currentColor;
+}
+
+.sort-select {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.sort-select:hover,
+.sort-select:focus {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+}
+
+.view-toggle__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-toggle__btn:hover {
+  color: var(--text-primary);
+}
+
+.view-toggle__btn.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+}
+
 /* ─── Song Grid ─────────────────────────────────────────────── */
 .song-grid {
   display: grid;
@@ -640,6 +747,8 @@ body::before {
 }
 
 /* ─── Song Card (Glass) ─────────────────────────────────────── */
+/* `.song-card` is a plain div (not the link) so the favorite <button> can sit beside the
+   <a> instead of nested inside it — an <a> may not contain interactive content. */
 .song-card {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -647,13 +756,9 @@ body::before {
   padding: var(--space-lg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  cursor: pointer;
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
-  text-decoration: none;
-  color: inherit;
-  display: block;
 }
 
 .song-card::before {
@@ -674,6 +779,14 @@ body::before {
 
 .song-card:hover::before {
   opacity: 1;
+}
+
+.song-card__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  padding-right: 36px; /* keep title/meta clear of the favorite button */
 }
 
 .song-card__title {
@@ -713,6 +826,98 @@ body::before {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ─── Favorite Toggle (overlay button on every song card) ────── */
+.song-card__favorite {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.song-card__favorite:hover {
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.12);
+}
+
+.song-card__favorite.active {
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.12);
+}
+
+.song-card__favorite.active svg {
+  fill: currentColor;
+}
+
+/* ─── List Display Mode ────────────────────────────────────────
+   Applied by DisplayMode via a `.list` modifier on `.song-grid` — the same card
+   markup lays itself out as a compact row instead of a grid tile. */
+.song-grid.list {
+  display: flex;
+  flex-direction: column;
+  grid-template-columns: none;
+  gap: var(--space-sm);
+}
+
+.song-grid.list .song-card {
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.song-grid.list .song-card::before {
+  display: none;
+}
+
+.song-grid.list .song-card:hover {
+  transform: none;
+}
+
+.song-grid.list .song-card__link {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+}
+
+.song-grid.list .song-card__title {
+  flex: 1 1 240px;
+  min-width: 0;
+  margin-bottom: 0;
+  -webkit-line-clamp: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.song-grid.list .song-card__artist {
+  flex: 0 1 auto;
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song-grid.list .song-card__meta {
+  flex: 0 0 auto;
+  gap: var(--space-md);
+}
+
+.song-grid.list .song-card__favorite {
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* ─── Song Detail Page ──────────────────────────────────────── */
@@ -1170,6 +1375,16 @@ body::before {
   color: var(--accent-light);
   background: rgba(139, 92, 246, 0.08);
   border-color: rgba(139, 92, 246, 0.25);
+}
+
+.song-page__favorite.active {
+  color: #fb7185;
+  background: rgba(251, 113, 133, 0.1);
+  border-color: rgba(251, 113, 133, 0.3);
+}
+
+.song-page__favorite.active svg {
+  fill: currentColor;
 }
 
 .btn--report {
