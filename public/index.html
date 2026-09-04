@@ -158,7 +158,7 @@
       </div>
 
       <!-- Categories -->
-      <div id="categories" class="categories" role="tablist" aria-label="Filter by category">
+      <div id="categories" class="categories" role="tablist" data-i18n-aria="home.categories_aria" aria-label="Filter by category">
         <!-- Populated by JS -->
       </div>
     </div>
@@ -176,6 +176,15 @@
       </h2>
       <div id="searchGrid" class="song-grid"></div>
       <div id="searchSuggestions" class="search-suggestions" style="display:none;"></div>
+    </section>
+
+    <!-- Song of the Day (hidden until loaded — a new site with zero songs stays hidden) -->
+    <section id="songOfTheDaySection" class="fade-in" style="display:none;">
+      <h2 class="section-title">
+        <span class="section-title__icon">🌟</span>
+        <span data-i18n="home.song_of_the_day">Song of the Day</span>
+      </h2>
+      <div id="songOfTheDayCard"></div>
     </section>
 
     <!-- Popular Songs -->

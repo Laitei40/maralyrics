@@ -285,3 +285,12 @@ BEGIN
     INSERT INTO songs_fts (songs_fts, rowid, title, lyrics) VALUES ('delete', OLD.id, OLD.title, OLD.lyrics);
     INSERT INTO songs_fts (rowid, title, lyrics) VALUES (NEW.id, NEW.title, NEW.lyrics);
 END;
+
+-- "Song of the Day" — one row per UTC calendar date, picked at random (SQL RANDOM())
+-- the first time that date is requested and reused for every visitor for the rest of
+-- that day, so it changes daily but stays consistent across page loads/reloads.
+CREATE TABLE IF NOT EXISTS daily_song_picks (
+    date       TEXT PRIMARY KEY,  -- 'YYYY-MM-DD', UTC
+    song_id    INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

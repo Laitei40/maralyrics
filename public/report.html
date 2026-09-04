@@ -114,7 +114,7 @@
   <main class="report-page container">
 
     <!-- Breadcrumb -->
-    <nav class="breadcrumb" aria-label="Breadcrumb">
+    <nav class="breadcrumb" data-i18n-aria="breadcrumb.aria_label" aria-label="Breadcrumb">
       <a href="/" class="breadcrumb__link" data-i18n="common.home">Home</a>
       <span class="breadcrumb__sep">›</span>
       <span class="breadcrumb__current" data-i18n="common.feedback">Feedback</span>
@@ -246,8 +246,8 @@
       }
       if (songTitle || songArtist) {
         document.getElementById('songInfo').style.display = 'block';
-        document.getElementById('reportSongTitle').textContent = songTitle || 'Unknown Song';
-        document.getElementById('reportSongArtist').textContent = songArtist ? 'by ' + songArtist : '';
+        document.getElementById('reportSongTitle').textContent = songTitle || I18n.t('feedback.unknown_song');
+        document.getElementById('reportSongArtist').textContent = songArtist ? I18n.t('feedback.by_artist', { artist: songArtist }) : '';
       }
 
       // Set back button to song page if came from one
