@@ -768,9 +768,12 @@ const HomePage = {
         if (suggestions.length > 0 && sugBox) {
           sugBox.innerHTML =
             `<p class="suggestions-title">${I18n.t('search.did_you_mean')}</p>` +
-            suggestions.map(s =>
-              `<a href="/song/${Utils.escapeHtml(s.slug)}" class="suggestion-chip">${Utils.escapeHtml(s.title)}</a>`
-            ).join('');
+            suggestions.map(s => `
+              <a href="/song/${Utils.escapeHtml(s.slug)}" class="suggestion-chip">
+                <span class="suggestion-chip__title">${Utils.escapeHtml(s.title)}</span>
+                ${Number.isFinite(s.match_percent) ? `<span class="suggestion-chip__percent">${s.match_percent}% ${I18n.t('search.match_label')}</span>` : ''}
+              </a>
+            `).join('');
           sugBox.style.display = 'block';
         } else if (sugBox) {
           sugBox.style.display = 'none';

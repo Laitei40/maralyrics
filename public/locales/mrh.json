@@ -256,7 +256,8 @@
     "remove": "Remove"
   },
   "search": {
-    "did_you_mean": "Did you mean:"
+    "did_you_mean": "Did you mean:",
+    "match_label": "match"
   },
   "project": {
     "title": "Parawche",
