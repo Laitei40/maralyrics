@@ -116,6 +116,20 @@ const Utils = {
     return /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
   },
 
+  /** Client-side sort matching the /songs API's `sort` values — used for lists (like
+   *  favorites) that aren't fetched through that paginated endpoint. */
+  sortSongs(songs, sortKey) {
+    const comparators = {
+      name_asc: (a, b) => (a.title || '').localeCompare(b.title || ''),
+      name_desc: (a, b) => (b.title || '').localeCompare(a.title || ''),
+      views_asc: (a, b) => (a.views || 0) - (b.views || 0),
+      views_desc: (a, b) => (b.views || 0) - (a.views || 0),
+      created_asc: (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
+      created_desc: (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
+    };
+    return [...songs].sort(comparators[sortKey] || comparators.name_asc);
+  },
+
   /** Detect social platform from URL and return name + SVG icon. */
   detectSocialPlatform(url) {
     const platforms = [
@@ -201,14 +215,14 @@ const Cache = {
   },
 
   /** Cache song list. */
-  cacheSongList(page, category, data) {
-    const key = `list_${page}_${category || 'all'}`;
+  cacheSongList(page, category, sort, data) {
+    const key = `list_${page}_${category || 'all'}_${sort || 'default'}`;
     this.set(key, data);
   },
 
   /** Get cached song list. */
-  getCachedSongList(page, category) {
-    const key = `list_${page}_${category || 'all'}`;
+  getCachedSongList(page, category, sort) {
+    const key = `list_${page}_${category || 'all'}_${sort || 'default'}`;
     return this.get(key);
   },
 
@@ -244,6 +258,92 @@ const Cache = {
     keys.sort((a, b) => a.ts - b.ts);
     const toRemove = keys.slice(0, Math.ceil(keys.length / 2));
     toRemove.forEach((k) => localStorage.removeItem(k.key));
+  },
+};
+
+// ─── Favorites Module (cookie-backed) ───────────────────────────
+const Favorites = {
+  COOKIE_NAME: 'favorites',
+  MAX_AGE_HOURS: 24 * 365 * 5, // 5 years — a deliberately "saved" list, not a transient cache
+
+  /** Check if preference storage is allowed (same consent gate as SearchHistory). */
+  _canStore() {
+    return typeof CookieConsent === 'undefined' || CookieConsent.hasConsent();
+  },
+
+  /** Get the list of favorited song slugs. */
+  getAll() {
+    try {
+      const raw = Cache.getCookie(this.COOKIE_NAME);
+      const slugs = raw ? JSON.parse(raw) : [];
+      return Array.isArray(slugs) ? slugs : [];
+    } catch {
+      return [];
+    }
+  },
+
+  has(slug) {
+    return this.getAll().includes(slug);
+  },
+
+  _save(slugs) {
+    try {
+      Cache.setCookie(this.COOKIE_NAME, JSON.stringify(slugs), this.MAX_AGE_HOURS);
+    } catch { /* ignore */ }
+  },
+
+  /** Toggle a song's favorite status. Returns the new state (true = now favorited),
+   *  or null if storage isn't allowed under the current cookie-consent choice. */
+  toggle(slug) {
+    if (!this._canStore()) return null;
+    const slugs = this.getAll();
+    const idx = slugs.indexOf(slug);
+    const nowFavorited = idx === -1;
+    if (nowFavorited) slugs.push(slug);
+    else slugs.splice(idx, 1);
+    this._save(slugs);
+    return nowFavorited;
+  },
+
+  clear() {
+    this._save([]);
+  },
+};
+
+// ─── Display Mode Module (Card / List, shared across all song grids) ───
+const DisplayMode = {
+  STORAGE_KEY: 'ml_display_mode',
+  current: 'card',
+
+  init() {
+    try {
+      this.current = localStorage.getItem(this.STORAGE_KEY) === 'list' ? 'list' : 'card';
+    } catch {
+      this.current = 'card';
+    }
+    this.apply();
+    document.querySelectorAll('.view-toggle__btn').forEach((btn) => {
+      btn.addEventListener('click', () => this.set(btn.dataset.view));
+    });
+  },
+
+  /** Reflects `current` onto every song grid + toggle button currently in the DOM. */
+  apply() {
+    document.querySelectorAll('.song-grid').forEach((grid) => {
+      grid.classList.toggle('list', this.current === 'list');
+    });
+    document.querySelectorAll('.view-toggle__btn').forEach((btn) => {
+      const active = btn.dataset.view === this.current;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-pressed', String(active));
+    });
+  },
+
+  set(mode) {
+    if (mode !== 'card' && mode !== 'list') return;
+    this.current = mode;
+    try { localStorage.setItem(this.STORAGE_KEY, mode); } catch { /* ignore */ }
+    this.apply();
   },
 };
 
@@ -364,9 +464,10 @@ const API = {
   },
 
   /** Get paginated song list. */
-  async getSongs(page = 1, category = null) {
+  async getSongs(page = 1, category = null, sort = null) {
     let url = `/songs?page=${page}&limit=${CONFIG.ITEMS_PER_PAGE}`;
     if (category) url += `&category=${encodeURIComponent(category)}`;
+    if (sort) url += `&sort=${encodeURIComponent(sort)}`;
     return this.fetchJSON(url);
   },
 
@@ -419,18 +520,24 @@ const UI = {
   createSongCard(song, index = 0) {
     const delay = Math.min(index * 60, 600);
     const isCached = Cache.getCachedSong(song.slug) !== null;
+    const isFavorited = Favorites.has(song.slug);
+    const slug = Utils.escapeHtml(song.slug);
+    // The favorite <button> is a sibling of the <a>, not nested inside it — <a> may not
+    // contain interactive content, and nesting would make click targets unpredictable.
     return `
-      <a href="/song/${Utils.escapeHtml(song.slug)}"
-         class="song-card stagger-enter"
-         style="animation-delay:${delay}ms"
-         data-slug="${Utils.escapeHtml(song.slug)}">
-        <h3 class="song-card__title">${Utils.escapeHtml(song.title)}</h3>
-        <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
-        <div class="song-card__meta">
-          ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
-          <span class="song-card__views">${isCached ? '📌 ' : ''}👁 ${Utils.formatViews(song.views)}</span>
-        </div>
-      </a>`;
+      <div class="song-card stagger-enter" style="animation-delay:${delay}ms" data-slug="${slug}">
+        <a href="/song/${slug}" class="song-card__link">
+          <h3 class="song-card__title">${Utils.escapeHtml(song.title)}</h3>
+          <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
+          <div class="song-card__meta">
+            ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
+            <span class="song-card__views">${isCached ? '📌 ' : ''}👁 ${Utils.formatViews(song.views)}</span>
+          </div>
+        </a>
+        <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </button>
+      </div>`;
   },
 
   /** Create skeleton loading cards. */
@@ -489,10 +596,21 @@ const UI = {
     }
   },
 
-  /** Show empty state. */
-  showEmptyState(show = true) {
+  /** Show empty state. `variant` swaps in different copy (e.g. for an empty favorites list)
+   *  without needing a second empty-state element in the markup. */
+  showEmptyState(show = true, variant = 'default') {
     const el = document.getElementById('emptyState');
-    if (el) el.style.display = show ? 'block' : 'none';
+    if (!el) return;
+    el.style.display = show ? 'block' : 'none';
+    if (!show) return;
+
+    const titleEl = el.querySelector('.empty-state__title');
+    const textEl = el.querySelector('.empty-state__text');
+    const copy = variant === 'favorites'
+      ? { title: I18n.t('home.no_favorites_title'), text: I18n.t('home.no_favorites_text') }
+      : { title: I18n.t('home.no_songs_title'), text: I18n.t('home.no_songs_text') };
+    if (titleEl) titleEl.textContent = copy.title;
+    if (textEl) textEl.textContent = copy.text;
   },
 };
 
@@ -500,25 +618,32 @@ const UI = {
 const HomePage = {
   currentPage: 1,
   currentCategory: null,
+  currentSort: 'name_asc',
+  favoritesOnly: false,
 
   async init() {
     this.bindElements();
     this.bindEvents();
-    // Restore previous page/category so refresh keeps the user's position
+    // Restore previous page/category/sort so refresh keeps the user's position
     try {
       const saved = sessionStorage.getItem('ml_home_state');
       if (saved) {
         const s = JSON.parse(saved);
         this.currentPage = s.page || 1;
         this.currentCategory = s.category || null;
+        this.favoritesOnly = !!s.favoritesOnly;
       }
+      this.currentSort = localStorage.getItem('ml_sort') || 'name_asc';
     } catch {}
+    if (this.sortSelect) this.sortSelect.value = this.currentSort;
+    this.updateFavoritesFilterButton();
+
     // Load categories first so active button can be highlighted
     await this.loadCategories();
     if (this.currentCategory) this.updateCategoryButtons();
     await Promise.all([
       this.loadPopular(),
-      this.loadSongs(),
+      this.favoritesOnly ? this.loadFavorites() : this.loadSongs(),
     ]);
   },
 
@@ -534,6 +659,8 @@ const HomePage = {
     this.popularSection = document.getElementById('popularSection');
     this.allSongsSection = document.getElementById('allSongsSection');
     this.paginationEl = document.getElementById('pagination');
+    this.sortSelect = document.getElementById('sortSelect');
+    this.favoritesFilterBtn = document.getElementById('favoritesFilterBtn');
   },
 
   bindEvents() {
@@ -586,7 +713,9 @@ const HomePage = {
         const cat = btn.dataset.category;
         this.currentCategory = cat === this.currentCategory ? null : cat;
         this.currentPage = 1;
+        this.favoritesOnly = false;
         this.updateCategoryButtons();
+        this.updateFavoritesFilterButton();
         this.loadSongs();
       });
     }
@@ -601,6 +730,38 @@ const HomePage = {
         window.scrollTo({ top: this.allSongsSection.offsetTop - 80, behavior: 'smooth' });
       });
     }
+
+    // Sort
+    if (this.sortSelect) {
+      this.sortSelect.addEventListener('change', () => {
+        this.currentSort = this.sortSelect.value;
+        try { localStorage.setItem('ml_sort', this.currentSort); } catch {}
+        this.currentPage = 1;
+        this.favoritesOnly ? this.loadFavorites() : this.loadSongs();
+      });
+    }
+
+    // Favorites filter — shows only favorited songs in place of the paginated list
+    if (this.favoritesFilterBtn) {
+      this.favoritesFilterBtn.addEventListener('click', () => {
+        this.favoritesOnly = !this.favoritesOnly;
+        this.currentPage = 1;
+        this.updateFavoritesFilterButton();
+        if (this.favoritesOnly) {
+          this.currentCategory = null;
+          this.updateCategoryButtons();
+          this.loadFavorites();
+        } else {
+          this.loadSongs();
+        }
+      });
+    }
+  },
+
+  updateFavoritesFilterButton() {
+    if (!this.favoritesFilterBtn) return;
+    this.favoritesFilterBtn.classList.toggle('active', this.favoritesOnly);
+    this.favoritesFilterBtn.setAttribute('aria-pressed', String(this.favoritesOnly));
   },
 
   // ─── Load Categories ─────────────────────────────────
@@ -674,11 +835,12 @@ const HomePage = {
   // ─── Load All Songs (Paginated) ──────────────────────
   async loadSongs() {
     if (!this.songGrid) return;
-    // Save current state so refresh restores page + category
+    // Save current state so refresh restores page + category + favorites-filter
     try {
       sessionStorage.setItem('ml_home_state', JSON.stringify({
         page: this.currentPage,
         category: this.currentCategory || '',
+        favoritesOnly: this.favoritesOnly,
       }));
     } catch {}
     this.songGrid.innerHTML = UI.createSkeletons(6);
@@ -687,10 +849,10 @@ const HomePage = {
     try {
       let data;
       if (Utils.isOnline()) {
-        data = await API.getSongs(this.currentPage, this.currentCategory);
-        Cache.cacheSongList(this.currentPage, this.currentCategory, data);
+        data = await API.getSongs(this.currentPage, this.currentCategory, this.currentSort);
+        Cache.cacheSongList(this.currentPage, this.currentCategory, this.currentSort, data);
       } else {
-        data = Cache.getCachedSongList(this.currentPage, this.currentCategory);
+        data = Cache.getCachedSongList(this.currentPage, this.currentCategory, this.currentSort);
         if (!data) {
           UI.showEmptyState(true);
           this.songGrid.innerHTML = '';
@@ -715,7 +877,7 @@ const HomePage = {
     } catch (err) {
       console.warn('Failed to load songs:', err);
       // Try cache fallback
-      const cached = Cache.getCachedSongList(this.currentPage, this.currentCategory);
+      const cached = Cache.getCachedSongList(this.currentPage, this.currentCategory, this.currentSort);
       if (cached?.songs?.length) {
         this.songGrid.innerHTML = cached.songs.map((s, i) => UI.createSongCard(s, i)).join('');
         this.paginationEl.innerHTML = UI.createPagination(cached.page, cached.totalPages);
@@ -724,6 +886,61 @@ const HomePage = {
         this.songGrid.innerHTML = '';
         UI.showEmptyState(true);
       }
+    }
+  },
+
+  // ─── Load Favorites (client-side, bypasses server pagination) ────────
+  async loadFavorites() {
+    if (!this.songGrid) return;
+    try {
+      sessionStorage.setItem('ml_home_state', JSON.stringify({
+        page: this.currentPage,
+        category: this.currentCategory || '',
+        favoritesOnly: this.favoritesOnly,
+      }));
+    } catch {}
+
+    const slugs = Favorites.getAll();
+    this.paginationEl.innerHTML = '';
+
+    if (!slugs.length) {
+      this.songGrid.innerHTML = '';
+      UI.showEmptyState(true, 'favorites');
+      return;
+    }
+
+    this.songGrid.innerHTML = UI.createSkeletons(Math.min(slugs.length, 6));
+
+    if (!Utils.isOnline()) {
+      const cached = slugs.map((s) => Cache.getCachedSong(s)).filter(Boolean);
+      const sorted = Utils.sortSongs(cached, this.currentSort);
+      UI.setOfflineMode(true);
+      if (!sorted.length) {
+        this.songGrid.innerHTML = '';
+        UI.showEmptyState(true, 'favorites');
+        return;
+      }
+      UI.showEmptyState(false);
+      this.songGrid.innerHTML = sorted.map((s, i) => UI.createSongCard(s, i)).join('');
+      return;
+    }
+
+    try {
+      const songs = (await Promise.all(slugs.map((s) => API.getSong(s).catch(() => null)))).filter(Boolean);
+      const sorted = Utils.sortSongs(songs, this.currentSort);
+
+      if (!sorted.length) {
+        this.songGrid.innerHTML = '';
+        UI.showEmptyState(true, 'favorites');
+        return;
+      }
+
+      UI.showEmptyState(false);
+      this.songGrid.innerHTML = sorted.map((s, i) => UI.createSongCard(s, i)).join('');
+    } catch (err) {
+      console.warn('Failed to load favorites:', err);
+      this.songGrid.innerHTML = '';
+      UI.showEmptyState(true, 'favorites');
     }
   },
 
@@ -787,10 +1004,11 @@ const HomePage = {
         .map((s, i) => UI.createSongCard(s, i))
         .join('');
 
-      // Save search term to history when a result card is clicked
+      // Save search term to history when a result card's link is clicked (not the
+      // favorite button — favoriting from search results shouldn't count as a visit)
       if (this.searchGrid) {
-        this.searchGrid.querySelectorAll('.song-card').forEach(card => {
-          card.addEventListener('click', () => {
+        this.searchGrid.querySelectorAll('.song-card__link').forEach(link => {
+          link.addEventListener('click', () => {
             SearchHistory.add(q);
           });
         });
@@ -958,6 +1176,14 @@ const SongPage = {
         artist: Utils.joinNames(song.artists, song.artist_name || song.artist || ''),
       });
       reportBtn.href = '/report?' + params.toString();
+    }
+
+    // Favorite toggle — actual click handling is the shared delegated listener; this
+    // just gives it the current song's slug and reflects its saved favorite state.
+    const favoriteBtn = document.getElementById('btnFavoriteSong');
+    if (favoriteBtn && song.slug) {
+      favoriteBtn.dataset.slug = song.slug;
+      updateFavoriteButton(favoriteBtn, Favorites.has(song.slug));
     }
 
     this._currentSong = song;
@@ -1511,6 +1737,38 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeCreditsPopovers();
 });
 
+// ─── Favorite Toggle (delegated — covers every song-grid, plus the song detail page) ────
+function updateFavoriteButton(btn, isFavorited) {
+  btn.classList.toggle('active', isFavorited);
+  btn.setAttribute('aria-pressed', String(isFavorited));
+  const label = I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites');
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+}
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.song-card__favorite, .song-page__favorite');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  const slug = btn.dataset.slug;
+  if (!slug) return;
+  const nowFavorited = Favorites.toggle(slug);
+
+  if (nowFavorited === null) {
+    if (typeof Toast !== 'undefined') Toast.show(I18n.t('toast.favorites_consent_required'), { type: 'warning' });
+    return;
+  }
+
+  // Keep every button for this song in sync (it can appear in more than one grid at once).
+  document.querySelectorAll(`.song-card__favorite[data-slug="${CSS.escape(slug)}"], .song-page__favorite[data-slug="${CSS.escape(slug)}"]`)
+    .forEach((el) => updateFavoriteButton(el, nowFavorited));
+
+  if (typeof Toast !== 'undefined') {
+    Toast.show(I18n.t(nowFavorited ? 'toast.added_to_favorites' : 'toast.removed_from_favorites'), { type: 'success', duration: 2000 });
+  }
+});
+
 // ─── App Initialization ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize cookie consent
@@ -1525,6 +1783,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize theme
   Theme.init();
+
+  // Restore the card/list display preference on every song grid on this page
+  DisplayMode.init();
 
   // Settings panel toggle(s)
   const settingsToggles = document.querySelectorAll('.settings-toggle');

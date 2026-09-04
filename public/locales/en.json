@@ -31,7 +31,9 @@
     "popular_songs": "Popular Songs",
     "all_songs": "All Songs",
     "no_songs_title": "No songs found",
-    "no_songs_text": "Try a different search term or browse categories above."
+    "no_songs_text": "Try a different search term or browse categories above.",
+    "no_favorites_title": "No favorites yet",
+    "no_favorites_text": "Tap the heart on any song to save it here."
   },
   "mobile_drawer": {
     "aria_label": "Mobile navigation",
@@ -106,7 +108,22 @@
     "back": "← Back",
     "sending": "Sending...",
     "back_to_home": "← Back to Home",
-    "err_generic": "Something went wrong. Please try again."
+    "err_generic": "Something went wrong. Please try again.",
+    "favorites": "Favorites",
+    "show_favorites": "Show favorites",
+    "favorite_btn": "Favorite",
+    "add_to_favorites": "Add to favorites",
+    "remove_from_favorites": "Remove from favorites",
+    "display_style": "Display style",
+    "view_card": "Card view",
+    "view_list": "List view",
+    "sort_by": "Sort songs",
+    "sort_name_asc": "Name (A–Z)",
+    "sort_name_desc": "Name (Z–A)",
+    "sort_views_desc": "Number (9–1)",
+    "sort_views_asc": "Number (1–9)",
+    "sort_added_desc": "Added (New–Old)",
+    "sort_added_asc": "Added (Old–New)"
   },
   "about": {
     "breadcrumb": "About Us",
@@ -227,20 +244,23 @@
     "h2": "Copyright Notice",
     "s2_content": "<p>All song lyrics displayed on this Site are the intellectual property of their respective songwriters, composers, and rights holders. MaraLyrics does not claim ownership of any song lyrics. Lyrics are provided for personal, cultural, educational, and archival purposes only.</p><p>The website design, code, branding, and original content (excluding lyrics) are © 2026 MaraLyrics. All rights reserved.</p>",
     "h3": "Removal Request Process",
-    "s3_content": "<p>If you are a copyright holder (or authorized to act on behalf of one) and believe that your copyrighted work has been posted on MaraLyrics without authorization, you may submit a removal request. Please follow the steps below:</p><div class=\"static-page__steps\"><div class=\"static-page__step\"><span class=\"static-page__step-number\">1</span><div><h3 class=\"static-page__subheading\">Identify the Content</h3><p>Provide the specific URL(s) of the page(s) containing the copyrighted material you wish to have removed.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">2</span><div><h3 class=\"static-page__subheading\">Provide Your Identity</h3><p>Include your full legal name, relationship to the copyrighted work (songwriter, composer, publisher, authorized agent), and contact information.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">3</span><div><h3 class=\"static-page__subheading\">Include a Statement</h3><p>Provide a statement that you have a good faith belief that the use of the material is not authorized by the copyright owner, its agent, or the law.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">4</span><div><h3 class=\"static-page__subheading\">Send Your Request</h3><p>Email your complete removal request to:</p><p class=\"contact-email\"><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p></div></div></div>",
+    "s3_content": "<p>If you are a copyright holder (or authorized to act on behalf of one) and believe that your copyrighted work has been posted on MaraLyrics without authorization, you may submit a removal request. Please follow the steps below:</p><div class=\"static-page__steps\"><div class=\"static-page__step\"><span class=\"static-page__step-number\">1</span><div><h3 class=\"static-page__subheading\">Identify the Content</h3><p>Provide the specific URL(s) of the page(s) containing the copyrighted material you wish to have removed.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">2</span><div><h3 class=\"static-page__subheading\">Provide Your Identity</h3><p>Include your full legal name, relationship to the copyrighted work (songwriter, composer, publisher, authorized agent), and contact information.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">3</span><div><h3 class=\"static-page__subheading\">Include a Statement</h3><p>Provide a statement that you have a good faith belief that the use of the material is not authorized by the copyright owner, its agent, or the law.</p></div></div><div class=\"static-page__step\"><span class=\"static-page__step-number\">4</span><div><h3 class=\"static-page__subheading\">Send Your Request</h3><p>Email your complete removal request to:</p><p class=\"contact-email\"><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p></div></div></div>",
     "h4": "What Happens Next",
     "s4_content": "<ul class=\"static-page__list\"><li>We will acknowledge receipt of your request within <strong>48 hours</strong>.</li><li>We will review and verify the claim promptly.</li><li>If the claim is valid, the identified content will be removed within <strong>7 business days</strong>.</li><li>You will be notified once the content has been removed.</li></ul>",
     "h5": "Important Notes",
     "s5_content": "<ul class=\"static-page__list\"><li>Fraudulent or bad-faith removal requests may be subject to legal consequences.</li><li>We may reach out for additional information or clarification before processing a request.</li><li>If you believe content was removed in error, you may contact us to file a counter-notification.</li></ul>",
     "h6": "Contact",
-    "s6_content": "<p>For copyright-related inquiries, please email:</p><p class=\"contact-email\"><a href=\"mailto:contact@maralyrics.com\">contact@maralyrics.com</a></p><p>For general inquiries, visit our <a href=\"/contact\">Contact Us</a> page.</p>"
+    "s6_content": "<p>For copyright-related inquiries, please email:</p><p class=\"contact-email\"><a href=\"mailto:info@maralyrics.com\">info@maralyrics.com</a></p><p>For general inquiries, visit our <a href=\"/contact\">Contact Us</a> page.</p>"
   },
   "toast": {
     "content_updated": "Content updated",
     "back_online": "Back online.",
     "offline_message": "No internet connection. You are viewing offline mode. Some features may not be available.",
     "theme_changed": "Theme changed to {theme}.",
-    "language_changed": "Language changed to {language}."
+    "language_changed": "Language changed to {language}.",
+    "added_to_favorites": "Added to favorites",
+    "removed_from_favorites": "Removed from favorites",
+    "favorites_consent_required": "Please accept cookies to save favorites"
   },
   "theme": {
     "dark": "Dark",
