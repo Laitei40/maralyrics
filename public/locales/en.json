@@ -20,7 +20,9 @@
   "offline": {
     "badge_text": "Offline"
   },
-  "breadcrumb": {},
+  "breadcrumb": {
+    "aria_label": "Breadcrumb"
+  },
   "home": {
     "hero_title": "Mara Song Lyrics",
     "hero_subtitle": "Discover and explore beautiful lyrics from the Mara community",
@@ -30,10 +32,13 @@
     "search_results": "Search Results",
     "popular_songs": "Popular Songs",
     "all_songs": "All Songs",
+    "song_of_the_day": "Song of the Day",
+    "song_of_the_day_badge": "Today's Pick",
     "no_songs_title": "No songs found",
     "no_songs_text": "Try a different search term or browse categories above.",
     "no_favorites_title": "No favorites yet",
-    "no_favorites_text": "Tap the heart on any song to save it here."
+    "no_favorites_text": "Tap the heart on any song to save it here.",
+    "categories_aria": "Filter by category"
   },
   "mobile_drawer": {
     "aria_label": "Mobile navigation",
@@ -70,6 +75,8 @@
   "feedback": {
     "subtitle": "Have feedback about this song? Let us know and we'll look into it.",
     "about_label": "Feedback about:",
+    "unknown_song": "Unknown Song",
+    "by_artist": "by {artist}",
     "name_label": "Your Name",
     "email_label": "Your Email",
     "body_label": "Your Feedback",

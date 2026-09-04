@@ -20,7 +20,9 @@
   "offline": {
     "badge_text": "Offline"
   },
-  "breadcrumb": {},
+  "breadcrumb": {
+    "aria_label": "Breadcrumb"
+  },
   "home": {
     "hero_title": "Mara Hlabie",
     "hero_subtitle": "Marasawzy tawhta hlabie pha kawpazy hmô papua la tlua teh",
@@ -30,10 +32,13 @@
     "search_results": "Hmôpazy",
     "popular_songs": "Alualâpa Hlazy",
     "all_songs": "Hla Zydua",
+    "song_of_the_day": "Song of the Day",
+    "song_of_the_day_badge": "Today's Pick",
     "no_songs_title": "Hla hmôpa y vei",
     "no_songs_text": "A hropa ta tlua chhi chvk achô liata phozy khi tlua chhi.",
     "no_favorites_title": "No favorites yet",
-    "no_favorites_text": "Tap the heart on any song to save it here."
+    "no_favorites_text": "Tap the heart on any song to save it here.",
+    "categories_aria": "Filter by category"
   },
   "mobile_drawer": {
     "aria_label": "Mobai chhihthana",
@@ -70,6 +75,8 @@
   "feedback": {
     "subtitle": "He hla nata azaopa khokheina na hnei ma? Mia vaw chho bei la, eima vaw moh bei aw.",
     "about_label": "Khokheina kyh:",
+    "unknown_song": "Unknown Song",
+    "by_artist": "by {artist}",
     "name_label": "Na Moh",
     "email_label": "Na Email",
     "body_label": "Na Khokheina",

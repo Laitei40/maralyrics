@@ -491,6 +491,11 @@ const API = {
     return this.fetchJSON(`/songs/popular?limit=${CONFIG.POPULAR_LIMIT}`);
   },
 
+  /** Get today's featured song (same for every visitor, changes once a day). */
+  async getSongOfTheDay() {
+    return this.fetchJSON('/songs/of-the-day');
+  },
+
   /** Increment view count. */
   async incrementView(slug) {
     return fetch(`${CONFIG.API_BASE}/songs/${encodeURIComponent(slug)}/view`, {
@@ -536,6 +541,29 @@ const UI = {
         </a>
         <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </button>
+      </div>`;
+  },
+
+  /** Create the larger featured "Song of the Day" card. Reuses the `.song-card__favorite`
+   *  class/markup so the site-wide delegated favorite-toggle handler picks it up for free. */
+  createSongOfTheDayCard(song) {
+    const isFavorited = Favorites.has(song.slug);
+    const slug = Utils.escapeHtml(song.slug);
+    const artistDisplay = Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist'));
+    return `
+      <div class="song-of-the-day fade-in" data-slug="${slug}">
+        <span class="song-of-the-day__badge">${I18n.t('home.song_of_the_day_badge')}</span>
+        <a href="/song/${slug}" class="song-of-the-day__link">
+          <h3 class="song-of-the-day__title">${Utils.escapeHtml(song.title)}</h3>
+          <p class="song-of-the-day__artist">${Utils.escapeHtml(artistDisplay)}</p>
+          <div class="song-of-the-day__meta">
+            ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
+            <span class="song-card__views">👁 ${Utils.formatViews(song.views)}</span>
+          </div>
+        </a>
+        <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
         </button>
       </div>`;
   },
@@ -642,6 +670,7 @@ const HomePage = {
     await this.loadCategories();
     if (this.currentCategory) this.updateCategoryButtons();
     await Promise.all([
+      this.loadSongOfTheDay(),
       this.loadPopular(),
       this.favoritesOnly ? this.loadFavorites() : this.loadSongs(),
     ]);
@@ -656,6 +685,8 @@ const HomePage = {
     this.searchGrid = document.getElementById('searchGrid');
     this.searchResults = document.getElementById('searchResults');
     this.searchCount = document.getElementById('searchCount');
+    this.songOfTheDaySection = document.getElementById('songOfTheDaySection');
+    this.songOfTheDayCard = document.getElementById('songOfTheDayCard');
     this.popularSection = document.getElementById('popularSection');
     this.allSongsSection = document.getElementById('allSongsSection');
     this.paginationEl = document.getElementById('pagination');
@@ -796,6 +827,40 @@ const HomePage = {
         cat === this.currentCategory;
       btn.classList.toggle('active', isActive);
     });
+  },
+
+  // ─── Load Song of the Day ─────────────────────────────
+  async loadSongOfTheDay() {
+    if (!this.songOfTheDaySection || !this.songOfTheDayCard) return;
+    const cacheKey = 'song_of_the_day_' + new Date().toISOString().slice(0, 10);
+
+    try {
+      let song;
+      if (Utils.isOnline()) {
+        song = await API.getSongOfTheDay();
+        Cache.set(cacheKey, song);
+      } else {
+        song = Cache.get(cacheKey);
+        if (!song) {
+          this.songOfTheDaySection.style.display = 'none';
+          return;
+        }
+        UI.setOfflineMode(true);
+      }
+
+      this.songOfTheDayCard.innerHTML = UI.createSongOfTheDayCard(song);
+      this.songOfTheDaySection.style.display = 'block';
+    } catch (err) {
+      console.warn('Failed to load song of the day:', err);
+      const cached = Cache.get(cacheKey);
+      if (cached) {
+        this.songOfTheDayCard.innerHTML = UI.createSongOfTheDayCard(cached);
+        this.songOfTheDaySection.style.display = 'block';
+        UI.setOfflineMode(true);
+      } else {
+        this.songOfTheDaySection.style.display = 'none';
+      }
+    }
   },
 
   // ─── Load Popular Songs ──────────────────────────────

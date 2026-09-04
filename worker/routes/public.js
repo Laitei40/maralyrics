@@ -160,7 +160,7 @@ app.get('/bootstrap', async (c) => {
   });
 });
 
-// NOTE: static sub-paths (popular) must be registered before the /:slug param route.
+// NOTE: static sub-paths (popular, of-the-day) must be registered before the /:slug param route.
 app.get('/songs/popular', async (c) => {
   const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit'), 10) || 6));
   const songs = await c.env.DB
@@ -168,6 +168,39 @@ app.get('/songs/popular', async (c) => {
     .bind(limit)
     .all();
   return c.json({ songs: songs.results.map(parseSongPeople) });
+});
+
+// "Song of the Day" — one song, picked at random the first time a given UTC date is
+// requested, then reused for every visitor for the rest of that day (daily_song_picks).
+// A song deleted (or unpublished) after being picked simply isn't shown — the next
+// request for that date will re-pick from whatever's currently published.
+app.get('/songs/of-the-day', async (c) => {
+  const db = c.env.DB;
+  const today = new Date().toISOString().slice(0, 10); // UTC 'YYYY-MM-DD'
+
+  let songId = (await db.prepare('SELECT song_id FROM daily_song_picks WHERE date = ?').bind(today).first())?.song_id;
+
+  if (!songId) {
+    const picked = await db.prepare(
+      `SELECT id FROM songs WHERE status = 'published' ORDER BY RANDOM() LIMIT 1`
+    ).first();
+    if (!picked) return c.json({ error: 'No songs available' }, 404);
+
+    // INSERT OR IGNORE so a race between two concurrent first-requests-of-the-day
+    // can't error out — whichever insert wins, re-read it so every caller agrees.
+    await db.prepare('INSERT OR IGNORE INTO daily_song_picks (date, song_id) VALUES (?, ?)')
+      .bind(today, picked.id)
+      .run();
+    songId = (await db.prepare('SELECT song_id FROM daily_song_picks WHERE date = ?').bind(today).first()).song_id;
+  }
+
+  const song = await db
+    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.id = ? AND s.status = 'published'`)
+    .bind(songId)
+    .first();
+  if (!song) return c.json({ error: 'No songs available' }, 404);
+
+  return c.json(parseSongPeople(song));
 });
 
 // Whitelisted sort keys → ORDER BY clause. `s.id` is a tiebreaker for stable pagination

@@ -920,6 +920,92 @@ body::before {
   transform: translateY(-50%);
 }
 
+/* ─── Song of the Day (featured card) ──────────────────────────
+   Same visual language as .song-card but larger and with a glowing gradient
+   border, so it reads as "today's pick" rather than just another grid tile. */
+.song-of-the-day {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl) var(--space-2xl);
+  margin-bottom: var(--space-2xl);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.song-of-the-day::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(120deg, var(--accent), var(--neon-pink), var(--neon-cyan), var(--accent));
+  background-size: 300% 300%;
+  animation: songOfTheDayGlow 6s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@keyframes songOfTheDayGlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.song-of-the-day__badge {
+  display: inline-block;
+  padding: 3px 12px;
+  margin-bottom: var(--space-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  border-radius: var(--radius-full);
+}
+
+.song-of-the-day__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  padding-right: 44px;
+}
+
+.song-of-the-day__title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+  color: var(--text-primary);
+}
+
+.song-of-the-day__artist {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.song-of-the-day__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.song-of-the-day .song-card__favorite {
+  top: var(--space-lg);
+  right: var(--space-lg);
+  width: 34px;
+  height: 34px;
+}
+
 /* ─── Song Detail Page ──────────────────────────────────────── */
 .song-page {
   max-width: 800px;
