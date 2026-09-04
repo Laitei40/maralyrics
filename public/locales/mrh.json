@@ -84,18 +84,18 @@
     "code": "404",
     "title": "Hmia Hmô Vei",
     "text_line1": "Na tlua haipa hmia cha y vei chvk thy hawpa a châ.",
-    "text_line2": "Let's get you back to the music.",
-    "go_back": "Go Back"
+    "text_line2": "Hla lâ kua chyu suh vy.",
+    "go_back": "Kua"
   },
   "common": {
-    "all": "All",
-    "unknown": "Unknown",
-    "unknown_artist": "Unknown Artist",
-    "uncategorized": "Uncategorized",
-    "prev": "← Prev",
-    "next": "Next →",
-    "found": "({count} found)",
-    "cached": "({count} cached)",
+    "all": "Zydua",
+    "unknown": "Pahnoleipa",
+    "unknown_artist": "Hlasatuh Pahnoleipa",
+    "uncategorized": "Pho pachhaihleipa",
+    "prev": "← Hnôh",
+    "next": "Hmia →",
+    "found": "(Sâ {count} chhi hmôpa a châ)",
+    "cached": "(sâ {count} pachôpa)",
     "website": "Website",
     "home": "Hmiapi",
     "feedback": "Khokheina",
@@ -109,10 +109,10 @@
     "err_generic": "Sâkha kha a sie chhei haw. Azaoh heih la."
   },
   "about": {
-    "breadcrumb": "About Us",
-    "title": "About MaraLyrics",
-    "mission_heading": "Our Mission",
-    "mission_p1": "MaraLyrics is dedicated to preserving, documenting, and sharing the rich musical heritage of the Mara people. We believe that music is one of the most powerful expressions of culture, and every lyric tells a story that deserves to be remembered.",
+    "breadcrumb": "Keimo Thâtih",
+    "title": "MaraLyrics Thâtih",
+    "mission_heading": "Eimâ Chhuahna",
+    "mission_p1": "MaraLyrics cha hneirôh kawpa Mara chiphozy ama hneipa hla ryuzy he paso awpa, avao awpa, nata rai awpa ta taopa a châ. Hla cha phoryh liata tiah chaipa palâsana sâ kha châ ta, hlabie to zydua lia he my thei lei awpa châna a hnei sai awpa eimâ ngiapâ.",
     "mission_p2": "Our platform serves as a bridge between generations — making it easy for anyone, anywhere, to discover, learn, and enjoy Mara songs in their original language.",
     "why_heading": "Why We Exist",
     "why_p1": "The Mara language and its musical traditions are an integral part of our cultural identity. As communities modernize and disperse, there is an urgent need to document and preserve these artistic works before they fade from collective memory.",
@@ -135,7 +135,7 @@
     "community_p3": "Prawche siezie nata code deichhy dâh na pahno khoh ma? <a href=\"/project\">Parawche chhichâna nata deichhytuhzy</a> he moh teh."
   },
   "contact": {
-    "title": "Contact Us",
+    "title": "Miah Azao teh",
     "intro": "Have a question, suggestion, or want to contribute to MaraLyrics? We'd love to hear from you. Fill out the form below or reach out directly via email.",
     "name_label": "Your Name <span class=\"form-required\">*</span>",
     "email_label": "Your Email <span class=\"form-required\">*</span>",
