@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { parsePagination } from '../lib/helpers.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
+import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
 
 const SONG_COLUMNS = `
   s.id, s.title, s.slug, s.category, s.lyrics, s.views, s.created_at, s.updated_at,
@@ -210,6 +211,42 @@ app.post('/songs/:slug/view', async (c) => {
   return c.json({ success: true });
 });
 
+const SUGGESTION_LIMIT = 7;
+
+// "Did you mean" fallback for when the strict (implicit-AND) FTS query finds nothing —
+// e.g. the user typed a half-remembered lyric line rather than the song's title. Casts
+// a much wider net (any song containing ANY query word, in title OR lyrics), scores each
+// candidate by what fraction of the query's words it actually contains, and returns the
+// closest matches so a lyric fragment like "Martha nah Mari Zisu aw ei" can still surface
+// the right song even though none of those words appear in its title.
+async function fuzzySuggestions(db, query) {
+  const orQuery = buildOrPrefixQuery(query);
+  if (!orQuery) return [];
+
+  const candidates = await db
+    .prepare(
+      `SELECT s.slug, s.title, s.lyrics
+       FROM songs_fts f
+       JOIN songs s ON s.id = f.rowid
+       WHERE songs_fts MATCH ? AND s.status = 'published'
+       ORDER BY rank
+       LIMIT 40`
+    )
+    .bind(orQuery)
+    .all()
+    .catch(() => ({ results: [] }));
+
+  return candidates.results
+    .map((song) => ({
+      slug: song.slug,
+      title: song.title,
+      match_percent: matchPercent(query, `${song.title}\n${song.lyrics}`),
+    }))
+    .filter((s) => s.match_percent > 0)
+    .sort((a, b) => b.match_percent - a.match_percent)
+    .slice(0, SUGGESTION_LIMIT);
+}
+
 app.get('/search', async (c) => {
   const q = (c.req.query('q') || '').trim();
   if (!q) return c.json({ results: [], suggestions: [] });
@@ -236,12 +273,7 @@ app.get('/search', async (c) => {
 
   let suggestions = [];
   if (results.results.length === 0) {
-    const firstWord = q.split(/\s+/)[0];
-    const like = await c.env.DB
-      .prepare("SELECT slug, title FROM songs WHERE title LIKE ? AND status = 'published' LIMIT 5")
-      .bind(`%${firstWord}%`)
-      .all();
-    suggestions = like.results;
+    suggestions = await fuzzySuggestions(c.env.DB, q);
   }
 
   return c.json({ results: results.results.map(parseSongPeople), suggestions });
