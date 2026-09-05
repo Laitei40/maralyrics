@@ -152,6 +152,13 @@
         <button id="btnNewArtist" class="btn btn--primary">+ New Artist</button>
       </div>
 
+      <div class="admin__toolbar">
+        <div class="search" style="max-width:360px;flex:1;">
+          <span class="search__icon">🔍</span>
+          <input type="text" id="artistSearch" class="search__input" placeholder="Filter artists..." autocomplete="off" />
+        </div>
+      </div>
+
       <div class="admin__table-wrap">
         <table class="admin-table" id="artistsTable">
           <thead>
@@ -175,6 +182,13 @@
       <div class="admin__topbar">
         <h1 class="admin__title">Composer Management</h1>
         <button id="btnNewComposer" class="btn btn--primary">+ New Composer</button>
+      </div>
+
+      <div class="admin__toolbar">
+        <div class="search" style="max-width:360px;flex:1;">
+          <span class="search__icon">🔍</span>
+          <input type="text" id="composerSearch" class="search__input" placeholder="Filter composers..." autocomplete="off" />
+        </div>
       </div>
 
       <div class="admin__table-wrap">
@@ -202,6 +216,13 @@
         <button id="btnNewCopyrightOwner" class="btn btn--primary">+ New Copyright Owner</button>
       </div>
 
+      <div class="admin__toolbar">
+        <div class="search" style="max-width:360px;flex:1;">
+          <span class="search__icon">🔍</span>
+          <input type="text" id="coSearch" class="search__input" placeholder="Filter copyright owners..." autocomplete="off" />
+        </div>
+      </div>
+
       <div class="admin__table-wrap">
         <table class="admin-table" id="copyrightOwnersTable">
           <thead>
@@ -226,6 +247,10 @@
       <div class="admin__topbar">
         <h1 class="admin__title">Reports</h1>
         <div class="admin__topbar-actions">
+          <div class="search" style="max-width:240px;margin:0;">
+            <span class="search__icon">🔍</span>
+            <input type="text" id="reportSearch" class="search__input" placeholder="Filter reports..." autocomplete="off" />
+          </div>
           <select id="reportFilterStatus" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Statuses</option>
             <option value="pending" selected>Pending</option>
@@ -261,6 +286,10 @@
       <div class="admin__topbar">
         <h1 class="admin__title">Revisions</h1>
         <div class="admin__topbar-actions">
+          <div class="search" style="max-width:240px;margin:0;">
+            <span class="search__icon">🔍</span>
+            <input type="text" id="revisionSearch" class="search__input" placeholder="Filter revisions..." autocomplete="off" />
+          </div>
           <select id="revisionFilterStatus" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Statuses</option>
             <option value="pending" selected>Pending</option>
@@ -294,6 +323,10 @@
       <div class="admin__topbar">
         <h1 class="admin__title">Audit Log</h1>
         <div class="admin__topbar-actions">
+          <div class="search" style="max-width:240px;margin:0;">
+            <span class="search__icon">🔍</span>
+            <input type="text" id="auditSearch" class="search__input" placeholder="Filter audit log..." autocomplete="off" />
+          </div>
           <select id="auditFilterTarget" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Targets</option>
             <option value="song">Songs</option>
@@ -330,6 +363,10 @@
       <div class="admin__topbar">
         <h1 class="admin__title">Feedback Inbox</h1>
         <div class="admin__topbar-actions">
+          <div class="search" style="max-width:240px;margin:0;">
+            <span class="search__icon">🔍</span>
+            <input type="text" id="contactSearch" class="search__input" placeholder="Filter messages..." autocomplete="off" />
+          </div>
           <select id="contactFilterStatus" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Statuses</option>
             <option value="unread" selected>Unread</option>
@@ -364,6 +401,13 @@
       <div class="admin__topbar">
         <h1 class="admin__title">Admin Accounts</h1>
         <button id="btnNewAdminUser" class="btn btn--primary">+ New Admin</button>
+      </div>
+
+      <div class="admin__toolbar">
+        <div class="search" style="max-width:360px;flex:1;">
+          <span class="search__icon">🔍</span>
+          <input type="text" id="adminUserSearch" class="search__input" placeholder="Filter admin accounts..." autocomplete="off" />
+        </div>
       </div>
 
       <div class="admin__table-wrap">

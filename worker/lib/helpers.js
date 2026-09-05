@@ -2,6 +2,8 @@ export const CATEGORIES = ['Gospel', 'Love', 'Traditional', 'Patriotic'];
 
 export function slugify(text) {
   return String(text || '')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '') // strip combining diacritics (â→a, ô→o, ...) instead of deleting the letter
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
