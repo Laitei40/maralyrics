@@ -312,6 +312,13 @@
   padding: var(--space-lg);
 }
 
+/* Always on top of every other modal — a session can expire while a song/
+   person/etc. modal is already open, and the "please sign in again" message
+   must never be hidden behind it (same DOM-order stacking otherwise). */
+#loginOverlay {
+  z-index: 1001;
+}
+
 .modal__backdrop {
   position: absolute;
   inset: 0;
