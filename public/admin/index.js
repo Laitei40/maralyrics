@@ -324,7 +324,7 @@ function buildCheckboxList(containerEl, items) {
     <div class="checkbox-list__divider"></div>
   `;
   const itemRows = items.map(item => `
-    <label class="checkbox-list__item" data-name="${escapeHtml(item.name.toLowerCase())}">
+    <label class="checkbox-list__item" data-name="${escapeHtml(normalizeForSearch(item.name))}">
       <input type="checkbox" value="${item.id}" />
       <span>${escapeHtml(item.name)}</span>
     </label>
@@ -347,7 +347,7 @@ function buildCheckboxList(containerEl, items) {
 function wireCheckboxListFilter(filterEl, containerEl) {
   if (!filterEl || !containerEl) return;
   filterEl.addEventListener('input', () => {
-    const q = filterEl.value.trim().toLowerCase();
+    const q = normalizeForSearch(filterEl.value).trim();
     // "Unknown" is pinned at the top and always stays visible regardless of the filter —
     // it has no `data-name` since it isn't a real, filterable artist/composer.
     containerEl.querySelectorAll('.checkbox-list__item:not(.checkbox-list__item--unknown)').forEach((row) => {
@@ -458,7 +458,7 @@ function restoreCoDraftData(draft) {
 // of an attribute and inject a new one (e.g. onmouseover=) — exploitable by anyone who could
 // set that field, including anonymous public report/contact submissions.
 function escapeHtml(str) {
-  if (!str) return '';
+  if (str == null) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -470,6 +470,7 @@ function escapeHtml(str) {
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -702,6 +703,10 @@ function renderSongsTable(songs) {
   }
 
   const canDelete = hasRole(...CAN_DELETE_SONG);
+  // Viewer/Reviewer get every field disabled by applySongModalPermissions() once the
+  // modal opens (neither can edit-direct nor submit-revision) — reflect that up front
+  // instead of labeling it "Edit" for a form they can't actually change anything in.
+  const canEditOrReview = hasRole(...CAN_CREATE_SONG);
 
   tbody.innerHTML = songs.map((song) => `
     <tr data-id="${song.id}">
@@ -717,7 +722,9 @@ function renderSongsTable(songs) {
       <td>${formatDate(song.created_at)}</td>
       <td>
         <div class="admin-table__actions">
-          <button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>
+          ${canEditOrReview
+            ? `<button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>`
+            : `<button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="View">👁️</button>`}
           ${songStatusActionsHtml(song)}
           ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, 'song')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
@@ -1203,10 +1210,14 @@ function loadImageFile(file) {
   reader.readAsDataURL(file);
 }
 
-function loadImageFromUrl(url) {
+// `preserveValue` skips re-baking the canvas into personFormImage — used when
+// displaying an already-saved image_url on edit-open, so simply opening an
+// Edit modal and saving without touching the image doesn't replace a
+// lightweight URL with a freshly re-compressed base64 blob every time.
+function loadImageFromUrl(url, preserveValue = false) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
-  img.onload = () => showImagePreview(url);
+  img.onload = () => showImagePreview(url, preserveValue);
   img.onerror = () => {
     // If cross-origin fails, just use the URL directly
     document.getElementById('personFormImage').value = url;
@@ -1235,7 +1246,7 @@ function showImagePreviewFallback(url) {
   fallbackImg.style.display = 'block';
 }
 
-function showImagePreview(src) {
+function showImagePreview(src, preserveValue = false) {
   const previewWrap = document.getElementById('imagePreviewWrap');
   const dropzone = document.getElementById('imageDropzone');
   const canvas = document.getElementById('imageCropCanvas');
@@ -1272,8 +1283,12 @@ function showImagePreview(src) {
     previewWrap.style.display = 'block';
     dropzone.style.display = 'none';
 
-    // Store as data URL
-    document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
+    // Store as data URL — unless we're just re-displaying an already-saved
+    // image_url on edit-open, in which case the field already holds the
+    // correct value and re-encoding it here would be lossy for no reason.
+    if (!preserveValue) {
+      document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
+    }
   };
   img.src = src;
 }
@@ -1321,7 +1336,7 @@ function cropMouseUp() {
 }
 
 function resetCrop() {
-  if (!cropState.image) return;
+  if (!cropState.image || cropState.pending) return;
   const { ctx, image, imgW, imgH } = cropState;
   cropState.cropX = 0;
   cropState.cropY = 0;
@@ -1336,6 +1351,10 @@ function applyCrop() {
   if (!cropState.image || cropState.cropW < 10 || cropState.cropH < 10) return;
 
   const { image, scale, cropX, cropY, cropW, cropH, canvas, ctx } = cropState;
+  // The canvas element is resized synchronously below, but cropState.image/imgW/imgH only
+  // update once croppedImg decodes (async) — block Reset in that gap so it can't redraw the
+  // old, pre-crop image at the old dimensions onto the now differently-sized canvas.
+  cropState.pending = true;
 
   // Source coordinates in original image
   const sx = cropX / scale;
@@ -1364,6 +1383,7 @@ function applyCrop() {
     cropState.cropW = ow;
     cropState.cropH = oh;
     cropState.scale = 1;
+    cropState.pending = false;
   };
 
   document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
@@ -1413,6 +1433,7 @@ function showPersonMessage(text, isError = false) {
 }
 
 function openNewPerson(type) {
+  if (!hasRole(...CAN_MANAGE_REFERENCE_DATA)) return;
   clearPersonForm();
   const label = type === 'artist' ? 'Artist' : 'Composer';
   document.getElementById('personModalTitle').textContent = 'New ' + label;
@@ -1442,9 +1463,9 @@ async function editPerson(type, id) {
     document.getElementById('personFormSlug').value = item.slug || '';
     document.getElementById('personFormBio').value = item.bio || '';
     document.getElementById('personFormImage').value = item.image_url || '';
-    // Load image preview
+    // Load image preview without re-baking the existing URL into a base64 blob
     if (item.image_url) {
-      loadImageFromUrl(item.image_url);
+      loadImageFromUrl(item.image_url, true);
     }
     // Load social links
     loadSocialLinks(item.social_links || null);
@@ -1611,7 +1632,11 @@ async function loadAdminUsers() {
 function renderAdminUsersTable() {
   const tbody = document.getElementById('adminUsersTableBody');
   const query = document.getElementById('adminUserSearch')?.value || '';
-  const filtered = filterBySearch(allAdminUsers, query, ['username', 'role']);
+  // Search by the role label actually shown in the table (e.g. "Admin (Super Admin)"),
+  // not just the raw role slug (e.g. "super_admin"), so what the user sees is what matches.
+  const q = normalizeForSearch(query).trim();
+  const filtered = !q ? allAdminUsers : allAdminUsers.filter(u =>
+    normalizeForSearch(u.username).includes(q) || normalizeForSearch(roleLabel(u.role)).includes(q));
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">${query.trim() ? 'No admin accounts match your search.' : 'No admin accounts found.'}</td></tr>`;
     return;
@@ -1621,7 +1646,9 @@ function renderAdminUsersTable() {
   // backend enforces on PUT/DELETE /admin-users/:id — so hide those rows' actions client-side too.
   const canGrantSuperAdmin = hasRole('super_admin');
   tbody.innerHTML = filtered.map(u => {
-    const locked = u.role === 'super_admin' && !canGrantSuperAdmin;
+    // Also lock your own row here — the backend rejects self-delete outright, so offering
+    // Delete just to have it bounce back with an error is worse than not showing it at all.
+    const locked = (u.role === 'super_admin' && !canGrantSuperAdmin) || (me && me.id === u.id);
     return `
     <tr data-id="${u.id}">
       <td><div class="admin-table__title">${escapeHtml(u.username)}${me && me.id === u.id ? ' <span class="admin-badge" style="font-size:10px;">You</span>' : ''}</div></td>
@@ -1660,6 +1687,7 @@ function showAdminUserMessage(text, isError = false) {
 }
 
 function openNewAdminUser() {
+  if (!hasRole(...CAN_MANAGE_ADMIN_USERS)) return;
   closeAdminUserModal();
   document.getElementById('adminUserModalTitle').textContent = 'New Admin';
   document.getElementById('auBtnSubmit').textContent = 'Create Admin';
@@ -1742,8 +1770,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDashboard();
 });
 
+let dashboardInitialized = false;
 function initDashboard() {
   applyRoleVisibility();
+
+  if (dashboardInitialized) {
+    // A session-expiry (handleAuthFailure) shows the login overlay without
+    // reloading the page, so a re-login reaches this function a second time
+    // on the same still-mounted DOM. Re-running all the addEventListener
+    // calls below would bind every form/button twice, turning one submit or
+    // click into two (e.g. duplicate created rows, double status changes).
+    // Just refresh the visible data instead.
+    loadSongs(currentPage);
+    refreshStats();
+    return;
+  }
+  dashboardInitialized = true;
 
   // Settings menu (header dropdown: My Profile / Change Password / Log Out)
   document.getElementById('btnSettingsToggle').addEventListener('click', (e) => {
@@ -2040,6 +2082,7 @@ function showCOMessage(text, isError = false) {
 }
 
 function openNewCopyrightOwner() {
+  if (!hasRole(...CAN_MANAGE_REFERENCE_DATA)) return;
   clearCopyrightOwnerForm();
   document.getElementById('coModalTitle').textContent = 'New Copyright Owner';
   document.getElementById('coBtnSubmit').textContent = 'Create Copyright Owner';
@@ -2335,7 +2378,7 @@ async function openRevisionModal(id) {
     document.getElementById('rdSong').textContent = current ? current.title : `Song #${revision.song_id}`;
     document.getElementById('rdSubmittedBy').textContent = revision.submitted_by_username || '—';
     document.getElementById('rdSubmittedAt').textContent = formatDate(revision.created_at);
-    document.getElementById('rdStatus').textContent = revision.status;
+    document.getElementById('rdStatus').textContent = revision.status.charAt(0).toUpperCase() + revision.status.slice(1);
 
     document.getElementById('rdCurrent').textContent = describeSongFields(current);
     const proposedArtistIds = JSON.parse(revision.artist_ids || '[]');
