@@ -7,7 +7,8 @@
 
 const I18n = (() => {
   const STORAGE_KEY = 'ml_lang';
-  const DEFAULT_LANG = 'en';
+  const DEFAULT_LANG = 'mrh';
+  const FALLBACK_LANG = 'en';
   const SUPPORTED_LANGS = [
     { code: 'en',  name: 'English' },
     { code: 'mrh', name: 'Mara' },
@@ -116,14 +117,14 @@ const I18n = (() => {
       translations = data;
     }
 
-    // Load English as fallback (if not already English)
-    if (lang !== DEFAULT_LANG && Object.keys(fallback).length === 0) {
-      const fb = await loadTranslations(DEFAULT_LANG);
+    // Load English as fallback for missing translations in other languages.
+    if (lang !== FALLBACK_LANG && Object.keys(fallback).length === 0) {
+      const fb = await loadTranslations(FALLBACK_LANG);
       if (fb) fallback = fb;
     }
 
-    // If English is the selected language, translations IS the fallback
-    if (lang === DEFAULT_LANG) {
+    // If English is selected, its translations are the fallback too.
+    if (lang === FALLBACK_LANG) {
       fallback = translations;
     }
 
@@ -143,10 +144,9 @@ const I18n = (() => {
     if (saved && SUPPORTED_LANGS.find((l) => l.code === saved)) {
       return saved;
     }
-    // Try browser language
-    const browserLang = (navigator.language || '').split('-')[0];
-    const match = SUPPORTED_LANGS.find((l) => l.code === browserLang);
-    return match ? match.code : DEFAULT_LANG;
+    // Mara is the default for new visitors. Users can still choose another
+    // language from the switcher, and that choice is persisted above.
+    return DEFAULT_LANG;
   }
 
   /** Initialize i18n — call once on page load. */

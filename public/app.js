@@ -1833,6 +1833,89 @@ function initAppPromotion() {
   footerBottom.before(promotion);
 }
 
+function initAppPromotionDialog() {
+  const seenKey = 'ml_app_promo_seen';
+  try {
+    if (localStorage.getItem(seenKey) === '1') return;
+    localStorage.setItem(seenKey, '1');
+  } catch (_) {}
+
+  const dialog = document.createElement('div');
+  dialog.className = 'app-promo-dialog';
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  dialog.setAttribute('aria-labelledby', 'appPromoDialogTitle');
+  dialog.setAttribute('aria-describedby', 'appPromoDialogDescription');
+  dialog.innerHTML = `
+    <div class="app-promo-dialog__backdrop" data-app-promo-close></div>
+    <section class="app-promo-dialog__panel">
+      <div class="app-promo-dialog__controls">
+        <div class="app-promo-dialog__language">
+          <button type="button" class="app-promo-dialog__language-btn" aria-label="Choose language" data-i18n-aria="app_promo.language_aria" aria-expanded="false" aria-controls="appPromoLanguageMenu">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </button>
+          <div class="app-promo-dialog__language-menu" id="appPromoLanguageMenu" role="menu" aria-label="Languages" data-i18n-aria="app_promo.language_menu_aria">
+            <button type="button" role="menuitem" class="app-promo-dialog__language-option" data-dialog-lang="en">EN</button>
+            <button type="button" role="menuitem" class="app-promo-dialog__language-option" data-dialog-lang="mrh">Mara</button>
+            <button type="button" role="menuitem" class="app-promo-dialog__language-option" data-dialog-lang="my">မြန်မာ</button>
+          </div>
+        </div>
+        <button type="button" class="app-promo-dialog__close" data-app-promo-close aria-label="Close" data-i18n-aria="app_promo.close_aria">&times;</button>
+      </div>
+      <div class="app-promo-dialog__art" aria-hidden="true">
+        <div class="app-promo-dialog__glow"></div>
+        <div class="app-promo-dialog__icon"><img src="/google-play.ico" alt="" /></div>
+      </div>
+      <div class="app-promo-dialog__content">
+        <span class="app-promo-dialog__eyebrow" data-i18n="app_promo.eyebrow">Made for Mara music</span>
+        <h2 id="appPromoDialogTitle" class="app-promo-dialog__title" data-i18n="app_promo.title">MaraLyrics, wherever you are</h2>
+        <p id="appPromoDialogDescription" class="app-promo-dialog__description" data-i18n="app_promo.description">Keep your favorite Mara song lyrics close with the MaraLyrics Android app.</p>
+        <span class="app-promo-dialog__offline" data-i18n="app_promo.offline">100% Offline</span>
+        <div class="app-promo-dialog__actions">
+          <a class="app-promo-dialog__download" href="https://play.google.com/store/apps/details?id=com.maralyrics.laitei" target="_blank" rel="noopener noreferrer" data-i18n="app_promo.download" data-i18n-title="app_promo.download_title" title="Download MaraLyrics on Google Play">Get the app</a>
+          <button type="button" class="app-promo-dialog__later" data-app-promo-close data-i18n="app_promo.later">Maybe later</button>
+        </div>
+      </div>
+    </section>
+  `;
+
+  document.body.appendChild(dialog);
+  I18n.applyToDOM();
+
+  const close = () => {
+    dialog.classList.remove('visible');
+    document.body.classList.remove('app-promo-dialog-open');
+    document.removeEventListener('keydown', onKeydown);
+    setTimeout(() => dialog.remove(), 250);
+  };
+  const onKeydown = (event) => {
+    if (event.key === 'Escape') close();
+  };
+
+  dialog.querySelectorAll('[data-app-promo-close]').forEach((element) => {
+    element.addEventListener('click', close);
+  });
+  const languageButton = dialog.querySelector('.app-promo-dialog__language-btn');
+  const languageMenu = dialog.querySelector('.app-promo-dialog__language-menu');
+  languageButton.addEventListener('click', () => {
+    const isOpen = languageMenu.classList.toggle('open');
+    languageButton.setAttribute('aria-expanded', String(isOpen));
+  });
+  dialog.querySelectorAll('[data-dialog-lang]').forEach((option) => {
+    option.addEventListener('click', async () => {
+      await I18n.setLanguage(option.dataset.dialogLang);
+      languageMenu.classList.remove('open');
+      languageButton.setAttribute('aria-expanded', 'false');
+      dialog.querySelector('.app-promo-dialog__close').focus();
+    });
+  });
+  dialog.querySelector('.app-promo-dialog__download').addEventListener('click', close);
+  document.addEventListener('keydown', onKeydown);
+  document.body.classList.add('app-promo-dialog-open');
+  requestAnimationFrame(() => dialog.classList.add('visible'));
+  dialog.querySelector('.app-promo-dialog__close').focus();
+}
+
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.song-card__favorite, .song-page__favorite');
   if (!btn) return;
@@ -1870,6 +1953,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initAppPromotion();
+  setTimeout(initAppPromotionDialog, 1200);
 
   // Initialize theme
   Theme.init();

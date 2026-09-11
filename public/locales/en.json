@@ -17,6 +17,18 @@
     "made_with": "Proudly Made in Maraland <span class=\"footer__heart\">♥</span> for the Mara community",
     "copyright": "© 2026 MaraLyrics. All rights reserved."
   },
+  "app_promo": {
+    "eyebrow": "Made for Mara music",
+    "title": "MaraLyrics, wherever you are",
+    "description": "Keep your favorite Mara song lyrics close with the MaraLyrics Android app.",
+    "offline": "100% Offline",
+    "download": "Get the app",
+    "download_title": "Download Mara Lyrics on Google Play",
+    "later": "Maybe later",
+    "close_aria": "Close",
+    "language_aria": "Choose language",
+    "language_menu_aria": "Promotion language options"
+  },
   "settings_panel": {
     "toggle": "Settings",
     "language": "Language",

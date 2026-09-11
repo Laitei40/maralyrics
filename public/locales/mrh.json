@@ -4,11 +4,11 @@
   },
   "footer": {
     "tagline": "Chhâtliasawzy châta Mara Hla pabohsana.",
-    "app_title": "MaraLyrics Android liata",
-    "app_description": "Mara Hlabie châta na hropa ta chho bei aw. Google Play liata MaraLyrics app he download na bei aw.",
+    "app_title": "Android liata MaraLyrics",
+    "app_description": "Mara Hlabiezy na hnohta a chei mah y. Google Play liata MaraLyrics app he adao teh.",
     "app_offline": "100% Offline",
-    "app_download": "App download bei",
-    "app_download_title": "Google Play liata MaraLyrics download bei",
+    "app_download": "App Adao",
+    "app_download_title": "Google Play tawhta MaraLyrics Adao",
     "heading_information": "Chhichâna",
     "heading_legal": "Dâh ta Pasaina",
     "heading_support": "Deichhyna",
@@ -16,6 +16,18 @@
     "link_report": "Pâna Chho",
     "made_with": "Marasawzy châta <span class=\"footer__heart\">♥</span> Mararâh liata apalai khei kawpa ta taopa a châ.",
     "copyright": "© 2026 MaraLyrics. Biehneina zydua a paso khai."
+  },
+  "app_promo": {
+    "eyebrow": "Mara Hla châta taopa",
+    "title": "Khataih su na tlôpa chhao, Mara Lyrics",
+    "description": "MaraLyrics Android app ta na khohchaipa Mara Hlazy na kiah lia soh mah y.",
+    "offline": "100% Offline",
+    "download": "App Adao",
+    "download_title": "Google Play liata Mara Lyrics download teh",
+    "later": "He tawh sy",
+    "close_aria": "Khaw",
+    "language_aria": "Reih heipa",
+    "language_menu_aria": "Promotion reih heipa"
   },
   "settings_panel": {
     "toggle": "Paraihnazy",

@@ -2500,6 +2500,312 @@ body::before {
   transform: translateY(-1px);
 }
 
+/* ─── First-visit App Promotion ────────────────────────────── */
+.app-promo-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+
+.app-promo-dialog.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-promo-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 5, 14, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.app-promo-dialog__panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  width: min(760px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, #17132e 0%, #101827 100%);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(139, 92, 246, 0.14) inset;
+  transform: translateY(18px) scale(0.98);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-promo-dialog__controls {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.app-promo-dialog__language {
+  position: relative;
+}
+
+.app-promo-dialog__language-btn,
+.app-promo-dialog__close {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.app-promo-dialog__language-btn:hover,
+.app-promo-dialog__language-btn[aria-expanded="true"],
+.app-promo-dialog__close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.app-promo-dialog__language-menu {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  display: grid;
+  min-width: 104px;
+  padding: var(--space-xs);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  background: rgba(17, 24, 39, 0.98);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.app-promo-dialog__language-menu.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.app-promo-dialog__language-option {
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-align: left;
+}
+
+.app-promo-dialog__language-option:hover {
+  background: rgba(139, 92, 246, 0.18);
+  color: var(--text-primary);
+}
+
+.app-promo-dialog.visible .app-promo-dialog__panel {
+  transform: translateY(0) scale(1);
+}
+
+.app-promo-dialog__art {
+  position: relative;
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, rgba(139, 92, 246, 0.34), transparent 55%), linear-gradient(150deg, #261557, #10283a);
+}
+
+.app-promo-dialog__glow {
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 24px rgba(255, 255, 255, 0.03), 0 0 70px rgba(34, 211, 238, 0.35);
+}
+
+.app-promo-dialog__icon {
+  position: relative;
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  border: 8px solid rgba(255, 255, 255, 0.9);
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 18px 35px rgba(0, 0, 0, 0.35);
+  transform: rotate(-7deg);
+}
+
+.app-promo-dialog__icon img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.app-promo-dialog__content {
+  align-self: center;
+  padding: var(--space-2xl) var(--space-2xl) var(--space-xl);
+}
+
+.app-promo-dialog__eyebrow {
+  color: var(--neon-cyan);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-promo-dialog__title {
+  max-width: 370px;
+  margin: var(--space-sm) 0 var(--space-md);
+  color: var(--text-primary);
+  font-size: var(--text-3xl);
+  line-height: 1.1;
+}
+
+.app-promo-dialog__description {
+  max-width: 390px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+
+.app-promo-dialog__offline {
+  display: inline-block;
+  margin-top: var(--space-md);
+  color: var(--neon-green);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.app-promo-dialog__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+
+.app-promo-dialog__download,
+.app-promo-dialog__later {
+  min-height: 42px;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.app-promo-dialog__download {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 22px var(--accent-glow);
+}
+
+.app-promo-dialog__download:hover {
+  background: var(--accent-dark);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.app-promo-dialog__later {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.app-promo-dialog__later:hover {
+  color: var(--text-primary);
+}
+
+.app-promo-dialog__close {
+  font-size: var(--text-xl);
+  line-height: 1;
+}
+
+.app-promo-dialog-open {
+  overflow: hidden;
+}
+
+[data-theme="light"] .app-promo-dialog__panel {
+  background: linear-gradient(135deg, #fff 0%, #eef4ff 100%);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .app-promo-dialog__title {
+  color: #172033;
+}
+
+[data-theme="light"] .app-promo-dialog__language-menu {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 600px) {
+  .app-promo-dialog {
+    padding: var(--space-md);
+  }
+
+  .app-promo-dialog__panel {
+    grid-template-columns: 1fr;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+
+  .app-promo-dialog__art {
+    min-height: 190px;
+  }
+
+  .app-promo-dialog__icon {
+    width: 78px;
+    height: 78px;
+    border-width: 6px;
+    border-radius: 20px;
+  }
+
+  .app-promo-dialog__icon img {
+    width: 50px;
+    height: 50px;
+  }
+
+  .app-promo-dialog__glow {
+    width: 140px;
+    height: 140px;
+  }
+
+  .app-promo-dialog__content {
+    padding: var(--space-lg) var(--space-lg) var(--space-xl);
+  }
+
+  .app-promo-dialog__title {
+    font-size: var(--text-2xl);
+  }
+
+  .app-promo-dialog__actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .app-promo-dialog__download,
+  .app-promo-dialog__later {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 .footer__bottom p {
   margin: 0;
 }
