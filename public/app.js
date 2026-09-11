@@ -7,10 +7,8 @@
 
 // ─── Configuration ─────────────────────────────────────────────
 const WORKER_ORIGIN = 'https://api.maralyrics.com';
-const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
-const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
 const CONFIG = {
-  API_BASE: `${API_ORIGIN}/api/v1`,
+  API_BASE: `${WORKER_ORIGIN}/api/v1`,
   CACHE_PREFIX: 'ml_',
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 hours
   SEARCH_DEBOUNCE: 300,

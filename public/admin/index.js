@@ -6,9 +6,7 @@
 
 const WORKER_ORIGIN = 'https://api.maralyrics.com';
 const SITE_ORIGIN = 'https://maralyrics.com';
-const IS_PAGES = window.location.hostname.endsWith('pages.dev') || window.location.hostname.endsWith('maralyrics.com');
-const API_ORIGIN = IS_PAGES ? WORKER_ORIGIN : '';
-const API_BASE = `${API_ORIGIN}/api/v1`;
+const API_BASE = `${WORKER_ORIGIN}/api/v1`;
 const ADMIN_API = `${API_BASE}/admin`;
 
 // ─── Shared status color maps (feedback/reports, revisions, contacts tables) ──
