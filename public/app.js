@@ -1810,6 +1810,31 @@ function updateFavoriteButton(btn, isFavorited) {
   btn.setAttribute('aria-label', label);
   btn.title = label;
 }
+
+function initAppPromotion() {
+  const footer = document.querySelector('.footer');
+  const footerBottom = footer?.querySelector('.footer__bottom');
+  if (!footer || !footerBottom || footer.querySelector('.app-promotion')) return;
+
+  const promotion = document.createElement('section');
+  promotion.className = 'app-promotion';
+  promotion.setAttribute('aria-labelledby', 'appPromotionTitle');
+  promotion.innerHTML = `
+    <div class="app-promotion__copy">
+      <span class="app-promotion__icon" aria-hidden="true">
+        <img src="/google-play.ico" alt="" />
+      </span>
+      <div>
+        <h2 id="appPromotionTitle" class="app-promotion__title" data-i18n="footer.app_title">MaraLyrics on Android</h2>
+        <p class="app-promotion__text" data-i18n="footer.app_description">Take Mara song lyrics with you. Get the MaraLyrics app on Google Play.</p>
+        <span class="app-promotion__offline" data-i18n="footer.app_offline">100% Offline</span>
+      </div>
+    </div>
+    <a class="app-promotion__link" href="https://play.google.com/store/apps/details?id=com.maralyrics.laitei" target="_blank" rel="noopener noreferrer" data-i18n="footer.app_download" data-i18n-title="footer.app_download_title" title="Download MaraLyrics on Google Play">Download app</a>
+  `;
+  footerBottom.before(promotion);
+}
+
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.song-card__favorite, .song-page__favorite');
   if (!btn) return;
@@ -1845,6 +1870,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.warn('I18n.init failed:', err);
   }
+
+  initAppPromotion();
 
   // Initialize theme
   Theme.init();

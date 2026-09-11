@@ -2425,6 +2425,81 @@ body::before {
   flex-wrap: wrap;
 }
 
+.app-promotion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--radius-md);
+  background: linear-gradient(110deg, rgba(139, 92, 246, 0.16), rgba(34, 211, 238, 0.08));
+}
+
+.app-promotion__copy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.app-promotion__icon {
+  display: grid;
+  flex: 0 0 42px;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.app-promotion__icon img {
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+}
+
+.app-promotion__title {
+  margin: 0 0 var(--space-xs);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+
+.app-promotion__text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.app-promotion__offline {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  color: var(--neon-green);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.app-promotion__link {
+  flex: 0 0 auto;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--accent-light);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.app-promotion__link:hover {
+  background: var(--accent-dark);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
 .footer__bottom p {
   margin: 0;
 }
@@ -2655,6 +2730,15 @@ body::before {
     grid-template-columns: 1fr;
     gap: var(--space-md);
     text-align: center;
+  }
+
+  .app-promotion {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .app-promotion__link {
+    width: 100%;
   }
 
   .footer__brand {
