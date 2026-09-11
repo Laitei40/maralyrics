@@ -324,7 +324,7 @@ function buildCheckboxList(containerEl, items) {
     <div class="checkbox-list__divider"></div>
   `;
   const itemRows = items.map(item => `
-    <label class="checkbox-list__item" data-name="${escapeHtml(item.name.toLowerCase())}">
+    <label class="checkbox-list__item" data-name="${escapeHtml(normalizeForSearch(item.name))}">
       <input type="checkbox" value="${item.id}" />
       <span>${escapeHtml(item.name)}</span>
     </label>
@@ -347,7 +347,7 @@ function buildCheckboxList(containerEl, items) {
 function wireCheckboxListFilter(filterEl, containerEl) {
   if (!filterEl || !containerEl) return;
   filterEl.addEventListener('input', () => {
-    const q = filterEl.value.trim().toLowerCase();
+    const q = normalizeForSearch(filterEl.value).trim();
     // "Unknown" is pinned at the top and always stays visible regardless of the filter —
     // it has no `data-name` since it isn't a real, filterable artist/composer.
     containerEl.querySelectorAll('.checkbox-list__item:not(.checkbox-list__item--unknown)').forEach((row) => {
@@ -458,7 +458,7 @@ function restoreCoDraftData(draft) {
 // of an attribute and inject a new one (e.g. onmouseover=) — exploitable by anyone who could
 // set that field, including anonymous public report/contact submissions.
 function escapeHtml(str) {
-  if (!str) return '';
+  if (str == null) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -470,6 +470,7 @@ function escapeHtml(str) {
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -479,8 +480,25 @@ function formatViews(n) {
   return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
 }
 
+// Diacritic- and case-insensitive text match, so "rama" also finds "Ramâ" — same
+// normalization approach as the slug generator, applied here to search filtering.
+function normalizeForSearch(str) {
+  return String(str || '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+// Client-side filter for tabs that load their full dataset up front (Artists, Composers,
+// Copyright Owners, Reports, Revisions, Contacts, Admins, Audit Log) — checks each of
+// `fields` on every item for a substring match against the query.
+function filterBySearch(items, query, fields) {
+  const q = normalizeForSearch(query).trim();
+  if (!q) return items;
+  return items.filter(item => fields.some(f => normalizeForSearch(item[f]).includes(q)));
+}
+
 function generateSlug(text) {
-  return text
+  return String(text || '')
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '') // strip combining diacritics (â→a, ô→o, ...) instead of deleting the letter
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
@@ -685,6 +703,10 @@ function renderSongsTable(songs) {
   }
 
   const canDelete = hasRole(...CAN_DELETE_SONG);
+  // Viewer/Reviewer get every field disabled by applySongModalPermissions() once the
+  // modal opens (neither can edit-direct nor submit-revision) — reflect that up front
+  // instead of labeling it "Edit" for a form they can't actually change anything in.
+  const canEditOrReview = hasRole(...CAN_CREATE_SONG);
 
   tbody.innerHTML = songs.map((song) => `
     <tr data-id="${song.id}">
@@ -700,7 +722,9 @@ function renderSongsTable(songs) {
       <td>${formatDate(song.created_at)}</td>
       <td>
         <div class="admin-table__actions">
-          <button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>
+          ${canEditOrReview
+            ? `<button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>`
+            : `<button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="View">👁️</button>`}
           ${songStatusActionsHtml(song)}
           ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, 'song')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
@@ -745,6 +769,10 @@ function clearSongForm() {
   document.getElementById('songForm').reset();
   document.getElementById('formSongId').value = '';
   document.getElementById('formMessage').style.display = 'none';
+  // .reset() reverts field values but never touches dataset — without this the
+  // "manual" flag can survive from a slug edited in a previous session and
+  // silently block auto-slug generation for every song created/edited after.
+  document.getElementById('formSlug').dataset.manual = '';
   hideDraftBanner('songDraftBanner', 'songDraftIndicator');
 }
 function showFormMessage(text, isError = false) {
@@ -981,7 +1009,7 @@ async function loadArtists() {
   try {
     const data = await apiGet(`${ADMIN_API}/artists`);
     allArtists = data.artists || [];
-    renderPersonTable('artist', allArtists, tbody);
+    renderArtistsTable();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
   }
@@ -993,15 +1021,27 @@ async function loadComposers() {
   try {
     const data = await apiGet(`${ADMIN_API}/composers`);
     allComposers = data.composers || [];
-    renderPersonTable('composer', allComposers, tbody);
+    renderComposersTable();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
-function renderPersonTable(type, items, tbody) {
+function renderArtistsTable() {
+  const tbody = document.getElementById('artistsTableBody');
+  const query = document.getElementById('artistSearch')?.value || '';
+  renderPersonTable('artist', filterBySearch(allArtists, query, ['name', 'slug']), tbody, !!query.trim());
+}
+
+function renderComposersTable() {
+  const tbody = document.getElementById('composersTableBody');
+  const query = document.getElementById('composerSearch')?.value || '';
+  renderPersonTable('composer', filterBySearch(allComposers, query, ['name', 'slug']), tbody, !!query.trim());
+}
+
+function renderPersonTable(type, items, tbody, isFiltered = false) {
   if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">No ${type}s found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">${isFiltered ? `No ${type}s match your search.` : `No ${type}s found.`}</td></tr>`;
     return;
   }
   const canManage = hasRole(...CAN_MANAGE_REFERENCE_DATA);
@@ -1170,10 +1210,14 @@ function loadImageFile(file) {
   reader.readAsDataURL(file);
 }
 
-function loadImageFromUrl(url) {
+// `preserveValue` skips re-baking the canvas into personFormImage — used when
+// displaying an already-saved image_url on edit-open, so simply opening an
+// Edit modal and saving without touching the image doesn't replace a
+// lightweight URL with a freshly re-compressed base64 blob every time.
+function loadImageFromUrl(url, preserveValue = false) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
-  img.onload = () => showImagePreview(url);
+  img.onload = () => showImagePreview(url, preserveValue);
   img.onerror = () => {
     // If cross-origin fails, just use the URL directly
     document.getElementById('personFormImage').value = url;
@@ -1202,7 +1246,7 @@ function showImagePreviewFallback(url) {
   fallbackImg.style.display = 'block';
 }
 
-function showImagePreview(src) {
+function showImagePreview(src, preserveValue = false) {
   const previewWrap = document.getElementById('imagePreviewWrap');
   const dropzone = document.getElementById('imageDropzone');
   const canvas = document.getElementById('imageCropCanvas');
@@ -1239,8 +1283,12 @@ function showImagePreview(src) {
     previewWrap.style.display = 'block';
     dropzone.style.display = 'none';
 
-    // Store as data URL
-    document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
+    // Store as data URL — unless we're just re-displaying an already-saved
+    // image_url on edit-open, in which case the field already holds the
+    // correct value and re-encoding it here would be lossy for no reason.
+    if (!preserveValue) {
+      document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
+    }
   };
   img.src = src;
 }
@@ -1288,7 +1336,7 @@ function cropMouseUp() {
 }
 
 function resetCrop() {
-  if (!cropState.image) return;
+  if (!cropState.image || cropState.pending) return;
   const { ctx, image, imgW, imgH } = cropState;
   cropState.cropX = 0;
   cropState.cropY = 0;
@@ -1303,6 +1351,10 @@ function applyCrop() {
   if (!cropState.image || cropState.cropW < 10 || cropState.cropH < 10) return;
 
   const { image, scale, cropX, cropY, cropW, cropH, canvas, ctx } = cropState;
+  // The canvas element is resized synchronously below, but cropState.image/imgW/imgH only
+  // update once croppedImg decodes (async) — block Reset in that gap so it can't redraw the
+  // old, pre-crop image at the old dimensions onto the now differently-sized canvas.
+  cropState.pending = true;
 
   // Source coordinates in original image
   const sx = cropX / scale;
@@ -1331,6 +1383,7 @@ function applyCrop() {
     cropState.cropW = ow;
     cropState.cropH = oh;
     cropState.scale = 1;
+    cropState.pending = false;
   };
 
   document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
@@ -1365,6 +1418,9 @@ function clearPersonForm() {
   document.getElementById('personForm').reset();
   document.getElementById('personFormId').value = '';
   document.getElementById('personFormMessage').style.display = 'none';
+  // See clearSongForm() — .reset() never clears dataset, so the "manual" flag
+  // must be cleared explicitly or it leaks into the next new/edit session.
+  document.getElementById('personFormSlug').dataset.manual = '';
   hideDraftBanner('personDraftBanner', 'personDraftIndicator');
   clearImageUpload();
   loadSocialLinks(null);
@@ -1377,6 +1433,7 @@ function showPersonMessage(text, isError = false) {
 }
 
 function openNewPerson(type) {
+  if (!hasRole(...CAN_MANAGE_REFERENCE_DATA)) return;
   clearPersonForm();
   const label = type === 'artist' ? 'Artist' : 'Composer';
   document.getElementById('personModalTitle').textContent = 'New ' + label;
@@ -1406,9 +1463,9 @@ async function editPerson(type, id) {
     document.getElementById('personFormSlug').value = item.slug || '';
     document.getElementById('personFormBio').value = item.bio || '';
     document.getElementById('personFormImage').value = item.image_url || '';
-    // Load image preview
+    // Load image preview without re-baking the existing URL into a base64 blob
     if (item.image_url) {
-      loadImageFromUrl(item.image_url);
+      loadImageFromUrl(item.image_url, true);
     }
     // Load social links
     loadSocialLinks(item.social_links || null);
@@ -1574,16 +1631,24 @@ async function loadAdminUsers() {
 
 function renderAdminUsersTable() {
   const tbody = document.getElementById('adminUsersTableBody');
-  if (!allAdminUsers.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="admin-table__empty">No admin accounts found.</td></tr>';
+  const query = document.getElementById('adminUserSearch')?.value || '';
+  // Search by the role label actually shown in the table (e.g. "Admin (Super Admin)"),
+  // not just the raw role slug (e.g. "super_admin"), so what the user sees is what matches.
+  const q = normalizeForSearch(query).trim();
+  const filtered = !q ? allAdminUsers : allAdminUsers.filter(u =>
+    normalizeForSearch(u.username).includes(q) || normalizeForSearch(roleLabel(u.role)).includes(q));
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">${query.trim() ? 'No admin accounts match your search.' : 'No admin accounts found.'}</td></tr>`;
     return;
   }
   const me = getAdminInfo();
   // A Manager may not touch an existing Admin (Super Admin) account at all — same rule the
   // backend enforces on PUT/DELETE /admin-users/:id — so hide those rows' actions client-side too.
   const canGrantSuperAdmin = hasRole('super_admin');
-  tbody.innerHTML = allAdminUsers.map(u => {
-    const locked = u.role === 'super_admin' && !canGrantSuperAdmin;
+  tbody.innerHTML = filtered.map(u => {
+    // Also lock your own row here — the backend rejects self-delete outright, so offering
+    // Delete just to have it bounce back with an error is worse than not showing it at all.
+    const locked = (u.role === 'super_admin' && !canGrantSuperAdmin) || (me && me.id === u.id);
     return `
     <tr data-id="${u.id}">
       <td><div class="admin-table__title">${escapeHtml(u.username)}${me && me.id === u.id ? ' <span class="admin-badge" style="font-size:10px;">You</span>' : ''}</div></td>
@@ -1622,6 +1687,7 @@ function showAdminUserMessage(text, isError = false) {
 }
 
 function openNewAdminUser() {
+  if (!hasRole(...CAN_MANAGE_ADMIN_USERS)) return;
   closeAdminUserModal();
   document.getElementById('adminUserModalTitle').textContent = 'New Admin';
   document.getElementById('auBtnSubmit').textContent = 'Create Admin';
@@ -1704,8 +1770,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDashboard();
 });
 
+let dashboardInitialized = false;
 function initDashboard() {
   applyRoleVisibility();
+
+  if (dashboardInitialized) {
+    // A session-expiry (handleAuthFailure) shows the login overlay without
+    // reloading the page, so a re-login reaches this function a second time
+    // on the same still-mounted DOM. Re-running all the addEventListener
+    // calls below would bind every form/button twice, turning one submit or
+    // click into two (e.g. duplicate created rows, double status changes).
+    // Just refresh the visible data instead.
+    loadSongs(currentPage);
+    refreshStats();
+    return;
+  }
+  dashboardInitialized = true;
 
   // Settings menu (header dropdown: My Profile / Change Password / Log Out)
   document.getElementById('btnSettingsToggle').addEventListener('click', (e) => {
@@ -1799,6 +1879,16 @@ function initDashboard() {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => loadSongs(1, e.target.value), 200);
   });
+
+  // Search filters (client-side — these tabs load their full dataset up front)
+  document.getElementById('artistSearch')?.addEventListener('input', () => renderArtistsTable());
+  document.getElementById('composerSearch')?.addEventListener('input', () => renderComposersTable());
+  document.getElementById('coSearch')?.addEventListener('input', () => renderCopyrightOwnersTable());
+  document.getElementById('reportSearch')?.addEventListener('input', () => renderReportsTable());
+  document.getElementById('revisionSearch')?.addEventListener('input', () => renderRevisionsTable());
+  document.getElementById('auditSearch')?.addEventListener('input', () => renderAuditLogTable());
+  document.getElementById('contactSearch')?.addEventListener('input', () => renderContactsTable());
+  document.getElementById('adminUserSearch')?.addEventListener('input', () => renderAdminUsersTable());
 
   // Reports filter
   document.getElementById('reportFilterStatus').addEventListener('change', () => renderReportsTable());
@@ -1933,15 +2023,18 @@ async function loadCopyrightOwners() {
   try {
     const data = await apiGet(`${ADMIN_API}/copyright-owners`);
     allCopyrightOwners = data.copyright_owners || [];
-    renderCopyrightOwnersTable(allCopyrightOwners, tbody);
+    renderCopyrightOwnersTable();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
-function renderCopyrightOwnersTable(items, tbody) {
+function renderCopyrightOwnersTable() {
+  const tbody = document.getElementById('copyrightOwnersTableBody');
+  const query = document.getElementById('coSearch')?.value || '';
+  const items = filterBySearch(allCopyrightOwners, query, ['name', 'slug', 'organization', 'territory']);
   if (!items.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">No copyright owners found.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">${query.trim() ? 'No copyright owners match your search.' : 'No copyright owners found.'}</td></tr>`;
     return;
   }
   const canManage = hasRole(...CAN_MANAGE_REFERENCE_DATA);
@@ -1976,6 +2069,9 @@ function clearCopyrightOwnerForm() {
   document.getElementById('copyrightOwnerForm').reset();
   document.getElementById('coFormId').value = '';
   document.getElementById('coFormMessage').style.display = 'none';
+  // See clearSongForm() — .reset() never clears dataset, so the "manual" flag
+  // must be cleared explicitly or it leaks into the next new/edit session.
+  document.getElementById('coFormSlug').dataset.manual = '';
   hideDraftBanner('coDraftBanner', 'coDraftIndicator');
 }
 function showCOMessage(text, isError = false) {
@@ -1986,6 +2082,7 @@ function showCOMessage(text, isError = false) {
 }
 
 function openNewCopyrightOwner() {
+  if (!hasRole(...CAN_MANAGE_REFERENCE_DATA)) return;
   clearCopyrightOwnerForm();
   document.getElementById('coModalTitle').textContent = 'New Copyright Owner';
   document.getElementById('coBtnSubmit').textContent = 'Create Copyright Owner';
@@ -2107,14 +2204,16 @@ function renderReportsTable() {
   const tbody = document.getElementById('reportsTableBody');
   const filterEl = document.getElementById('reportFilterStatus');
   const statusFilter = filterEl ? filterEl.value : '';
+  const query = document.getElementById('reportSearch')?.value || '';
 
   let filtered = allReports;
   if (statusFilter) {
-    filtered = allReports.filter(r => r.status === statusFilter);
+    filtered = filtered.filter(r => r.status === statusFilter);
   }
+  filtered = filterBySearch(filtered, query, ['song_title', 'song_slug', 'song_artist', 'reporter_name', 'reporter_email', 'body']);
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${statusFilter ? 'No ' + statusFilter + ' reports.' : 'No reports yet.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${query.trim() ? 'No reports match your search.' : statusFilter ? 'No ' + statusFilter + ' reports.' : 'No reports yet.'}</td></tr>`;
     return;
   }
 
@@ -2221,12 +2320,14 @@ function renderRevisionsTable() {
   const tbody = document.getElementById('revisionsTableBody');
   const filterEl = document.getElementById('revisionFilterStatus');
   const statusFilter = filterEl ? filterEl.value : '';
+  const query = document.getElementById('revisionSearch')?.value || '';
 
   let filtered = allRevisions;
-  if (statusFilter) filtered = allRevisions.filter(r => r.status === statusFilter);
+  if (statusFilter) filtered = filtered.filter(r => r.status === statusFilter);
+  filtered = filterBySearch(filtered, query, ['song_title', 'song_slug', 'submitted_by_username']);
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">${statusFilter ? 'No ' + statusFilter + ' revisions.' : 'No revisions yet.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">${query.trim() ? 'No revisions match your search.' : statusFilter ? 'No ' + statusFilter + ' revisions.' : 'No revisions yet.'}</td></tr>`;
     return;
   }
 
@@ -2277,7 +2378,7 @@ async function openRevisionModal(id) {
     document.getElementById('rdSong').textContent = current ? current.title : `Song #${revision.song_id}`;
     document.getElementById('rdSubmittedBy').textContent = revision.submitted_by_username || '—';
     document.getElementById('rdSubmittedAt').textContent = formatDate(revision.created_at);
-    document.getElementById('rdStatus').textContent = revision.status;
+    document.getElementById('rdStatus').textContent = revision.status.charAt(0).toUpperCase() + revision.status.slice(1);
 
     document.getElementById('rdCurrent').textContent = describeSongFields(current);
     const proposedArtistIds = JSON.parse(revision.artist_ids || '[]');
@@ -2357,11 +2458,13 @@ async function loadAuditLog() {
 
 function renderAuditLogTable() {
   const tbody = document.getElementById('auditLogTableBody');
-  if (!allAuditLog.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">No audit entries yet.</td></tr>';
+  const query = document.getElementById('auditSearch')?.value || '';
+  const filtered = filterBySearch(allAuditLog, query, ['admin_username', 'action', 'target_type', 'detail']);
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty">${query.trim() ? 'No audit entries match your search.' : 'No audit entries yet.'}</td></tr>`;
     return;
   }
-  tbody.innerHTML = allAuditLog.map((entry) => `
+  tbody.innerHTML = filtered.map((entry) => `
     <tr>
       <td>${formatDate(entry.created_at)}</td>
       <td>${escapeHtml(entry.admin_username || '—')}</td>
@@ -2392,12 +2495,14 @@ function renderContactsTable() {
   const tbody = document.getElementById('contactsTableBody');
   const filterEl = document.getElementById('contactFilterStatus');
   const statusFilter = filterEl ? filterEl.value : '';
+  const query = document.getElementById('contactSearch')?.value || '';
 
   let filtered = allContacts;
-  if (statusFilter) filtered = allContacts.filter(c => c.status === statusFilter);
+  if (statusFilter) filtered = filtered.filter(c => c.status === statusFilter);
+  filtered = filterBySearch(filtered, query, ['name', 'email', 'subject', 'message']);
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${statusFilter ? 'No ' + statusFilter + ' messages.' : 'No messages yet.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${query.trim() ? 'No messages match your search.' : statusFilter ? 'No ' + statusFilter + ' messages.' : 'No messages yet.'}</td></tr>`;
     return;
   }
 
