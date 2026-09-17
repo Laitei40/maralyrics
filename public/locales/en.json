@@ -15,6 +15,7 @@
     "error": "Could not load events. Please try again later.",
     "calendars_error": "Could not load calendars. Please try again later.",
     "no_calendars": "No calendars available yet.",
+    "retry": "Try again",
     "subscribe_link": "See all calendars & subscribe →"
   },
   "footer": {

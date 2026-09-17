@@ -1925,6 +1925,34 @@ const CalendarFeature = (() => {
   const MIN_YEAR = 1970;
   const MAX_YEAR = 2200;
 
+  // Mirrors the fixed category set marareih.org's own calendars.html uses,
+  // so a calendar's icon here matches what it shows there.
+  const CATEGORY_ICONS = {
+    general: '📅', church: '⛪', education: '🎓', holiday: '🎉',
+    youth: '🎈', music: '🎵', community: '🤝', women: '👩', family: '👪',
+  };
+
+  const LOADING_HTML = `
+    <div class="calendar-dialog__loading">
+      <span class="calendar-dialog__spinner" aria-hidden="true"></span>
+      <p data-i18n="calendar.loading">Loading events…</p>
+    </div>`;
+
+  function errorHtml(key, fallback) {
+    return `
+      <div class="calendar-dialog__error">
+        <svg class="calendar-dialog__state-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 17h.01"/></svg>
+        <p data-i18n="${key}">${fallback}</p>
+        <button type="button" class="calendar-dialog__retry" data-calendar-retry data-i18n="calendar.retry">Try again</button>
+      </div>`;
+  }
+
+  const NO_CALENDARS_HTML = `
+    <div class="calendar-dialog__empty">
+      <svg class="calendar-dialog__state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9.5" y1="14.5" x2="14.5" y2="19.5"/><line x1="14.5" y1="14.5" x2="9.5" y2="19.5"/></svg>
+      <p data-i18n="calendar.no_calendars">No calendars available yet.</p>
+    </div>`;
+
   const eventsCache = {}; // `${calendarSlug}:${year}` -> events[]
   let calendarsList = null; // null = not loaded yet, [] = loaded but empty
   let calendarsLoadFailed = false;
@@ -1947,6 +1975,27 @@ const CalendarFeature = (() => {
     return new Date(ev.start).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
+  function isSingleAllDay(ev) {
+    return isAllDayDate(ev.start) && ev.start === ev.end;
+  }
+
+  /** A compact "05 / MAR" day badge for the common single-day case; falls
+   *  back to the full date range as text for multi-day/timed events. */
+  function eventBadgeHtml(ev) {
+    if (isSingleAllDay(ev)) {
+      const d = new Date(ev.start + 'T00:00:00');
+      const day = d.toLocaleDateString(undefined, { day: '2-digit' });
+      const month = d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+      return `<span class="calendar-event__badge"><span class="calendar-event__badge-day">${day}</span><span class="calendar-event__badge-month">${Utils.escapeHtml(month)}</span></span>`;
+    }
+    return `<span class="calendar-event__badge calendar-event__badge--text">${Utils.escapeHtml(formatEventWhen(ev))}</span>`;
+  }
+
+  function monthLabel(ev) {
+    const d = new Date(isAllDayDate(ev.start) ? ev.start + 'T00:00:00' : ev.start);
+    return d.toLocaleDateString(undefined, { month: 'long' });
+  }
+
   function currentCalendarName() {
     const cal = (calendarsList || []).find((c) => c.slug === currentCalendarSlug);
     return cal ? cal.name : '';
@@ -1959,9 +2008,10 @@ const CalendarFeature = (() => {
       picker.innerHTML = '';
       return;
     }
-    picker.innerHTML = calendarsList.map((cal) => `
-      <button type="button" class="calendar-dialog__picker-pill${cal.slug === currentCalendarSlug ? ' active' : ''}" data-calendar-slug="${Utils.escapeHtml(cal.slug)}" aria-pressed="${cal.slug === currentCalendarSlug}">${Utils.escapeHtml(cal.name)}</button>
-    `).join('');
+    picker.innerHTML = calendarsList.map((cal) => {
+      const icon = CATEGORY_ICONS[cal.category] || CATEGORY_ICONS.general;
+      return `<button type="button" class="calendar-dialog__picker-pill${cal.slug === currentCalendarSlug ? ' active' : ''}" data-calendar-slug="${Utils.escapeHtml(cal.slug)}" aria-pressed="${cal.slug === currentCalendarSlug}">${icon} ${Utils.escapeHtml(cal.name)}</button>`;
+    }).join('');
     picker.querySelectorAll('[data-calendar-slug]').forEach((btn) => {
       btn.addEventListener('click', () => selectCalendar(btn.dataset.calendarSlug));
     });
@@ -1988,23 +2038,29 @@ const CalendarFeature = (() => {
     }
   }
 
-  // ── Event list + inline expandable details ──
+  // ── Event list + inline expandable details, grouped by month ──
   function renderEvents(events) {
     const body = dialog.querySelector('#calendarDialogBody');
     if (!events.length) {
-      const p = document.createElement('p');
-      p.className = 'calendar-dialog__empty';
-      p.textContent = I18n.t('calendar.empty_for', { calendar: currentCalendarName(), year: currentYear });
-      body.innerHTML = '';
-      body.appendChild(p);
+      body.innerHTML = `
+        <div class="calendar-dialog__empty">
+          <svg class="calendar-dialog__state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9.5" y1="14.5" x2="14.5" y2="19.5"/><line x1="14.5" y1="14.5" x2="9.5" y2="19.5"/></svg>
+          <p></p>
+        </div>`;
+      body.querySelector('p').textContent = I18n.t('calendar.empty_for', { calendar: currentCalendarName(), year: currentYear });
       return;
     }
 
-    body.innerHTML = `<ul class="calendar-event-list">${events.map((ev, i) => `
-      <li class="calendar-event">
+    let lastMonth = null;
+    const rows = events.map((ev, i) => {
+      const month = monthLabel(ev);
+      const monthHeader = month !== lastMonth ? `<li class="calendar-event-month" role="presentation">${Utils.escapeHtml(month)}</li>` : '';
+      lastMonth = month;
+      const delay = (Math.min(i, 10) * 0.04).toFixed(2);
+      return `${monthHeader}<li class="calendar-event" style="animation-delay:${delay}s">
         <button type="button" class="calendar-event__summary" aria-expanded="false" aria-controls="calEventDetails${i}">
+          ${eventBadgeHtml(ev)}
           <span class="calendar-event__summary-text">
-            <span class="calendar-event__date">${Utils.escapeHtml(formatEventWhen(ev))}</span>
             <span class="calendar-event__title">${Utils.escapeHtml(ev.title)}</span>
             ${ev.location ? `<span class="calendar-event__meta">📍 ${Utils.escapeHtml(ev.location)}</span>` : ''}
           </span>
@@ -2013,7 +2069,10 @@ const CalendarFeature = (() => {
         <div class="calendar-event__details" id="calEventDetails${i}" hidden>
           <p>${ev.description ? Utils.escapeHtml(ev.description).replace(/\n/g, '<br>') : Utils.escapeHtml(I18n.t('calendar.no_description'))}</p>
         </div>
-      </li>`).join('')}</ul>`;
+      </li>`;
+    });
+
+    body.innerHTML = `<ul class="calendar-event-list">${rows.join('')}</ul>`;
 
     body.querySelectorAll('.calendar-event__summary').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -2041,7 +2100,7 @@ const CalendarFeature = (() => {
     }
 
     const body = dialog.querySelector('#calendarDialogBody');
-    body.innerHTML = `<p class="calendar-dialog__loading" data-i18n="calendar.loading">Loading events…</p>`;
+    body.innerHTML = LOADING_HTML;
     I18n.applyToDOM();
 
     const seq = ++requestSeq;
@@ -2055,8 +2114,22 @@ const CalendarFeature = (() => {
     } catch (err) {
       if (seq !== requestSeq) return;
       console.warn('[calendar] failed to load events:', err);
-      body.innerHTML = `<p class="calendar-dialog__error" data-i18n="calendar.error">Could not load events. Please try again later.</p>`;
+      body.innerHTML = errorHtml('calendar.error', 'Could not load events. Please try again later.');
       I18n.applyToDOM();
+    }
+  }
+
+  /** Retries whichever request last failed — the calendars list or the
+   *  current year's events — without losing the visitor's place. */
+  function retry() {
+    if (calendarsLoadFailed) {
+      calendarsLoadFailed = false;
+      open();
+      return;
+    }
+    if (currentCalendarSlug) {
+      delete eventsCache[`${currentCalendarSlug}:${currentYear}`];
+      renderYear(currentYear);
     }
   }
 
@@ -2090,7 +2163,9 @@ const CalendarFeature = (() => {
       <section class="calendar-dialog__panel">
         <header class="calendar-dialog__header">
           <h2 id="calendarDialogTitle" class="calendar-dialog__title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="calendar-dialog__title-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
             <span data-i18n="calendar.title">Community Calendar</span>
           </h2>
           <button type="button" class="calendar-dialog__close" data-calendar-close aria-label="Close" data-i18n-aria="calendar.close_aria">&times;</button>
@@ -2118,6 +2193,9 @@ const CalendarFeature = (() => {
     dialog.querySelectorAll('[data-year-step]').forEach((btn) => {
       btn.addEventListener('click', () => stepYear(Number(btn.dataset.yearStep)));
     });
+    dialog.addEventListener('click', (e) => {
+      if (e.target.closest('[data-calendar-retry]')) retry();
+    });
     document.addEventListener('keydown', onKeydown);
 
     return dialog;
@@ -2131,20 +2209,21 @@ const CalendarFeature = (() => {
 
     const body = dialog.querySelector('#calendarDialogBody');
     if (calendarsList === null && !calendarsLoadFailed) {
-      body.innerHTML = `<p class="calendar-dialog__loading" data-i18n="calendar.loading">Loading events…</p>`;
+      body.innerHTML = LOADING_HTML;
       I18n.applyToDOM();
     }
 
     await ensureCalendars();
     renderCalendarPicker();
+    dialog.classList.toggle('calendar-dialog--no-calendar', !currentCalendarSlug);
 
     if (calendarsLoadFailed) {
-      body.innerHTML = `<p class="calendar-dialog__error" data-i18n="calendar.calendars_error">Could not load calendars. Please try again later.</p>`;
+      body.innerHTML = errorHtml('calendar.calendars_error', 'Could not load calendars. Please try again later.');
       I18n.applyToDOM();
       return;
     }
     if (!currentCalendarSlug) {
-      body.innerHTML = `<p class="calendar-dialog__empty" data-i18n="calendar.no_calendars">No calendars available yet.</p>`;
+      body.innerHTML = NO_CALENDARS_HTML;
       I18n.applyToDOM();
       return;
     }
