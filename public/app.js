@@ -53,6 +53,15 @@ const Utils = {
     return navigator.onLine;
   },
 
+  /** Today's date as YYYY-MM-DD in the visitor's local timezone (not UTC —
+   *  matters for matching all-day calendar events to "today"). */
+  todayLocalISODate() {
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  },
+
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
@@ -566,6 +575,32 @@ const UI = {
       </div>`;
   },
 
+  /** Create the "Today's Event" card that takes over the Song of the Day
+   *  spot when a marareih.org community event falls on today. Reuses the
+   *  same glowing-border card shell for a consistent, modern look. */
+  createEventOfTheDayCard(ev) {
+    const isAllDay = /^\d{4}-\d{2}-\d{2}$/.test(ev.start);
+    let when;
+    if (isAllDay) {
+      when = ev.start === ev.end
+        ? new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+        : `${new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(ev.end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else {
+      when = new Date(ev.start).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    return `
+      <div class="song-of-the-day song-of-the-day--event fade-in">
+        <span class="song-of-the-day__badge song-of-the-day__badge--event">${I18n.t('home.event_of_the_day_badge')}</span>
+        <div class="song-of-the-day__event-body">
+          <h3 class="song-of-the-day__title">${Utils.escapeHtml(ev.title)}</h3>
+          <p class="song-of-the-day__artist">🗓️ ${Utils.escapeHtml(when)}${ev.location ? ` · 📍 ${Utils.escapeHtml(ev.location)}` : ''}</p>
+          ${ev.description ? `<p class="song-of-the-day__event-desc">${Utils.escapeHtml(ev.description)}</p>` : ''}
+        </div>
+        <a class="song-of-the-day__event-link" href="https://marareih.org/calendars.html" target="_blank" rel="noopener noreferrer">${I18n.t('home.event_of_the_day_link')}</a>
+      </div>`;
+  },
+
   /** Create skeleton loading cards. */
   createSkeletons(count = 6) {
     return Array(count)
@@ -668,7 +703,7 @@ const HomePage = {
     await this.loadCategories();
     if (this.currentCategory) this.updateCategoryButtons();
     await Promise.all([
-      this.loadSongOfTheDay(),
+      this.loadFeaturedSpot(),
       this.loadPopular(),
       this.favoritesOnly ? this.loadFavorites() : this.loadSongs(),
     ]);
@@ -685,6 +720,8 @@ const HomePage = {
     this.searchCount = document.getElementById('searchCount');
     this.songOfTheDaySection = document.getElementById('songOfTheDaySection');
     this.songOfTheDayCard = document.getElementById('songOfTheDayCard');
+    this.songOfTheDaySectionIcon = document.getElementById('songOfTheDaySectionIcon');
+    this.songOfTheDaySectionLabel = document.getElementById('songOfTheDaySectionLabel');
     this.popularSection = document.getElementById('popularSection');
     this.allSongsSection = document.getElementById('allSongsSection');
     this.paginationEl = document.getElementById('pagination');
@@ -825,6 +862,60 @@ const HomePage = {
         cat === this.currentCategory;
       btn.classList.toggle('active', isActive);
     });
+  },
+
+  // ─── Featured spot: today's community event, falling back to Song of the Day ────
+  // Shares the Song of the Day slot rather than adding a second section — the two
+  // never have anything useful to say at the same time.
+  async loadFeaturedSpot() {
+    if (!this.songOfTheDaySection || !this.songOfTheDayCard) return;
+
+    const event = await this.getTodaysEvent();
+    if (event) {
+      this.songOfTheDaySectionIcon.textContent = '📅';
+      this.songOfTheDaySectionLabel.setAttribute('data-i18n', 'home.event_of_the_day');
+      I18n.applyToDOM();
+      this.songOfTheDayCard.innerHTML = UI.createEventOfTheDayCard(event);
+      this.songOfTheDaySection.style.display = 'block';
+      return;
+    }
+
+    this.songOfTheDaySectionIcon.textContent = '🌟';
+    this.songOfTheDaySectionLabel.setAttribute('data-i18n', 'home.song_of_the_day');
+    I18n.applyToDOM();
+    await this.loadSongOfTheDay();
+  },
+
+  /** Looks for a community event (any calendar) that falls on today, via
+   *  marareih.org's public calendar API. Cached per-day like Song of the Day. */
+  async getTodaysEvent() {
+    const todayStr = Utils.todayLocalISODate();
+    const cacheKey = 'today_event_' + todayStr;
+
+    if (!Utils.isOnline()) {
+      return Cache.get(cacheKey);
+    }
+
+    try {
+      const year = new Date().getFullYear();
+      const res = await fetch(`https://calendar-api.marareih.org/api/events?year=${year}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const match = (data.events || []).find((ev) => this.isEventOnDate(ev, todayStr)) || null;
+      Cache.set(cacheKey, match);
+      return match;
+    } catch (err) {
+      console.warn('Failed to check for a community event today:', err);
+      const cached = Cache.get(cacheKey);
+      if (cached) UI.setOfflineMode(true);
+      return cached;
+    }
+  },
+
+  isEventOnDate(ev, dateStr) {
+    const isAllDay = /^\d{4}-\d{2}-\d{2}$/.test(ev.start);
+    // ISO YYYY-MM-DD strings compare lexicographically just like dates.
+    return isAllDay ? ev.start <= dateStr && dateStr <= ev.end : ev.start.slice(0, 10) === dateStr;
   },
 
   // ─── Load Song of the Day ─────────────────────────────

@@ -1026,6 +1026,39 @@ body::before {
   height: 34px;
 }
 
+/* ─── Event of the Day (takes over the Song of the Day spot) ─────────── */
+.song-of-the-day__badge--event {
+  background: linear-gradient(135deg, var(--neon-cyan), var(--accent));
+}
+
+.song-of-the-day__event-body {
+  padding-right: 0;
+}
+
+.song-of-the-day__event-desc {
+  max-width: 640px;
+  margin: 0 0 var(--space-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.song-of-the-day__event-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-light);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.song-of-the-day__event-link:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
 /* ─── Song Detail Page ──────────────────────────────────────── */
 .song-page {
   max-width: 800px;
