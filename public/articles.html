@@ -3,12 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>404 — Page Not Found | MaraLyrics</title>
-  <meta name="description" content="The page you're looking for doesn't exist." />
+  <title>Articles &amp; News — MaraLyrics</title>
+
+  <!-- SEO Meta -->
+  <meta name="description" content="News and articles from the MaraLyrics team — updates, announcements, and stories about Mara music and language." />
+  <meta name="keywords" content="MaraLyrics news, Mara music articles, MaraLyrics announcements" />
+  <meta name="author" content="MaraLyrics" />
   <meta name="theme-color" content="#0a0e1a" />
 
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Articles &amp; News — MaraLyrics" />
+  <meta property="og:description" content="News and articles from the MaraLyrics team." />
+  <meta property="og:url" content="https://maralyrics.com/articles" />
+
   <!-- Favicon -->
-  <meta name="robots" content="noindex, follow" />
+  <link rel="canonical" href="https://maralyrics.com/articles" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
 
   <!-- Fonts -->
@@ -36,14 +46,13 @@
       <nav class="header__nav">
         <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
-        <a href="/articles" class="header__nav-link" data-i18n="nav.articles">Articles</a>
+        <a href="/articles" class="header__nav-link active" data-i18n="nav.articles">Articles</a>
 
         <!-- Community Calendar -->
         <button type="button" class="calendar-toggle__btn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </button>
 
-        <!-- Settings Dropdown -->
         <!-- Notifications -->
         <div class="notif-toggle">
           <button type="button" class="notif-toggle__btn" aria-label="Notifications" title="Notifications" aria-expanded="false" data-i18n-aria="notifications.toggle_aria" data-i18n-title="notifications.toggle_aria">
@@ -139,7 +148,7 @@
           <span class="mobile-drawer__icon">🔥</span>
           <span data-i18n="nav.popular">Popular</span>
         </a>
-        <a href="/articles" class="mobile-drawer__link">
+        <a href="/articles" class="mobile-drawer__link active">
           <span class="mobile-drawer__icon">📰</span>
           <span data-i18n="nav.articles">Articles</span>
         </a>
@@ -151,33 +160,31 @@
     </aside>
   </div>
 
+  <!-- ═══ Hero ═══ -->
+  <section class="hero">
+    <div class="container">
+      <h1 class="hero__title" data-i18n="articles.hero_title">Articles &amp; News</h1>
+      <p class="hero__subtitle" data-i18n="articles.hero_subtitle">Updates, announcements, and stories from the MaraLyrics team</p>
+    </div>
+  </section>
 
-  <!-- ═══ 404 Content ═══ -->
+  <!-- ═══ Main Content ═══ -->
   <main class="container">
-    <section class="error-page fade-in">
-      <div class="error-page__glow"></div>
-      <div class="error-page__code" data-i18n="error_page.code">404</div>
-      <h1 class="error-page__title" data-i18n="error_page.title">Page Not Found</h1>
-      <p class="error-page__text">
-        <span data-i18n="error_page.text_line1">The page you're looking for doesn't exist or has been moved.</span>
-        <br /><span data-i18n="error_page.text_line2">Let's get you back to the music.</span>
-      </p>
-      <div class="error-page__actions">
-        <a href="/" class="error-page__btn error-page__btn--primary" data-i18n="common.back_to_home">
-          ← Back to Home
-        </a>
-        <button onclick="history.back()" class="error-page__btn error-page__btn--ghost" data-i18n="error_page.go_back">
-          Go Back
-        </button>
-      </div>
-      <div class="error-page__notes">
-        <span class="error-page__note" style="animation-delay:0s">♪</span>
-        <span class="error-page__note" style="animation-delay:0.5s">♫</span>
-        <span class="error-page__note" style="animation-delay:1s">♬</span>
-        <span class="error-page__note" style="animation-delay:1.5s">♩</span>
-        <span class="error-page__note" style="animation-delay:2s">♪</span>
-      </div>
+    <section id="articlesLoading" class="fade-in">
+      <div class="article-grid" id="articleSkeletonGrid"></div>
     </section>
+
+    <section id="articlesListSection" class="fade-in" style="display:none;">
+      <div class="article-grid" id="articleGrid"></div>
+      <div id="articlesPagination" class="pagination"></div>
+    </section>
+
+    <!-- Empty State (shown when there are no published articles yet) -->
+    <div id="articlesEmpty" class="empty-state" style="display:none;">
+      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+      <h3 class="empty-state__title" data-i18n="articles.empty_title">No articles yet</h3>
+      <p class="empty-state__text" data-i18n="articles.empty_text">Check back soon for news and updates from the MaraLyrics team.</p>
+    </div>
   </main>
 
   <!-- ═══ Footer ═══ -->
@@ -212,12 +219,15 @@
     </div>
   </footer>
 
+  <!-- Consent -->
   <script src="/consent.js"></script>
+  <!-- Toast -->
   <script src="/toast.js"></script>
   <!-- i18n -->
   <script src="/i18n.js"></script>
   <!-- Theme -->
   <script src="/theme.js"></script>
+  <!-- App Script -->
   <script src="/app.js"></script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 {
   "nav": {
-    "popular": "Popular"
+    "popular": "Popular",
+    "articles": "Articles"
   },
   "calendar": {
     "toggle_aria": "Community Calendar",
@@ -54,11 +55,12 @@
     "toggle_aria": "Notifications",
     "panel_title": "Notifications",
     "clear_all": "Clear all",
-    "permission_prompt": "Get notified about new songs and today's events, right in your browser.",
+    "permission_prompt": "Get notified about new songs, articles, and today's events, right in your browser.",
     "enable": "Enable notifications",
     "enabled_toast": "Notifications enabled.",
     "empty": "Nothing new yet.",
     "new_song_title": "New song added",
+    "new_article_title": "New article published",
     "event_today_title": "Event today"
   },
   "settings_panel": {
@@ -114,6 +116,20 @@
     "error_text": "This song may have been removed or the link is incorrect.",
     "various_artists": "Various Artists",
     "various_composers": "Various Composers"
+  },
+  "articles": {
+    "hero_title": "Articles & News",
+    "hero_subtitle": "Updates, announcements, and stories from the MaraLyrics team",
+    "empty_title": "No articles yet",
+    "empty_text": "Check back soon for news and updates from the MaraLyrics team.",
+    "error_title": "Couldn't load articles",
+    "error_text": "Please check your connection and try again."
+  },
+  "article": {
+    "breadcrumb": "Article",
+    "error_title": "Article not found",
+    "error_text": "This article may have been removed or the link is incorrect.",
+    "back_to_articles": "← Back to Articles"
   },
   "artist": {
     "role": "Artist",

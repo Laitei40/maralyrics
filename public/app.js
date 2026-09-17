@@ -48,6 +48,18 @@ const Utils = {
     return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   },
 
+  /** Format a date string as e.g. "Sep 17, 2026" for article cards/pages. D1's
+   *  DATETIME columns come back as 'YYYY-MM-DD HH:MM:SS' (UTC, no timezone marker). */
+  formatDateShort(dateStr) {
+    if (!dateStr) return '';
+    let iso = dateStr;
+    if (iso.includes(' ') && !iso.includes('T')) iso = iso.replace(' ', 'T');
+    if (!/[Zz]|[+-]\d{2}:\d{2}$/.test(iso)) iso += 'Z';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  },
+
   /** Check if device is online. */
   isOnline() {
     return navigator.onLine;
@@ -65,7 +77,7 @@ const Utils = {
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
-    const match = path.match(/\/(song|artist|composer|copyright-owner)\/([^/]+)/);
+    const match = path.match(/\/(song|artist|composer|copyright-owner|article)\/([^/]+)/);
     return match ? match[2] : null;
   },
 
@@ -76,6 +88,8 @@ const Utils = {
     if (path.startsWith('/artist/')) return 'artist';
     if (path.startsWith('/composer/')) return 'composer';
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
+    if (path.startsWith('/article/')) return 'article';
+    if (path === '/articles' || path === '/articles.html') return 'articles';
     return 'home';
   },
 
@@ -524,6 +538,18 @@ const API = {
   async getComposer(slug) {
     return this.fetchJSON(`/composers/${encodeURIComponent(slug)}`);
   },
+
+  /** Get paginated, published articles. */
+  async getArticles(page = 1, sort = null) {
+    let url = `/articles?page=${page}&limit=12`;
+    if (sort) url += `&sort=${encodeURIComponent(sort)}`;
+    return this.fetchJSON(url);
+  },
+
+  /** Get single published article by slug. */
+  async getArticle(slug) {
+    return this.fetchJSON(`/articles/${encodeURIComponent(slug)}`);
+  },
 };
 
 // ─── UI Rendering Module ───────────────────────────────────────
@@ -602,6 +628,39 @@ const UI = {
   },
 
   /** Create skeleton loading cards. */
+  /** Create an article card for the /articles listing grid. */
+  createArticleCard(article, index = 0) {
+    const delay = Math.min(index * 60, 600);
+    const slug = Utils.escapeHtml(article.slug);
+    const dateStr = article.published_at || article.created_at;
+    return `
+      <a href="/article/${slug}" class="article-card stagger-enter" style="animation-delay:${delay}ms">
+        <h3 class="article-card__title">${Utils.escapeHtml(article.title)}</h3>
+        <div class="article-card__meta">
+          <span class="article-card__author">${Utils.escapeHtml(article.author_name)}</span>
+          <span class="article-card__dot"></span>
+          <span class="article-card__date">${Utils.formatDateShort(dateStr)}</span>
+        </div>
+        ${article.summary ? `<p class="article-card__summary">${Utils.escapeHtml(article.summary)}</p>` : ''}
+      </a>`;
+  },
+
+  /** Create skeleton cards shaped like an article card. */
+  createArticleSkeletons(count = 6) {
+    return Array(count)
+      .fill('')
+      .map(
+        () => `
+      <div class="skeleton">
+        <div class="skeleton__line skeleton__line--title"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
+        <div class="skeleton__line" style="margin-top:var(--space-md)"></div>
+        <div class="skeleton__line skeleton__line--medium"></div>
+      </div>`
+      )
+      .join('');
+  },
+
   createSkeletons(count = 6) {
     return Array(count)
       .fill('')
@@ -1836,6 +1895,208 @@ const CopyrightOwnerPage = {
   },
 };
 
+// ─── Articles List Page Controller (/articles) ─────────────────
+const ArticlesPage = {
+  currentPage: 1,
+
+  async init() {
+    await this.loadArticles(1);
+  },
+
+  async loadArticles(page) {
+    const loading = document.getElementById('articlesLoading');
+    const listSection = document.getElementById('articlesListSection');
+    const empty = document.getElementById('articlesEmpty');
+    const skeletonGrid = document.getElementById('articleSkeletonGrid');
+    const grid = document.getElementById('articleGrid');
+    if (!loading || !listSection || !grid) return;
+
+    if (skeletonGrid) skeletonGrid.innerHTML = UI.createArticleSkeletons(6);
+
+    try {
+      const data = await API.getArticles(page);
+      this.currentPage = data.page || 1;
+      const articles = data.articles || [];
+
+      loading.style.display = 'none';
+
+      if (!articles.length) {
+        listSection.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+        return;
+      }
+
+      if (empty) empty.style.display = 'none';
+      listSection.style.display = 'block';
+      grid.innerHTML = articles.map((a, i) => UI.createArticleCard(a, i)).join('');
+      this.renderPagination(data.page, data.totalPages);
+    } catch (err) {
+      console.warn('Failed to load articles:', err);
+      loading.style.display = 'none';
+      listSection.style.display = 'none';
+      if (empty) {
+        empty.style.display = 'block';
+        const title = empty.querySelector('.empty-state__title');
+        const text = empty.querySelector('.empty-state__text');
+        if (title) title.textContent = I18n.t('articles.error_title');
+        if (text) text.textContent = I18n.t('articles.error_text');
+      }
+    }
+  },
+
+  renderPagination(page, totalPages) {
+    const el = document.getElementById('articlesPagination');
+    if (!el) return;
+    if (!totalPages || totalPages <= 1) { el.innerHTML = ''; return; }
+
+    el.innerHTML = UI.createPagination(page, totalPages);
+    el.querySelectorAll('[data-page]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = Number(btn.dataset.page);
+        if (target) {
+          this.loadArticles(target);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
+  },
+};
+
+// ─── Article Detail Page Controller (/article/:slug) ───────────
+const ArticlePage = {
+  async init() {
+    const slug = Utils.getSlugFromUrl();
+    if (!slug) {
+      this.showError();
+      return;
+    }
+    await this.loadArticle(slug);
+  },
+
+  async loadArticle(slug) {
+    try {
+      const article = await API.getArticle(slug);
+      this.renderArticle(article);
+      this.updateMeta(article);
+    } catch (err) {
+      console.warn('Failed to load article:', err);
+      this.showError();
+    }
+  },
+
+  renderArticle(article) {
+    const skeleton = document.getElementById('articleSkeleton');
+    const detail = document.getElementById('articleDetail');
+    const error = document.getElementById('articleError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (error) error.style.display = 'none';
+    if (detail) detail.style.display = 'block';
+
+    const titleEl = document.getElementById('articleTitle');
+    const authorEl = document.getElementById('articleAuthor');
+    const dateEl = document.getElementById('articleDate');
+    const summaryEl = document.getElementById('articleSummary');
+    const contentEl = document.getElementById('articleContent');
+    const breadcrumbTitle = document.getElementById('breadcrumbTitle');
+
+    if (titleEl) titleEl.textContent = article.title;
+    if (authorEl) authorEl.textContent = article.author_name;
+    if (dateEl) dateEl.textContent = Utils.formatDateShort(article.published_at || article.created_at);
+    if (breadcrumbTitle) breadcrumbTitle.textContent = article.title;
+
+    if (summaryEl) {
+      if (article.summary) {
+        summaryEl.textContent = article.summary;
+        summaryEl.style.display = 'block';
+      } else {
+        summaryEl.style.display = 'none';
+      }
+    }
+
+    if (contentEl) {
+      // Content is stored as plain text with blank-line-separated paragraphs.
+      const paragraphs = (article.content || '').replace(/\\n/g, '\n').split(/\n{2,}/).filter(Boolean);
+      contentEl.innerHTML = paragraphs.map((p) => `<p>${Utils.escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('');
+    }
+
+    this._currentArticle = article;
+    this.wireActions();
+  },
+
+  wireActions() {
+    if (this._actionsWired) return;
+    this._actionsWired = true;
+
+    const shareBtn = document.getElementById('btnShareArticle');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async () => {
+        const article = this._currentArticle;
+        if (!article) return;
+        const shareData = {
+          title: `${article.title} — MaraLyrics`,
+          text: `${article.title} by ${article.author_name} — MaraLyrics`,
+          url: window.location.href,
+        };
+        try {
+          if (navigator.share) {
+            await navigator.share(shareData);
+          } else {
+            await navigator.clipboard.writeText(shareData.url);
+            if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.share_success'), { type: 'success' });
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.share_error'), { type: 'error' });
+        }
+      });
+    }
+  },
+
+  updateMeta(article) {
+    const title = `${article.title} | MaraLyrics`;
+    const desc = (article.summary || article.content || '').slice(0, 200);
+    const url = `https://maralyrics.com/article/${article.slug}`;
+
+    document.title = title;
+    const set = (id, prop, value) => {
+      const el = document.getElementById(id);
+      if (el) el[prop] = value;
+    };
+    set('metaDesc', 'content', desc);
+    set('ogTitle', 'content', title);
+    set('ogDesc', 'content', desc);
+    set('ogUrl', 'content', url);
+    set('twTitle', 'content', title);
+    set('twDesc', 'content', desc);
+    set('canonicalUrl', 'href', url);
+    set('pageTitle', 'textContent', title);
+
+    const jsonLd = document.getElementById('jsonLd');
+    if (jsonLd) {
+      jsonLd.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: article.title,
+        author: { '@type': 'Person', name: article.author_name },
+        datePublished: article.published_at || article.created_at,
+        url,
+        publisher: { '@type': 'Organization', name: 'MaraLyrics' },
+      });
+    }
+  },
+
+  showError() {
+    const skeleton = document.getElementById('articleSkeleton');
+    const detail = document.getElementById('articleDetail');
+    const error = document.getElementById('articleError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (detail) detail.style.display = 'none';
+    if (error) error.style.display = 'block';
+  },
+};
+
 // ─── Service Worker Registration ───────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then((reg) => {
@@ -2503,6 +2764,7 @@ const NotificationsFeature = (() => {
   const ITEMS_KEY = 'ml_notif_items';
   const SEEN_SONGS_KEY = 'ml_notif_seen_songs';
   const SEEN_EVENTS_KEY = 'ml_notif_seen_events';
+  const SEEN_ARTICLES_KEY = 'ml_notif_seen_articles';
   const MAX_ITEMS = 30;
   const MAX_SEEN = 500;
   const CHECK_INTERVAL_MS = 5 * 60 * 1000;
@@ -2553,7 +2815,7 @@ const NotificationsFeature = (() => {
     }
     list.innerHTML = items.map((item) => `
       <a href="${Utils.escapeHtml(item.url || '#')}" class="notif-item${item.read ? '' : ' unread'}" data-notif-id="${Utils.escapeHtml(item.id)}">
-        <span class="notif-item__icon" aria-hidden="true">${item.type === 'song' ? '🎵' : '📅'}</span>
+        <span class="notif-item__icon" aria-hidden="true">${{ song: '🎵', article: '📰', event: '📅' }[item.type] || '🔔'}</span>
         <span class="notif-item__body">
           <span class="notif-item__title">${Utils.escapeHtml(item.title)}</span>
           ${item.body ? `<span class="notif-item__meta">${Utils.escapeHtml(item.body)}</span>` : ''}
@@ -2613,6 +2875,38 @@ const NotificationsFeature = (() => {
     }
   }
 
+  async function checkNewArticles() {
+    try {
+      // Sorted by published_at (the default) — that's what "just went live" means for
+      // articles, unlike created_desc which wouldn't move when a long-drafted article
+      // finally gets published.
+      const data = await API.getArticles(1);
+      const articles = data.articles || [];
+      const seen = getSeenSet(SEEN_ARTICLES_KEY);
+      const firstRun = seen.size === 0;
+      const freshArticles = articles.filter((a) => a.slug && !seen.has(a.slug));
+      articles.forEach((a) => { if (a.slug) seen.add(a.slug); });
+      saveSeenSet(SEEN_ARTICLES_KEY, seen);
+
+      // First check ever: seeds "already known" articles rather than notifying about the whole backlog.
+      if (firstRun) return;
+
+      freshArticles.forEach((article) => {
+        addItem({
+          id: 'article_' + article.slug,
+          type: 'article',
+          title: I18n.t('notifications.new_article_title'),
+          body: article.title + ' — ' + article.author_name,
+          url: '/article/' + article.slug,
+          read: false,
+          ts: Date.now(),
+        });
+      });
+    } catch (err) {
+      console.warn('[notifications] failed to check new articles:', err);
+    }
+  }
+
   async function checkTodaysEvents() {
     try {
       const todayStr = Utils.todayLocalISODate();
@@ -2649,6 +2943,7 @@ const NotificationsFeature = (() => {
 
   function runChecks() {
     checkNewSongs();
+    checkNewArticles();
     checkTodaysEvents();
   }
 
@@ -2891,6 +3186,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       break;
     case 'copyright-owner':
       CopyrightOwnerPage.init();
+      break;
+    case 'article':
+      ArticlePage.init();
+      break;
+    case 'articles':
+      ArticlesPage.init();
       break;
     default:
       HomePage.init();

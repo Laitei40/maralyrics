@@ -378,6 +378,42 @@ app.get('/copyright-owners/:slug', async (c) => {
   return c.json({ owner, songs: songs.results.map(parseSongPeople) });
 });
 
+// Whitelisted sort keys, same pattern as SONG_SORTS — created_desc is what the
+// site's notification poller uses to find newly published articles.
+const ARTICLE_SORTS = {
+  published_desc: 'a.published_at DESC, a.id DESC',
+  created_desc: 'a.created_at DESC, a.id DESC',
+};
+const DEFAULT_ARTICLE_SORT = 'published_desc';
+
+app.get('/articles', async (c) => {
+  const db = c.env.DB;
+  const { page, limit, offset } = parsePagination(c.req.query());
+  const sortKey = ARTICLE_SORTS[c.req.query('sort')] ? c.req.query('sort') : DEFAULT_ARTICLE_SORT;
+  const orderBy = ARTICLE_SORTS[sortKey];
+
+  const [rows, countRow] = await Promise.all([
+    db.prepare(
+      `SELECT id, title, slug, author_name, summary, published_at, created_at
+       FROM articles a WHERE status = 'published' ORDER BY ${orderBy} LIMIT ? OFFSET ?`
+    ).bind(limit, offset).all(),
+    db.prepare(`SELECT COUNT(*) AS total FROM articles WHERE status = 'published'`).first(),
+  ]);
+
+  const total = countRow.total;
+  return c.json({ articles: rows.results, total, page, totalPages: Math.max(1, Math.ceil(total / limit)), sort: sortKey });
+});
+
+app.get('/articles/:slug', async (c) => {
+  const article = await c.env.DB
+    .prepare(`SELECT * FROM articles WHERE slug = ? AND status = 'published'`)
+    .bind(c.req.param('slug'))
+    .first();
+
+  if (!article) return c.json({ error: 'Article not found' }, 404);
+  return c.json(article);
+});
+
 app.post('/reports', async (c) => {
   const data = await c.req.json().catch(() => ({}));
   const { song_slug, song_title, song_artist, reporter_name, reporter_email, body, turnstile_token } = data;

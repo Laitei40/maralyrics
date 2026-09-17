@@ -129,6 +129,11 @@ const CAN_ARCHIVE_RESTORE    = ['reviewer', 'manager', 'super_admin'];
 const CAN_DELETE_SONG        = ['manager', 'super_admin'];
 const CAN_MANAGE_REFERENCE_DATA = ['manager', 'super_admin'];
 const CAN_MANAGE_ADMIN_USERS = ['manager', 'super_admin'];
+// Kept in sync with worker/lib/permissions.js (this file can't import it — plain <script>, not a module).
+const CAN_CREATE_ARTICLE  = ['editor', 'manager', 'super_admin'];
+const CAN_EDIT_ARTICLE    = ['editor', 'manager', 'super_admin'];
+const CAN_PUBLISH_ARTICLE = ['editor', 'manager', 'super_admin'];
+const CAN_DELETE_ARTICLE  = ['manager', 'super_admin'];
 
 function statusChangePermission(fromStatus, toStatus) {
   return fromStatus === 'archived' || toStatus === 'archived' ? CAN_ARCHIVE_RESTORE : CAN_PUBLISH_UNPUBLISH;
@@ -150,6 +155,7 @@ const ROLE_TABS = {
   artists: ROLES_ALL,
   composers: ROLES_ALL,
   'copyright-owners': ROLES_ALL,
+  articles: ROLES_ALL,
   reports: ['translator', 'reviewer', 'editor', 'manager', 'super_admin'],
   revisions: ['reviewer', 'manager', 'super_admin'],
   auditlog: ['reviewer', 'manager', 'super_admin'],
@@ -180,6 +186,7 @@ function applyRoleVisibility() {
   toggleEl('btnNewArtist', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewComposer', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewCopyrightOwner', hasRole(...CAN_MANAGE_REFERENCE_DATA));
+  toggleEl('btnNewArticle', hasRole(...CAN_CREATE_ARTICLE));
   toggleEl('btnNewAdminUser', hasRole(...CAN_MANAGE_ADMIN_USERS));
 
   const superAdminOption = document.querySelector('#auFormRole option[value="super_admin"]');
@@ -212,6 +219,7 @@ let deleteTargetId = null;
 let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report' | 'admin-user' | 'contact'
 let allReports = [];
 let allCopyrightOwners = [];
+let allArticles = [];
 let allAdminUsers = [];
 let allRevisions = [];
 let allAuditLog = [];
@@ -573,6 +581,7 @@ function switchTab(tab) {
   if (tab === 'composers') loadComposers();
   if (tab === 'reports') loadReports();
   if (tab === 'copyright-owners') loadCopyrightOwners();
+  if (tab === 'articles') loadArticles();
   if (tab === 'admins') loadAdminUsers();
   if (tab === 'revisions') loadRevisions();
   if (tab === 'auditlog') loadAuditLog();
@@ -1544,6 +1553,7 @@ const DELETE_NAME_LOOKUP = {
   artist: (id) => allArtists.find(a => a.id === id)?.name,
   composer: (id) => allComposers.find(c => c.id === id)?.name,
   'copyright-owner': (id) => allCopyrightOwners.find(c => c.id === id)?.name,
+  article: (id) => allArticles.find(a => a.id === id)?.title,
   'admin-user': (id) => allAdminUsers.find(u => u.id === id)?.username,
   report: (id) => `Report #${id}`,
   contact: (id) => `Message #${id}`,
@@ -1580,6 +1590,7 @@ async function deleteItem() {
   else if (type === 'artist') allArtists = allArtists.filter(a => a.id !== id);
   else if (type === 'composer') allComposers = allComposers.filter(c => c.id !== id);
   else if (type === 'copyright-owner') allCopyrightOwners = allCopyrightOwners.filter(co => co.id !== id);
+  else if (type === 'article') allArticles = allArticles.filter(a => a.id !== id);
   else if (type === 'report') allReports = allReports.filter(r => r.id !== id);
   else if (type === 'admin-user') allAdminUsers = allAdminUsers.filter(u => u.id !== id);
   else if (type === 'contact') allContacts = allContacts.filter(c => c.id !== id);
@@ -1592,6 +1603,7 @@ async function deleteItem() {
     else if (type === 'composer') loadComposers();
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
+    else if (type === 'article') loadArticles(currentArticlePage);
     else if (type === 'admin-user') loadAdminUsers();
     else if (type === 'contact') loadContacts();
   } catch (err) {
@@ -1606,6 +1618,7 @@ async function deleteItem() {
     else if (type === 'composer') loadComposers();
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
+    else if (type === 'article') loadArticles(currentArticlePage);
     else if (type === 'admin-user') loadAdminUsers();
     else if (type === 'contact') loadContacts();
   }
@@ -1864,6 +1877,23 @@ function initDashboard() {
   document.getElementById('coModalClose').addEventListener('click', closeCopyrightOwnerModal);
   document.getElementById('coBackdrop').addEventListener('click', closeCopyrightOwnerModal);
   document.getElementById('coBtnCancel').addEventListener('click', closeCopyrightOwnerModal);
+
+  // Article buttons
+  document.getElementById('btnNewArticle').addEventListener('click', openNewArticle);
+  document.getElementById('articleForm').addEventListener('submit', saveArticle);
+  document.getElementById('articleModalClose').addEventListener('click', closeArticleModal);
+  document.getElementById('articleBackdrop').addEventListener('click', closeArticleModal);
+  document.getElementById('articleBtnCancel').addEventListener('click', closeArticleModal);
+  document.getElementById('articleFormTitle').addEventListener('input', autoArticleSlug);
+  document.getElementById('articleFormSlug').addEventListener('input', function () {
+    this.dataset.manual = this.value ? '1' : '';
+  });
+  document.getElementById('articleFilterStatus').addEventListener('change', () => loadArticles(1));
+  let articleSearchTimer;
+  document.getElementById('articleSearch').addEventListener('input', (e) => {
+    clearTimeout(articleSearchTimer);
+    articleSearchTimer = setTimeout(() => loadArticles(1, e.target.value), 200);
+  });
 
   // Delete modal
   document.getElementById('deleteModalClose').addEventListener('click', closeDeleteModal);
@@ -2178,6 +2208,249 @@ function autoCOSlug() {
   const nameField = document.getElementById('coFormName');
   if (!slugField.dataset.manual) {
     slugField.value = generateSlug(nameField.value);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ ARTICLES ═════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// No revision workflow (unlike songs) — direct create/edit, gated by role.
+// Publishing (draft -> published) IS the "send notification" action: it's what
+// makes an article show up on the public /articles page and in the site's
+// in-app notification poller (title + author). There's no separate send step.
+
+let currentArticlePage = 1;
+let totalArticlePages = 1;
+let currentArticleSearchQuery = '';
+
+async function loadArticles(page = 1, query = currentArticleSearchQuery) {
+  const tbody = document.getElementById('articlesTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  currentArticleSearchQuery = query || '';
+
+  try {
+    const qParam = currentArticleSearchQuery ? `&q=${encodeURIComponent(currentArticleSearchQuery)}` : '';
+    const statusFilter = document.getElementById('articleFilterStatus')?.value || '';
+    const statusParam = statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : '';
+    const data = await apiGet(`${ADMIN_API}/articles?page=${page}&limit=50${qParam}${statusParam}`);
+    allArticles = data.articles || [];
+    currentArticlePage = data.page;
+    totalArticlePages = data.totalPages;
+
+    renderArticlesTable(allArticles);
+    renderArticlesPagination();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function articleStatusBadgeHtml(status) {
+  return `<span class="status-badge status-badge--${status === 'published' ? 'published' : 'pending'}">${status === 'published' ? 'Published' : 'Draft'}</span>`;
+}
+
+// Inline Publish/Unpublish for the articles table row.
+function articleStatusActionsHtml(article) {
+  if (!hasRole(...CAN_PUBLISH_ARTICLE)) return '';
+  return article.status === 'published'
+    ? `<button class="btn btn--sm btn--ghost" onclick="changeArticleStatus(${article.id}, 'draft')" title="Unpublish">⏸️</button>`
+    : `<button class="btn btn--sm btn--ghost" onclick="changeArticleStatus(${article.id}, 'published')" title="Publish (sends the notification)">📢</button>`;
+}
+
+async function changeArticleStatus(id, status) {
+  try {
+    const updated = await apiPut(`${ADMIN_API}/articles/${id}/status`, { status });
+    const article = allArticles.find(a => a.id === id);
+    if (article) { article.status = updated.status; article.published_at = updated.published_at; }
+    renderArticlesTable(allArticles);
+    if (document.getElementById('articleFormId')?.value == id) {
+      renderArticleStatusRow(updated);
+    }
+    if (typeof Toast !== 'undefined' && status === 'published') {
+      Toast.show('Article published — it now appears on the public site and in visitors’ notifications.', { type: 'success', duration: 4000 });
+    }
+  } catch (err) {
+    if (typeof Toast !== 'undefined') Toast.show('Failed to update status: ' + err.message, { type: 'error' });
+    else alert('Failed to update status: ' + err.message);
+  }
+}
+
+function renderArticlesTable(articles) {
+  const tbody = document.getElementById('articlesTableBody');
+
+  if (!articles.length) {
+    tbody.innerHTML = currentArticleSearchQuery
+      ? '<tr><td colspan="5" class="admin-table__empty">No articles match your search.</td></tr>'
+      : '<tr><td colspan="5" class="admin-table__empty">No articles found. Click "+ New Article" to add one.</td></tr>';
+    return;
+  }
+
+  const canDelete = hasRole(...CAN_DELETE_ARTICLE);
+  const canEdit = hasRole(...CAN_EDIT_ARTICLE);
+
+  tbody.innerHTML = articles.map((article) => `
+    <tr data-id="${article.id}">
+      <td>
+        <div class="admin-table__title">${escapeHtml(article.title)}</div>
+        <div class="admin-table__slug">/article/${escapeHtml(article.slug)}</div>
+      </td>
+      <td>${escapeHtml(article.author_name)}</td>
+      <td>${articleStatusBadgeHtml(article.status)}</td>
+      <td>${formatDate(article.created_at)}</td>
+      <td>
+        <div class="admin-table__actions">
+          ${canEdit
+            ? `<button class="btn btn--sm btn--ghost" onclick="editArticle(${article.id})" title="Edit">✏️</button>`
+            : `<button class="btn btn--sm btn--ghost" onclick="editArticle(${article.id})" title="View">👁️</button>`}
+          ${articleStatusActionsHtml(article)}
+          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${article.id}, 'article')" title="Delete">🗑️</button>` : ''}
+          ${article.status === 'published' ? `<a href="${SITE_ORIGIN}/article/${escapeHtml(article.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderArticlesPagination() {
+  const el = document.getElementById('articlesPagination');
+  if (!el) return;
+  if (totalArticlePages <= 1) { el.innerHTML = ''; return; }
+
+  let html = `<button class="pagination__btn" ${currentArticlePage <= 1 ? 'disabled' : ''} onclick="loadArticles(${currentArticlePage - 1})">← Prev</button>`;
+  html += `<span class="pagination__info">Page ${currentArticlePage} of ${totalArticlePages}</span>`;
+  html += `<button class="pagination__btn" ${currentArticlePage >= totalArticlePages ? 'disabled' : ''} onclick="loadArticles(${currentArticlePage + 1})">Next →</button>`;
+  el.innerHTML = html;
+}
+
+// Article Modal
+function openArticleModal() {
+  document.getElementById('articleModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeArticleModal() {
+  document.getElementById('articleModal').style.display = 'none';
+  document.body.style.overflow = '';
+  clearArticleForm();
+}
+function clearArticleForm() {
+  document.getElementById('articleForm').reset();
+  document.getElementById('articleFormId').value = '';
+  document.getElementById('articleFormMessage').style.display = 'none';
+  document.getElementById('articleFormSlug').dataset.manual = '';
+  document.getElementById('articleStatusRow').style.display = 'none';
+  document.getElementById('articleBtnSubmit').style.display = '';
+  setArticleFieldsDisabled(false);
+}
+function showArticleMessage(text, isError = false) {
+  const el = document.getElementById('articleFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = 'block';
+}
+
+function setArticleFieldsDisabled(disabled) {
+  ['articleFormTitle', 'articleFormAuthor', 'articleFormSlug', 'articleFormSummary', 'articleFormContent'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
+}
+
+// Populates the status badge + Publish/Unpublish button — mirrors renderSongStatusRow.
+function renderArticleStatusRow(article) {
+  const row = document.getElementById('articleStatusRow');
+  const badge = document.getElementById('articleStatusBadge');
+  const actions = document.getElementById('articleStatusActions');
+  if (!row || !badge || !actions) return;
+  if (!article || !article.status) { row.style.display = 'none'; return; }
+
+  row.style.display = 'flex';
+  badge.className = 'status-badge status-badge--' + (article.status === 'published' ? 'published' : 'pending');
+  badge.textContent = article.status === 'published' ? 'Published' : 'Draft';
+
+  actions.innerHTML = hasRole(...CAN_PUBLISH_ARTICLE)
+    ? (article.status === 'published'
+        ? `<button type="button" class="btn btn--sm btn--ghost" onclick="changeArticleStatus(${article.id}, 'draft')">Unpublish</button>`
+        : `<button type="button" class="btn btn--sm btn--ghost" onclick="changeArticleStatus(${article.id}, 'published')">Publish</button>`)
+    : '';
+}
+
+function openNewArticle() {
+  if (!hasRole(...CAN_CREATE_ARTICLE)) return;
+  clearArticleForm();
+  document.getElementById('articleModalTitle').textContent = 'New Article';
+  document.getElementById('articleBtnSubmit').textContent = 'Create Article';
+  openArticleModal();
+  document.getElementById('articleFormTitle').focus();
+}
+
+async function editArticle(id) {
+  clearArticleForm();
+  document.getElementById('articleModalTitle').textContent = 'Edit Article';
+  document.getElementById('articleBtnSubmit').textContent = 'Update Article';
+  const canEdit = hasRole(...CAN_EDIT_ARTICLE);
+  setArticleFieldsDisabled(!canEdit);
+  document.getElementById('articleBtnSubmit').style.display = canEdit ? '' : 'none';
+  openArticleModal();
+
+  try {
+    const item = await apiGet(`${ADMIN_API}/articles/${id}`);
+    document.getElementById('articleFormId').value = item.id;
+    document.getElementById('articleFormTitle').value = item.title || '';
+    document.getElementById('articleFormAuthor').value = item.author_name || '';
+    document.getElementById('articleFormSlug').value = item.slug || '';
+    document.getElementById('articleFormSummary').value = item.summary || '';
+    document.getElementById('articleFormContent').value = item.content || '';
+    renderArticleStatusRow(item);
+  } catch (err) {
+    showArticleMessage('Failed to load: ' + err.message, true);
+  }
+}
+
+async function saveArticle(e) {
+  e.preventDefault();
+
+  const id = document.getElementById('articleFormId').value;
+  const title = document.getElementById('articleFormTitle').value.trim();
+  const author_name = document.getElementById('articleFormAuthor').value.trim();
+  const slug = document.getElementById('articleFormSlug').value.trim();
+  const summary = document.getElementById('articleFormSummary').value.trim();
+  const content = document.getElementById('articleFormContent').value.trim();
+
+  if (!title || !author_name || !content) {
+    showArticleMessage('Title, author name, and content are required.', true);
+    return;
+  }
+
+  const btn = document.getElementById('articleBtnSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const body = { title, author_name, slug, summary, content };
+    if (id) {
+      await apiPut(`${ADMIN_API}/articles/${id}`, body);
+      showArticleMessage('Article updated successfully!');
+    } else {
+      await apiPost(`${ADMIN_API}/articles`, body);
+      showArticleMessage('Article created as a draft. Publish it from the table to make it public and notify visitors.');
+    }
+
+    setTimeout(() => {
+      closeArticleModal();
+      loadArticles(currentArticlePage);
+    }, 900);
+  } catch (err) {
+    showArticleMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = id ? 'Update Article' : 'Create Article';
+  }
+}
+
+function autoArticleSlug() {
+  const slugField = document.getElementById('articleFormSlug');
+  const titleField = document.getElementById('articleFormTitle');
+  if (!slugField.dataset.manual) {
+    slugField.value = generateSlug(titleField.value);
   }
 }
 

@@ -3,12 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>404 — Page Not Found | MaraLyrics</title>
-  <meta name="description" content="The page you're looking for doesn't exist." />
+  <title id="pageTitle">Article – MaraLyrics</title>
+
+  <!-- SEO Meta (dynamically updated by JS) -->
+  <meta name="description" id="metaDesc" content="Read the latest news and articles from the MaraLyrics team." />
   <meta name="theme-color" content="#0a0e1a" />
 
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="MaraLyrics" />
+  <meta property="og:title" id="ogTitle" content="Article — MaraLyrics" />
+  <meta property="og:description" id="ogDesc" content="Read the latest news and articles from the MaraLyrics team." />
+  <meta property="og:url" id="ogUrl" content="https://maralyrics.com/article/" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" id="twTitle" content="Article — MaraLyrics" />
+  <meta name="twitter:description" id="twDesc" content="Read the latest news and articles from the MaraLyrics team." />
+
+  <!-- Canonical -->
+  <link rel="canonical" id="canonicalUrl" href="https://maralyrics.com/article/" />
+
+  <!-- JSON-LD (populated by JS) -->
+  <script type="application/ld+json" id="jsonLd">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Article",
+    "publisher": {"@type": "Organization", "name": "MaraLyrics"}
+  }
+  </script>
+
   <!-- Favicon -->
-  <meta name="robots" content="noindex, follow" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
 
   <!-- Fonts -->
@@ -43,7 +69,6 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </button>
 
-        <!-- Settings Dropdown -->
         <!-- Notifications -->
         <div class="notif-toggle">
           <button type="button" class="notif-toggle__btn" aria-label="Notifications" title="Notifications" aria-expanded="false" data-i18n-aria="notifications.toggle_aria" data-i18n-title="notifications.toggle_aria">
@@ -151,33 +176,76 @@
     </aside>
   </div>
 
+  <!-- ═══ Article Content ═══ -->
+  <main class="song-page container" id="articlePage">
 
-  <!-- ═══ 404 Content ═══ -->
-  <main class="container">
-    <section class="error-page fade-in">
-      <div class="error-page__glow"></div>
-      <div class="error-page__code" data-i18n="error_page.code">404</div>
-      <h1 class="error-page__title" data-i18n="error_page.title">Page Not Found</h1>
-      <p class="error-page__text">
-        <span data-i18n="error_page.text_line1">The page you're looking for doesn't exist or has been moved.</span>
-        <br /><span data-i18n="error_page.text_line2">Let's get you back to the music.</span>
-      </p>
-      <div class="error-page__actions">
-        <a href="/" class="error-page__btn error-page__btn--primary" data-i18n="common.back_to_home">
-          ← Back to Home
-        </a>
-        <button onclick="history.back()" class="error-page__btn error-page__btn--ghost" data-i18n="error_page.go_back">
-          Go Back
-        </button>
+    <!-- Back Link -->
+    <nav class="breadcrumb" data-i18n-aria="breadcrumb.aria_label" aria-label="Breadcrumb">
+      <a href="/articles" data-i18n="nav.articles">Articles</a>
+      <span class="breadcrumb__sep">›</span>
+      <span class="breadcrumb__current" id="breadcrumbTitle" data-i18n="article.breadcrumb">Article</span>
+    </nav>
+
+    <!-- Loading Skeleton -->
+    <div id="articleSkeleton">
+      <div class="skeleton" style="margin-bottom:var(--space-lg);">
+        <div class="skeleton__line skeleton__line--title"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
       </div>
-      <div class="error-page__notes">
-        <span class="error-page__note" style="animation-delay:0s">♪</span>
-        <span class="error-page__note" style="animation-delay:0.5s">♫</span>
-        <span class="error-page__note" style="animation-delay:1s">♬</span>
-        <span class="error-page__note" style="animation-delay:1.5s">♩</span>
-        <span class="error-page__note" style="animation-delay:2s">♪</span>
+      <div class="skeleton" style="min-height:300px;">
+        <div class="skeleton__line"></div>
+        <div class="skeleton__line skeleton__line--medium"></div>
+        <div class="skeleton__line"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
       </div>
-    </section>
+    </div>
+
+    <!-- Article Detail (hidden until loaded) -->
+    <div id="articleDetail" style="display:none;" class="fade-in">
+      <div class="song-page__card">
+
+        <h1 class="song-page__title" id="articleTitle"></h1>
+
+        <div class="song-page__meta">
+          <div class="song-page__meta-item">
+            <span class="song-page__meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+            <span class="song-page__meta-value" id="articleAuthor"></span>
+          </div>
+          <span class="song-page__meta-dot"></span>
+          <div class="song-page__meta-item">
+            <span class="song-page__meta-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+            <span class="song-page__meta-value" id="articleDate"></span>
+          </div>
+        </div>
+
+        <div class="song-page__divider"></div>
+
+        <p class="article-page__summary" id="articleSummary" style="display:none;"></p>
+
+        <div class="article-page__content" id="articleContent"></div>
+
+        <div class="song-page__footer">
+          <div class="song-page__report">
+            <button type="button" id="btnShareArticle" class="song-page__action-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              <span data-i18n="song.share_btn">Share</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="articleError" class="empty-state" style="display:none;">
+      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <h3 class="empty-state__title" data-i18n="article.error_title">Article not found</h3>
+      <p class="empty-state__text" data-i18n="article.error_text">This article may have been removed or the link is incorrect.</p>
+      <a href="/articles" class="error-page__btn error-page__btn--primary" data-i18n="article.back_to_articles">
+        ← Back to Articles
+      </a>
+    </div>
+
   </main>
 
   <!-- ═══ Footer ═══ -->
@@ -212,12 +280,15 @@
     </div>
   </footer>
 
+  <!-- Consent -->
   <script src="/consent.js"></script>
+  <!-- Toast -->
   <script src="/toast.js"></script>
   <!-- i18n -->
   <script src="/i18n.js"></script>
   <!-- Theme -->
   <script src="/theme.js"></script>
+  <!-- App Script -->
   <script src="/app.js"></script>
 </body>
 </html>

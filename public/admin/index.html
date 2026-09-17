@@ -78,6 +78,7 @@
       <button class="admin__tab" data-tab="artists">Artists</button>
       <button class="admin__tab" data-tab="composers">Composers</button>
       <button class="admin__tab" data-tab="copyright-owners">Copyright Owners</button>
+      <button class="admin__tab" data-tab="articles">Articles</button>
       <button class="admin__tab" data-tab="reports">Reports</button>
       <button class="admin__tab" data-tab="revisions">Revisions</button>
       <button class="admin__tab" data-tab="auditlog">Audit Log</button>
@@ -239,6 +240,46 @@
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- ═══ Articles Tab ═══ -->
+    <div class="admin__panel" id="panelArticles" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Article Management</h1>
+        <button id="btnNewArticle" class="btn btn--primary">+ New Article</button>
+      </div>
+
+      <div class="admin__toolbar">
+        <div class="search" style="max-width:360px;flex:1;">
+          <span class="search__icon">🔍</span>
+          <input type="text" id="articleSearch" class="search__input" placeholder="Filter articles..." autocomplete="off" />
+        </div>
+        <select id="articleFilterStatus" class="form-input form-input--sm" style="width:auto;">
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+        </select>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="articlesTable">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Author</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="articlesTableBody">
+            <tr><td colspan="5" class="admin-table__empty">Loading articles...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="articlesPagination" class="pagination" style="margin-top:var(--space-lg);"></div>
     </div>
 
     <!-- ═══ Reports Tab ═══ -->
@@ -932,6 +973,62 @@
         <div class="modal__actions">
           <button type="button" id="coBtnCancel" class="btn btn--ghost">Cancel</button>
           <button type="submit" id="coBtnSubmit" class="btn btn--primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── Article Modal (Create / Edit) ─────── -->
+  <div id="articleModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="articleBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title" id="articleModalTitle">New Article</h2>
+        <button class="modal__close" id="articleModalClose">&times;</button>
+      </div>
+      <form id="articleForm" class="modal__form">
+        <input type="hidden" id="articleFormId" value="" />
+
+        <!-- Status badge + Publish/Unpublish — edit mode only, a new article has no id
+             yet to target PUT /articles/:id/status against. Publishing is what makes the
+             article visible on the public site and sends the notification (title + author)
+             — there's no separate "send" action. -->
+        <div class="song-modal__status-row" id="articleStatusRow" style="display:none;">
+          <span class="status-badge" id="articleStatusBadge">—</span>
+          <div class="song-modal__status-actions" id="articleStatusActions"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="articleFormTitle">Title <span class="required">*</span></label>
+          <input type="text" id="articleFormTitle" class="form-input" required placeholder="Article title" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="articleFormAuthor">Author Name <span class="required">*</span></label>
+          <input type="text" id="articleFormAuthor" class="form-input" required placeholder="Author's name" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="articleFormSlug">Slug</label>
+          <input type="text" id="articleFormSlug" class="form-input" placeholder="auto-generated-from-title" />
+          <span class="form-hint">Leave blank to auto-generate from title</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="articleFormSummary">Summary</label>
+          <textarea id="articleFormSummary" class="form-input" rows="2" placeholder="A short one- or two-sentence summary shown on the Articles list..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="articleFormContent">Content <span class="required">*</span></label>
+          <textarea id="articleFormContent" class="form-input form-textarea" rows="12" required placeholder="Full article text. Separate paragraphs with a blank line."></textarea>
+        </div>
+
+        <div id="articleFormMessage" class="form-message" style="display:none;"></div>
+
+        <div class="modal__actions">
+          <button type="button" id="articleBtnCancel" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="articleBtnSubmit" class="btn btn--primary">Save</button>
         </div>
       </form>
     </div>
