@@ -1916,6 +1916,160 @@ function initAppPromotionDialog() {
   dialog.querySelector('.app-promo-dialog__close').focus();
 }
 
+// ─── Community Calendar (events pulled live from calendar-api.marareih.org) ────
+// Read-only, unauthenticated, CORS-open JSON feed — see marareih.org's
+// calendar-worker/API.md. We fetch one year at a time and let the visitor
+// step forward/back; nothing here writes to that API.
+const CalendarFeature = (() => {
+  const API = 'https://calendar-api.marareih.org';
+  const MIN_YEAR = 1970;
+  const MAX_YEAR = 2200;
+
+  const yearCache = {};
+  let dialog = null;
+  let currentYear = new Date().getFullYear();
+  let requestSeq = 0;
+
+  function isAllDayDate(str) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(str);
+  }
+
+  function formatEventWhen(ev) {
+    if (isAllDayDate(ev.start)) {
+      const startFmt = new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      if (ev.start === ev.end) return startFmt;
+      const endFmt = new Date(ev.end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${startFmt} – ${endFmt}`;
+    }
+    return new Date(ev.start).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderEvents(events) {
+    const body = dialog.querySelector('#calendarDialogBody');
+    if (!events.length) {
+      body.innerHTML = `<p class="calendar-dialog__empty" data-i18n="calendar.empty">No events this year.</p>`;
+      I18n.applyToDOM();
+      return;
+    }
+    body.innerHTML = `<ul class="calendar-event-list">${events.map((ev) => `
+      <li class="calendar-event">
+        <div class="calendar-event__date">${Utils.escapeHtml(formatEventWhen(ev))}</div>
+        <h3 class="calendar-event__title">${Utils.escapeHtml(ev.title)}</h3>
+        ${ev.location ? `<p class="calendar-event__meta">📍 ${Utils.escapeHtml(ev.location)}</p>` : ''}
+      </li>`).join('')}</ul>`;
+  }
+
+  async function renderYear(year) {
+    dialog.querySelector('#calendarDialogYear').textContent = String(year);
+    dialog.querySelectorAll('[data-year-step]').forEach((btn) => {
+      const target = year + Number(btn.dataset.yearStep);
+      btn.disabled = target < MIN_YEAR || target > MAX_YEAR;
+    });
+
+    if (yearCache[year]) {
+      renderEvents(yearCache[year]);
+      return;
+    }
+
+    const body = dialog.querySelector('#calendarDialogBody');
+    body.innerHTML = `<p class="calendar-dialog__loading" data-i18n="calendar.loading">Loading events…</p>`;
+    I18n.applyToDOM();
+
+    const seq = ++requestSeq;
+    try {
+      const res = await fetch(`${API}/api/events?year=${year}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (seq !== requestSeq) return; // superseded by a newer year switch
+      yearCache[year] = data.events || [];
+      renderEvents(yearCache[year]);
+    } catch (err) {
+      if (seq !== requestSeq) return;
+      console.warn('[calendar] failed to load events:', err);
+      body.innerHTML = `<p class="calendar-dialog__error" data-i18n="calendar.error">Could not load events. Please try again later.</p>`;
+      I18n.applyToDOM();
+    }
+  }
+
+  function stepYear(delta) {
+    const next = currentYear + delta;
+    if (next < MIN_YEAR || next > MAX_YEAR) return;
+    currentYear = next;
+    renderYear(currentYear);
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape' && dialog && dialog.classList.contains('visible')) close();
+  }
+
+  function close() {
+    if (!dialog) return;
+    dialog.classList.remove('visible');
+    document.body.classList.remove('calendar-dialog-open');
+  }
+
+  function buildDialog() {
+    if (dialog) return dialog;
+
+    dialog = document.createElement('div');
+    dialog.className = 'calendar-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'calendarDialogTitle');
+    dialog.innerHTML = `
+      <div class="calendar-dialog__backdrop" data-calendar-close></div>
+      <section class="calendar-dialog__panel">
+        <header class="calendar-dialog__header">
+          <h2 id="calendarDialogTitle" class="calendar-dialog__title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span data-i18n="calendar.title">Community Calendar</span>
+          </h2>
+          <button type="button" class="calendar-dialog__close" data-calendar-close aria-label="Close" data-i18n-aria="calendar.close_aria">&times;</button>
+        </header>
+        <div class="calendar-dialog__year-nav">
+          <button type="button" class="calendar-dialog__year-btn" data-year-step="-1" aria-label="Previous year" data-i18n-aria="calendar.prev_year_aria">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="calendar-dialog__year" id="calendarDialogYear"></span>
+          <button type="button" class="calendar-dialog__year-btn" data-year-step="1" aria-label="Next year" data-i18n-aria="calendar.next_year_aria">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="calendar-dialog__body" id="calendarDialogBody"></div>
+        <footer class="calendar-dialog__footer">
+          <a href="https://marareih.org/calendars.html" target="_blank" rel="noopener noreferrer" data-i18n="calendar.subscribe_link">See all calendars &amp; subscribe →</a>
+        </footer>
+      </section>
+    `;
+    document.body.appendChild(dialog);
+    I18n.applyToDOM();
+
+    dialog.querySelectorAll('[data-calendar-close]').forEach((el) => el.addEventListener('click', close));
+    dialog.querySelectorAll('[data-year-step]').forEach((btn) => {
+      btn.addEventListener('click', () => stepYear(Number(btn.dataset.yearStep)));
+    });
+    document.addEventListener('keydown', onKeydown);
+
+    return dialog;
+  }
+
+  function open() {
+    buildDialog();
+    dialog.classList.add('visible');
+    document.body.classList.add('calendar-dialog-open');
+    renderYear(currentYear);
+    dialog.querySelector('.calendar-dialog__close').focus();
+  }
+
+  function init() {
+    document.querySelectorAll('[data-calendar-open]').forEach((btn) => {
+      btn.addEventListener('click', open);
+    });
+  }
+
+  return { init };
+})();
+
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.song-card__favorite, .song-page__favorite');
   if (!btn) return;
@@ -1954,6 +2108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initAppPromotion();
   setTimeout(initAppPromotionDialog, 1200);
+  CalendarFeature.init();
 
   // Initialize theme
   Theme.init();

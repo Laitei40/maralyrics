@@ -353,6 +353,26 @@ body::before {
   background: var(--bg-glass);
 }
 
+/* ─── Calendar Icon Button ───────────────────────────────────── */
+.calendar-toggle__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.calendar-toggle__btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+}
+
 /* ─── Settings Toggle & Dropdown ────────────────────────────── */
 .settings-toggle {
   position: relative;
@@ -2736,6 +2756,205 @@ body::before {
 }
 
 .app-promo-dialog-open {
+  overflow: hidden;
+}
+
+/* ─── Community Calendar Dialog ──────────────────────────────── */
+.calendar-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+
+.calendar-dialog.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.calendar-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 5, 14, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.calendar-dialog__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(480px, 100%);
+  max-height: min(640px, 86vh);
+  overflow: hidden;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  background: var(--bg-card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(139, 92, 246, 0.1) inset;
+  transform: translateY(18px) scale(0.98);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calendar-dialog.visible .calendar-dialog__panel {
+  transform: translateY(0) scale(1);
+}
+
+.calendar-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.calendar-dialog__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+}
+
+.calendar-dialog__close {
+  display: grid;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--border-glass);
+  border-radius: 50%;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.calendar-dialog__close:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.calendar-dialog__year-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.calendar-dialog__year-btn {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.calendar-dialog__year-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.calendar-dialog__year-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.calendar-dialog__year {
+  min-width: 64px;
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar-dialog__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-lg);
+}
+
+.calendar-dialog__loading,
+.calendar-dialog__empty,
+.calendar-dialog__error {
+  padding: var(--space-2xl) var(--space-md);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.calendar-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  list-style: none;
+}
+
+.calendar-event {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+}
+
+.calendar-event__date {
+  color: var(--neon-cyan);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.calendar-event__title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.calendar-event__meta {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.calendar-dialog__footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border-glass);
+  text-align: center;
+}
+
+.calendar-dialog__footer a {
+  color: var(--accent-light);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.calendar-dialog__footer a:hover {
+  color: var(--accent);
+}
+
+.calendar-dialog-open {
   overflow: hidden;
 }
 

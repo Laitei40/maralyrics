@@ -2,6 +2,17 @@
   "nav": {
     "popular": "Popular"
   },
+  "calendar": {
+    "toggle_aria": "Community Calendar",
+    "title": "Community Calendar",
+    "close_aria": "Close",
+    "prev_year_aria": "Previous year",
+    "next_year_aria": "Next year",
+    "loading": "Loading events…",
+    "empty": "No events this year.",
+    "error": "Could not load events. Please try again later.",
+    "subscribe_link": "See all calendars & subscribe →"
+  },
   "footer": {
     "tagline": "Preserving Mara music for future generations.",
     "app_title": "MaraLyrics on Android",
