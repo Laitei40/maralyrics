@@ -886,11 +886,13 @@ const HomePage = {
     await this.loadSongOfTheDay();
   },
 
-  /** Looks for a community event (any calendar) that falls on today, via
-   *  marareih.org's public calendar API. Cached per-day like Song of the Day. */
+  /** Looks for a community event on today, via marareih.org's public calendar
+   *  API — restricted to the visitor's default calendar (Settings) when one
+   *  is set, otherwise any calendar. Cached per-day like Song of the Day. */
   async getTodaysEvent() {
     const todayStr = Utils.todayLocalISODate();
-    const cacheKey = 'today_event_' + todayStr;
+    const defaultCal = CalendarPrefs.get();
+    const cacheKey = 'today_event_' + todayStr + (defaultCal ? '_' + defaultCal : '');
 
     if (!Utils.isOnline()) {
       return Cache.get(cacheKey);
@@ -898,7 +900,10 @@ const HomePage = {
 
     try {
       const year = new Date().getFullYear();
-      const res = await fetch(`https://calendar-api.marareih.org/api/events?year=${year}`);
+      const url = new URL('https://calendar-api.marareih.org/api/events');
+      url.searchParams.set('year', year);
+      if (defaultCal) url.searchParams.set('calendar', defaultCal);
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const match = (data.events || []).find((ev) => this.isEventOnDate(ev, todayStr)) || null;
@@ -2007,6 +2012,78 @@ function initAppPromotionDialog() {
   dialog.querySelector('.app-promo-dialog__close').focus();
 }
 
+// ─── Calendar preference (default calendar, set in Settings) ───────────────
+// Shared by the Settings dropdown, the calendar dialog's initial selection,
+// and the homepage's "Today's Event" lookup, so all three agree on which
+// calendar the visitor cares about. Also owns the one shared /api/calendars
+// fetch per page load, so those three don't each make their own request.
+const CalendarPrefs = (() => {
+  const STORAGE_KEY = 'ml_default_calendar';
+  const API = 'https://calendar-api.marareih.org';
+  let calendarsPromise = null;
+
+  function get() {
+    try { return localStorage.getItem(STORAGE_KEY) || ''; } catch (e) { return ''; }
+  }
+
+  function set(slug) {
+    try {
+      if (slug) localStorage.setItem(STORAGE_KEY, slug);
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  /** Fetches and caches the calendar list for this page load. Rejects (and
+   *  clears the cache so the next call retries) if the request fails. */
+  function loadCalendars() {
+    if (!calendarsPromise) {
+      calendarsPromise = fetch(`${API}/api/calendars`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => (data.calendars || []).slice().sort((a, b) => a.name.localeCompare(b.name)))
+        .catch((err) => {
+          calendarsPromise = null;
+          throw err;
+        });
+    }
+    return calendarsPromise;
+  }
+
+  /** Populates the Settings panel's calendar <select>, if present on this
+   *  page, and persists the visitor's choice on change. */
+  async function initSelect() {
+    const select = document.getElementById('calendarPrefSelect');
+    if (!select) return;
+
+    try {
+      const calendars = await loadCalendars();
+      calendars.forEach((cal) => {
+        const opt = document.createElement('option');
+        opt.value = cal.slug;
+        opt.textContent = cal.name;
+        select.appendChild(opt);
+      });
+      const saved = get();
+      select.value = calendars.some((cal) => cal.slug === saved) ? saved : '';
+    } catch (err) {
+      console.warn('[calendar] failed to load calendars for settings:', err);
+      select.disabled = true;
+      return;
+    }
+
+    select.addEventListener('change', () => {
+      set(select.value);
+      if (typeof Toast !== 'undefined') {
+        Toast.show(I18n.t('toast.default_calendar_changed'), { type: 'info', duration: 2000 });
+      }
+    });
+  }
+
+  return { get, set, loadCalendars, initSelect };
+})();
+
 // ─── Community Calendar (events pulled live from calendar-api.marareih.org) ────
 // Read-only, unauthenticated, CORS-open JSON feed — see marareih.org's
 // calendar-worker/API.md. We fetch one year at a time and let the visitor
@@ -2118,11 +2195,10 @@ const CalendarFeature = (() => {
   async function ensureCalendars() {
     if (calendarsList !== null || calendarsLoadFailed) return;
     try {
-      const res = await fetch(`${API}/api/calendars`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      calendarsList = (data.calendars || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-      currentCalendarSlug = calendarsList.length ? calendarsList[0].slug : null;
+      calendarsList = await CalendarPrefs.loadCalendars();
+      const defaultSlug = CalendarPrefs.get();
+      const hasDefault = calendarsList.some((cal) => cal.slug === defaultSlug);
+      currentCalendarSlug = hasDefault ? defaultSlug : (calendarsList.length ? calendarsList[0].slug : null);
     } catch (err) {
       console.warn('[calendar] failed to load calendars:', err);
       calendarsLoadFailed = true;
@@ -2371,6 +2447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initAppPromotion();
   setTimeout(initAppPromotionDialog, 1200);
   CalendarFeature.init();
+  CalendarPrefs.initSelect();
 
   // Initialize theme
   Theme.init();

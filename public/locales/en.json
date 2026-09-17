@@ -48,7 +48,10 @@
   "settings_panel": {
     "toggle": "Settings",
     "language": "Language",
-    "theme": "Theme"
+    "theme": "Theme",
+    "calendar": "Default Calendar",
+    "calendar_aria": "Default calendar for Today's Event",
+    "calendar_all": "All calendars"
   },
   "offline": {
     "badge_text": "Offline"
@@ -303,7 +306,8 @@
     "language_changed": "Language changed to {language}.",
     "added_to_favorites": "Added to favorites",
     "removed_from_favorites": "Removed from favorites",
-    "favorites_consent_required": "Please accept cookies to save favorites"
+    "favorites_consent_required": "Please accept cookies to save favorites",
+    "default_calendar_changed": "Default calendar updated."
   },
   "theme": {
     "dark": "Dark",
