@@ -597,7 +597,7 @@ const UI = {
           <p class="song-of-the-day__artist">🗓️ ${Utils.escapeHtml(when)}${ev.location ? ` · 📍 ${Utils.escapeHtml(ev.location)}` : ''}</p>
           ${ev.description ? `<p class="song-of-the-day__event-desc">${Utils.escapeHtml(ev.description)}</p>` : ''}
         </div>
-        <a class="song-of-the-day__event-link" href="https://marareih.org/calendars.html" target="_blank" rel="noopener noreferrer">${I18n.t('home.event_of_the_day_link')}</a>
+        <button type="button" class="song-of-the-day__event-link" data-calendar-open>${I18n.t('home.event_of_the_day_link')}</button>
       </div>`;
   },
 
@@ -2321,9 +2321,11 @@ const CalendarFeature = (() => {
     renderYear(currentYear);
   }
 
+  // Delegated so buttons added later (e.g. the Today's Event card, injected
+  // after this runs) open the dialog too, without needing their own binding.
   function init() {
-    document.querySelectorAll('[data-calendar-open]').forEach((btn) => {
-      btn.addEventListener('click', open);
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-calendar-open]')) open();
     });
   }
 

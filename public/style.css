@@ -1047,10 +1047,15 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--accent-light);
+  font: inherit;
   font-size: var(--text-sm);
   font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
   transition: color var(--transition-fast);
 }
 
