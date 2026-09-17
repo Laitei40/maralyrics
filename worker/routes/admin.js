@@ -14,6 +14,10 @@ import {
   CAN_MANAGE_REPORTS,
   CAN_MANAGE_CONTACTS,
   CAN_VIEW_AUDIT_LOG,
+  CAN_CREATE_ARTICLE,
+  CAN_EDIT_ARTICLE,
+  CAN_PUBLISH_ARTICLE,
+  CAN_DELETE_ARTICLE,
   canGrantSuperAdmin,
   statusChangePermission,
 } from '../lib/permissions.js';
@@ -993,5 +997,146 @@ auditApp.get('/', async (c) => {
 });
 
 app.route('/audit-log', auditApp);
+
+// ── Articles: no revision workflow (unlike songs) — direct create/edit, gated by
+// role. Publishing (draft -> published) is the "send notification" action: it's what
+// makes an article show up on the public site and in the client-side notification
+// poller (title + author), so there's no separate send step to build. ──
+const articlesApp = new Hono();
+
+function articleStatusAction(from, to) {
+  return to === 'published' ? 'publish' : 'unpublish';
+}
+
+articlesApp.get('/', async (c) => {
+  const db = c.env.DB;
+  const { page, limit, offset } = parsePagination(c.req.query());
+  const status = c.req.query('status');
+  const q = (c.req.query('q') || '').trim();
+
+  const conditions = [];
+  const bindings = [];
+  if (status && ['draft', 'published'].includes(status)) {
+    conditions.push('status = ?');
+    bindings.push(status);
+  }
+  if (q) {
+    conditions.push('(title LIKE ? OR author_name LIKE ?)');
+    bindings.push(`%${q}%`, `%${q}%`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const [rows, countRow] = await Promise.all([
+    db.prepare(`SELECT * FROM articles ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+      .bind(...bindings, limit, offset).all(),
+    db.prepare(`SELECT COUNT(*) AS total FROM articles ${where}`).bind(...bindings).first(),
+  ]);
+
+  const total = countRow.total;
+  return c.json({ articles: rows.results, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+});
+
+articlesApp.get('/:id', async (c) => {
+  const row = await c.env.DB.prepare('SELECT * FROM articles WHERE id = ?').bind(c.req.param('id')).first();
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  return c.json(row);
+});
+
+articlesApp.post('/', requireRole(...CAN_CREATE_ARTICLE), async (c) => {
+  const data = await c.req.json().catch(() => ({}));
+  const { title, author_name, summary, content } = data;
+
+  if (!title || !author_name || !content) {
+    return c.json({ error: 'title, author_name, and content are required' }, 400);
+  }
+  const slug = data.slug?.trim() || slugify(title);
+
+  try {
+    const db = c.env.DB;
+    const result = await db
+      .prepare(`INSERT INTO articles (title, slug, author_name, summary, content, status) VALUES (?, ?, ?, ?, ?, 'draft')`)
+      .bind(title, slug, author_name, summary || '', content)
+      .run();
+    const articleId = result.meta.last_row_id;
+
+    await logAudit(db, c.get('admin'), 'article.create', 'article', articleId, title);
+
+    const row = await db.prepare('SELECT * FROM articles WHERE id = ?').bind(articleId).first();
+    return c.json(row, 201);
+  } catch (err) {
+    return fail(c, err);
+  }
+});
+
+articlesApp.put('/:id', requireRole(...CAN_EDIT_ARTICLE), async (c) => {
+  const id = c.req.param('id');
+  const data = await c.req.json().catch(() => ({}));
+  const { title, author_name, summary, content } = data;
+
+  if (!title || !author_name || !content) {
+    return c.json({ error: 'title, author_name, and content are required' }, 400);
+  }
+  const slug = data.slug?.trim() || slugify(title);
+
+  try {
+    const db = c.env.DB;
+    const existing = await db.prepare('SELECT id FROM articles WHERE id = ?').bind(id).first();
+    if (!existing) return c.json({ error: 'Not found' }, 404);
+
+    // status/published_at are deliberately never touched here — status changes go
+    // through PUT /:id/status, same split as songs.
+    await db
+      .prepare('UPDATE articles SET title = ?, slug = ?, author_name = ?, summary = ?, content = ? WHERE id = ?')
+      .bind(title, slug, author_name, summary || '', content, id)
+      .run();
+    await logAudit(db, c.get('admin'), 'article.edit', 'article', Number(id), title);
+
+    const row = await db.prepare('SELECT * FROM articles WHERE id = ?').bind(id).first();
+    return c.json(row);
+  } catch (err) {
+    return fail(c, err);
+  }
+});
+
+articlesApp.delete('/:id', requireRole(...CAN_DELETE_ARTICLE), async (c) => {
+  const id = c.req.param('id');
+  const result = await c.env.DB.prepare('DELETE FROM articles WHERE id = ?').bind(id).run();
+  if (result.meta.changes === 0) return c.json({ error: 'Not found' }, 404);
+  await logAudit(c.env.DB, c.get('admin'), 'article.delete', 'article', Number(id), null);
+  return c.json({ success: true });
+});
+
+// Publish / unpublish. Publishing for the first time stamps published_at (kept stable
+// across later unpublish/republish cycles, like a "first went live" date).
+articlesApp.put('/:id/status', requireRole(...CAN_PUBLISH_ARTICLE), async (c) => {
+  const id = c.req.param('id');
+  const { status } = await c.req.json().catch(() => ({}));
+  const validStatuses = ['draft', 'published'];
+  if (!validStatuses.includes(status)) {
+    return c.json({ error: `status must be one of: ${validStatuses.join(', ')}` }, 400);
+  }
+
+  const db = c.env.DB;
+  const article = await db.prepare('SELECT id, status FROM articles WHERE id = ?').bind(id).first();
+  if (!article) return c.json({ error: 'Not found' }, 404);
+  if (article.status === status) return c.json({ error: `Article is already ${status}` }, 400);
+
+  try {
+    await db
+      .prepare(
+        `UPDATE articles SET status = ?, published_at = CASE WHEN ? = 'published' AND published_at IS NULL THEN datetime('now') ELSE published_at END WHERE id = ?`
+      )
+      .bind(status, status, id)
+      .run();
+    await logAudit(db, c.get('admin'), articleStatusAction(article.status, status), 'article', Number(id), `${article.status} -> ${status}`);
+
+    const row = await db.prepare('SELECT * FROM articles WHERE id = ?').bind(id).first();
+    return c.json(row);
+  } catch (err) {
+    return fail(c, err);
+  }
+});
+
+app.route('/articles', articlesApp);
 
 export default app;

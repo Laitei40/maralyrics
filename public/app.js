@@ -48,15 +48,36 @@ const Utils = {
     return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   },
 
+  /** Format a date string as e.g. "Sep 17, 2026" for article cards/pages. D1's
+   *  DATETIME columns come back as 'YYYY-MM-DD HH:MM:SS' (UTC, no timezone marker). */
+  formatDateShort(dateStr) {
+    if (!dateStr) return '';
+    let iso = dateStr;
+    if (iso.includes(' ') && !iso.includes('T')) iso = iso.replace(' ', 'T');
+    if (!/[Zz]|[+-]\d{2}:\d{2}$/.test(iso)) iso += 'Z';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  },
+
   /** Check if device is online. */
   isOnline() {
     return navigator.onLine;
   },
 
+  /** Today's date as YYYY-MM-DD in the visitor's local timezone (not UTC —
+   *  matters for matching all-day calendar events to "today"). */
+  todayLocalISODate() {
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  },
+
   /** Get slug from current URL path. */
   getSlugFromUrl() {
     const path = window.location.pathname;
-    const match = path.match(/\/(song|artist|composer|copyright-owner)\/([^/]+)/);
+    const match = path.match(/\/(song|artist|composer|copyright-owner|article)\/([^/]+)/);
     return match ? match[2] : null;
   },
 
@@ -67,6 +88,8 @@ const Utils = {
     if (path.startsWith('/artist/')) return 'artist';
     if (path.startsWith('/composer/')) return 'composer';
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
+    if (path.startsWith('/article/')) return 'article';
+    if (path === '/articles' || path === '/articles.html') return 'articles';
     return 'home';
   },
 
@@ -515,6 +538,18 @@ const API = {
   async getComposer(slug) {
     return this.fetchJSON(`/composers/${encodeURIComponent(slug)}`);
   },
+
+  /** Get paginated, published articles. */
+  async getArticles(page = 1, sort = null) {
+    let url = `/articles?page=${page}&limit=12`;
+    if (sort) url += `&sort=${encodeURIComponent(sort)}`;
+    return this.fetchJSON(url);
+  },
+
+  /** Get single published article by slug. */
+  async getArticle(slug) {
+    return this.fetchJSON(`/articles/${encodeURIComponent(slug)}`);
+  },
 };
 
 // ─── UI Rendering Module ───────────────────────────────────────
@@ -566,7 +601,66 @@ const UI = {
       </div>`;
   },
 
+  /** Create the "Today's Event" card that takes over the Song of the Day
+   *  spot when a marareih.org community event falls on today. Reuses the
+   *  same glowing-border card shell for a consistent, modern look. */
+  createEventOfTheDayCard(ev) {
+    const isAllDay = /^\d{4}-\d{2}-\d{2}$/.test(ev.start);
+    let when;
+    if (isAllDay) {
+      when = ev.start === ev.end
+        ? new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+        : `${new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(ev.end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else {
+      when = new Date(ev.start).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    return `
+      <div class="song-of-the-day song-of-the-day--event fade-in">
+        <span class="song-of-the-day__badge song-of-the-day__badge--event">${I18n.t('home.event_of_the_day_badge')}</span>
+        <div class="song-of-the-day__event-body">
+          <h3 class="song-of-the-day__title">${Utils.escapeHtml(ev.title)}</h3>
+          <p class="song-of-the-day__artist">🗓️ ${Utils.escapeHtml(when)}${ev.location ? ` · 📍 ${Utils.escapeHtml(ev.location)}` : ''}</p>
+          ${ev.description ? `<p class="song-of-the-day__event-desc">${Utils.escapeHtml(ev.description)}</p>` : ''}
+        </div>
+        <button type="button" class="song-of-the-day__event-link" data-calendar-open>${I18n.t('home.event_of_the_day_link')}</button>
+      </div>`;
+  },
+
   /** Create skeleton loading cards. */
+  /** Create an article card for the /articles listing grid. */
+  createArticleCard(article, index = 0) {
+    const delay = Math.min(index * 60, 600);
+    const slug = Utils.escapeHtml(article.slug);
+    const dateStr = article.published_at || article.created_at;
+    return `
+      <a href="/article/${slug}" class="article-card stagger-enter" style="animation-delay:${delay}ms">
+        <h3 class="article-card__title">${Utils.escapeHtml(article.title)}</h3>
+        <div class="article-card__meta">
+          <span class="article-card__author">${Utils.escapeHtml(article.author_name)}</span>
+          <span class="article-card__dot"></span>
+          <span class="article-card__date">${Utils.formatDateShort(dateStr)}</span>
+        </div>
+        ${article.summary ? `<p class="article-card__summary">${Utils.escapeHtml(article.summary)}</p>` : ''}
+      </a>`;
+  },
+
+  /** Create skeleton cards shaped like an article card. */
+  createArticleSkeletons(count = 6) {
+    return Array(count)
+      .fill('')
+      .map(
+        () => `
+      <div class="skeleton">
+        <div class="skeleton__line skeleton__line--title"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
+        <div class="skeleton__line" style="margin-top:var(--space-md)"></div>
+        <div class="skeleton__line skeleton__line--medium"></div>
+      </div>`
+      )
+      .join('');
+  },
+
   createSkeletons(count = 6) {
     return Array(count)
       .fill('')
@@ -668,7 +762,7 @@ const HomePage = {
     await this.loadCategories();
     if (this.currentCategory) this.updateCategoryButtons();
     await Promise.all([
-      this.loadSongOfTheDay(),
+      this.loadFeaturedSpot(),
       this.loadPopular(),
       this.favoritesOnly ? this.loadFavorites() : this.loadSongs(),
     ]);
@@ -685,6 +779,8 @@ const HomePage = {
     this.searchCount = document.getElementById('searchCount');
     this.songOfTheDaySection = document.getElementById('songOfTheDaySection');
     this.songOfTheDayCard = document.getElementById('songOfTheDayCard');
+    this.songOfTheDaySectionIcon = document.getElementById('songOfTheDaySectionIcon');
+    this.songOfTheDaySectionLabel = document.getElementById('songOfTheDaySectionLabel');
     this.popularSection = document.getElementById('popularSection');
     this.allSongsSection = document.getElementById('allSongsSection');
     this.paginationEl = document.getElementById('pagination');
@@ -825,6 +921,65 @@ const HomePage = {
         cat === this.currentCategory;
       btn.classList.toggle('active', isActive);
     });
+  },
+
+  // ─── Featured spot: today's community event, falling back to Song of the Day ────
+  // Shares the Song of the Day slot rather than adding a second section — the two
+  // never have anything useful to say at the same time.
+  async loadFeaturedSpot() {
+    if (!this.songOfTheDaySection || !this.songOfTheDayCard) return;
+
+    const event = await this.getTodaysEvent();
+    if (event) {
+      this.songOfTheDaySectionIcon.textContent = '📅';
+      this.songOfTheDaySectionLabel.setAttribute('data-i18n', 'home.event_of_the_day');
+      I18n.applyToDOM();
+      this.songOfTheDayCard.innerHTML = UI.createEventOfTheDayCard(event);
+      this.songOfTheDaySection.style.display = 'block';
+      return;
+    }
+
+    this.songOfTheDaySectionIcon.textContent = '🌟';
+    this.songOfTheDaySectionLabel.setAttribute('data-i18n', 'home.song_of_the_day');
+    I18n.applyToDOM();
+    await this.loadSongOfTheDay();
+  },
+
+  /** Looks for a community event on today, via marareih.org's public calendar
+   *  API — restricted to the visitor's default calendar (Settings) when one
+   *  is set, otherwise any calendar. Cached per-day like Song of the Day. */
+  async getTodaysEvent() {
+    const todayStr = Utils.todayLocalISODate();
+    const defaultCal = CalendarPrefs.get();
+    const cacheKey = 'today_event_' + todayStr + (defaultCal ? '_' + defaultCal : '');
+
+    if (!Utils.isOnline()) {
+      return Cache.get(cacheKey);
+    }
+
+    try {
+      const year = new Date().getFullYear();
+      const url = new URL('https://calendar-api.marareih.org/api/events');
+      url.searchParams.set('year', year);
+      if (defaultCal) url.searchParams.set('calendar', defaultCal);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const match = (data.events || []).find((ev) => this.isEventOnDate(ev, todayStr)) || null;
+      Cache.set(cacheKey, match);
+      return match;
+    } catch (err) {
+      console.warn('Failed to check for a community event today:', err);
+      const cached = Cache.get(cacheKey);
+      if (cached) UI.setOfflineMode(true);
+      return cached;
+    }
+  },
+
+  isEventOnDate(ev, dateStr) {
+    const isAllDay = /^\d{4}-\d{2}-\d{2}$/.test(ev.start);
+    // ISO YYYY-MM-DD strings compare lexicographically just like dates.
+    return isAllDay ? ev.start <= dateStr && dateStr <= ev.end : ev.start.slice(0, 10) === dateStr;
   },
 
   // ─── Load Song of the Day ─────────────────────────────
@@ -1740,6 +1895,208 @@ const CopyrightOwnerPage = {
   },
 };
 
+// ─── Articles List Page Controller (/articles) ─────────────────
+const ArticlesPage = {
+  currentPage: 1,
+
+  async init() {
+    await this.loadArticles(1);
+  },
+
+  async loadArticles(page) {
+    const loading = document.getElementById('articlesLoading');
+    const listSection = document.getElementById('articlesListSection');
+    const empty = document.getElementById('articlesEmpty');
+    const skeletonGrid = document.getElementById('articleSkeletonGrid');
+    const grid = document.getElementById('articleGrid');
+    if (!loading || !listSection || !grid) return;
+
+    if (skeletonGrid) skeletonGrid.innerHTML = UI.createArticleSkeletons(6);
+
+    try {
+      const data = await API.getArticles(page);
+      this.currentPage = data.page || 1;
+      const articles = data.articles || [];
+
+      loading.style.display = 'none';
+
+      if (!articles.length) {
+        listSection.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+        return;
+      }
+
+      if (empty) empty.style.display = 'none';
+      listSection.style.display = 'block';
+      grid.innerHTML = articles.map((a, i) => UI.createArticleCard(a, i)).join('');
+      this.renderPagination(data.page, data.totalPages);
+    } catch (err) {
+      console.warn('Failed to load articles:', err);
+      loading.style.display = 'none';
+      listSection.style.display = 'none';
+      if (empty) {
+        empty.style.display = 'block';
+        const title = empty.querySelector('.empty-state__title');
+        const text = empty.querySelector('.empty-state__text');
+        if (title) title.textContent = I18n.t('articles.error_title');
+        if (text) text.textContent = I18n.t('articles.error_text');
+      }
+    }
+  },
+
+  renderPagination(page, totalPages) {
+    const el = document.getElementById('articlesPagination');
+    if (!el) return;
+    if (!totalPages || totalPages <= 1) { el.innerHTML = ''; return; }
+
+    el.innerHTML = UI.createPagination(page, totalPages);
+    el.querySelectorAll('[data-page]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = Number(btn.dataset.page);
+        if (target) {
+          this.loadArticles(target);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
+  },
+};
+
+// ─── Article Detail Page Controller (/article/:slug) ───────────
+const ArticlePage = {
+  async init() {
+    const slug = Utils.getSlugFromUrl();
+    if (!slug) {
+      this.showError();
+      return;
+    }
+    await this.loadArticle(slug);
+  },
+
+  async loadArticle(slug) {
+    try {
+      const article = await API.getArticle(slug);
+      this.renderArticle(article);
+      this.updateMeta(article);
+    } catch (err) {
+      console.warn('Failed to load article:', err);
+      this.showError();
+    }
+  },
+
+  renderArticle(article) {
+    const skeleton = document.getElementById('articleSkeleton');
+    const detail = document.getElementById('articleDetail');
+    const error = document.getElementById('articleError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (error) error.style.display = 'none';
+    if (detail) detail.style.display = 'block';
+
+    const titleEl = document.getElementById('articleTitle');
+    const authorEl = document.getElementById('articleAuthor');
+    const dateEl = document.getElementById('articleDate');
+    const summaryEl = document.getElementById('articleSummary');
+    const contentEl = document.getElementById('articleContent');
+    const breadcrumbTitle = document.getElementById('breadcrumbTitle');
+
+    if (titleEl) titleEl.textContent = article.title;
+    if (authorEl) authorEl.textContent = article.author_name;
+    if (dateEl) dateEl.textContent = Utils.formatDateShort(article.published_at || article.created_at);
+    if (breadcrumbTitle) breadcrumbTitle.textContent = article.title;
+
+    if (summaryEl) {
+      if (article.summary) {
+        summaryEl.textContent = article.summary;
+        summaryEl.style.display = 'block';
+      } else {
+        summaryEl.style.display = 'none';
+      }
+    }
+
+    if (contentEl) {
+      // Content is stored as plain text with blank-line-separated paragraphs.
+      const paragraphs = (article.content || '').replace(/\\n/g, '\n').split(/\n{2,}/).filter(Boolean);
+      contentEl.innerHTML = paragraphs.map((p) => `<p>${Utils.escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('');
+    }
+
+    this._currentArticle = article;
+    this.wireActions();
+  },
+
+  wireActions() {
+    if (this._actionsWired) return;
+    this._actionsWired = true;
+
+    const shareBtn = document.getElementById('btnShareArticle');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', async () => {
+        const article = this._currentArticle;
+        if (!article) return;
+        const shareData = {
+          title: `${article.title} — MaraLyrics`,
+          text: `${article.title} by ${article.author_name} — MaraLyrics`,
+          url: window.location.href,
+        };
+        try {
+          if (navigator.share) {
+            await navigator.share(shareData);
+          } else {
+            await navigator.clipboard.writeText(shareData.url);
+            if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.share_success'), { type: 'success' });
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.share_error'), { type: 'error' });
+        }
+      });
+    }
+  },
+
+  updateMeta(article) {
+    const title = `${article.title} | MaraLyrics`;
+    const desc = (article.summary || article.content || '').slice(0, 200);
+    const url = `https://maralyrics.com/article/${article.slug}`;
+
+    document.title = title;
+    const set = (id, prop, value) => {
+      const el = document.getElementById(id);
+      if (el) el[prop] = value;
+    };
+    set('metaDesc', 'content', desc);
+    set('ogTitle', 'content', title);
+    set('ogDesc', 'content', desc);
+    set('ogUrl', 'content', url);
+    set('twTitle', 'content', title);
+    set('twDesc', 'content', desc);
+    set('canonicalUrl', 'href', url);
+    set('pageTitle', 'textContent', title);
+
+    const jsonLd = document.getElementById('jsonLd');
+    if (jsonLd) {
+      jsonLd.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: article.title,
+        author: { '@type': 'Person', name: article.author_name },
+        datePublished: article.published_at || article.created_at,
+        url,
+        publisher: { '@type': 'Organization', name: 'MaraLyrics' },
+      });
+    }
+  },
+
+  showError() {
+    const skeleton = document.getElementById('articleSkeleton');
+    const detail = document.getElementById('articleDetail');
+    const error = document.getElementById('articleError');
+
+    if (skeleton) skeleton.style.display = 'none';
+    if (detail) detail.style.display = 'none';
+    if (error) error.style.display = 'block';
+  },
+};
+
 // ─── Service Worker Registration ───────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then((reg) => {
@@ -1916,6 +2273,742 @@ function initAppPromotionDialog() {
   dialog.querySelector('.app-promo-dialog__close').focus();
 }
 
+// Mirrors the fixed category set marareih.org's own calendars.html uses, so
+// a calendar's icon matches what it shows there — shared by the calendar
+// dialog's picker pills and the default-calendar prompt/settings.
+const CALENDAR_CATEGORY_ICONS = {
+  general: '📅', church: '⛪', education: '🎓', holiday: '🎉',
+  youth: '🎈', music: '🎵', community: '🤝', women: '👩', family: '👪',
+};
+
+// ─── Calendar preference (default calendar, set in Settings) ───────────────
+// Shared by the Settings dropdown, the calendar dialog's initial selection,
+// and the homepage's "Today's Event" lookup, so all three agree on which
+// calendar the visitor cares about. Also owns the one shared /api/calendars
+// fetch per page load, so those three don't each make their own request.
+const CalendarPrefs = (() => {
+  const STORAGE_KEY = 'ml_default_calendar';
+  const PROMPTED_KEY = 'ml_calendar_pref_prompted';
+  const API = 'https://calendar-api.marareih.org';
+  let calendarsPromise = null;
+
+  function get() {
+    try { return localStorage.getItem(STORAGE_KEY) || ''; } catch (e) { return ''; }
+  }
+
+  function set(slug) {
+    try {
+      if (slug) localStorage.setItem(STORAGE_KEY, slug);
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
+  /** Fetches and caches the calendar list for this page load. Rejects (and
+   *  clears the cache so the next call retries) if the request fails. */
+  function loadCalendars() {
+    if (!calendarsPromise) {
+      calendarsPromise = fetch(`${API}/api/calendars`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => (data.calendars || []).slice().sort((a, b) => a.name.localeCompare(b.name)))
+        .catch((err) => {
+          calendarsPromise = null;
+          throw err;
+        });
+    }
+    return calendarsPromise;
+  }
+
+  /** Populates the Settings panel's calendar <select>, if present on this
+   *  page, and persists the visitor's choice on change. */
+  async function initSelect() {
+    const select = document.getElementById('calendarPrefSelect');
+    if (!select) return;
+
+    try {
+      const calendars = await loadCalendars();
+      calendars.forEach((cal) => {
+        const opt = document.createElement('option');
+        opt.value = cal.slug;
+        opt.textContent = cal.name;
+        select.appendChild(opt);
+      });
+      const saved = get();
+      select.value = calendars.some((cal) => cal.slug === saved) ? saved : '';
+    } catch (err) {
+      console.warn('[calendar] failed to load calendars for settings:', err);
+      select.disabled = true;
+      return;
+    }
+
+    select.addEventListener('change', () => {
+      set(select.value);
+      if (typeof Toast !== 'undefined') {
+        Toast.show(I18n.t('toast.default_calendar_changed'), { type: 'info', duration: 2000 });
+      }
+    });
+  }
+
+  /** First-visit-only prompt asking which calendar's events should show in
+   *  Today's Event. Resolves once dismissed (by a choice, Skip, backdrop, or
+   *  Escape) or immediately if there's nothing to ask, so callers can
+   *  sequence it ahead of other first-visit dialogs (e.g. the app promo). */
+  function promptIfNeeded() {
+    return new Promise((resolve) => {
+      let alreadyPrompted = true;
+      try { alreadyPrompted = localStorage.getItem(PROMPTED_KEY) === '1'; } catch (e) { /* default true: skip on storage errors */ }
+
+      if (alreadyPrompted || get()) {
+        resolve();
+        return;
+      }
+      try { localStorage.setItem(PROMPTED_KEY, '1'); } catch (e) { /* ignore */ }
+
+      const dialog = document.createElement('div');
+      dialog.className = 'calendar-pref-dialog';
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.setAttribute('aria-labelledby', 'calendarPrefDialogTitle');
+      dialog.innerHTML = `
+        <div class="calendar-pref-dialog__backdrop" data-calendar-pref-skip></div>
+        <section class="calendar-pref-dialog__panel">
+          <span class="calendar-pref-dialog__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <h2 id="calendarPrefDialogTitle" class="calendar-pref-dialog__title" data-i18n="calendar_pref_dialog.title">Pick your calendar</h2>
+          <p class="calendar-pref-dialog__desc" data-i18n="calendar_pref_dialog.description">Choose which community calendar's events show in Today's Event on the homepage. You can change this anytime in Settings.</p>
+          <div class="calendar-pref-dialog__list" id="calendarPrefDialogList">
+            <p class="calendar-pref-dialog__loading" data-i18n="calendar.loading">Loading events…</p>
+          </div>
+          <button type="button" class="calendar-pref-dialog__skip" data-calendar-pref-skip data-i18n="calendar_pref_dialog.skip">Skip for now</button>
+        </section>
+      `;
+      document.body.appendChild(dialog);
+      I18n.applyToDOM();
+      document.body.classList.add('calendar-pref-dialog-open');
+      requestAnimationFrame(() => dialog.classList.add('visible'));
+
+      const close = () => {
+        dialog.classList.remove('visible');
+        document.body.classList.remove('calendar-pref-dialog-open');
+        document.removeEventListener('keydown', onKeydown);
+        setTimeout(() => dialog.remove(), 250);
+        resolve();
+      };
+      const onKeydown = (e) => { if (e.key === 'Escape') close(); };
+      document.addEventListener('keydown', onKeydown);
+      dialog.querySelectorAll('[data-calendar-pref-skip]').forEach((el) => el.addEventListener('click', close));
+
+      const list = dialog.querySelector('#calendarPrefDialogList');
+      loadCalendars().then((calendars) => {
+        const allOption = `<button type="button" class="calendar-pref-dialog__option calendar-pref-dialog__option--all" data-calendar-slug="">
+          <span class="calendar-pref-dialog__option-name" data-i18n="settings_panel.calendar_all">All calendars</span>
+        </button>`;
+        const calendarOptions = calendars.map((cal) => {
+          const icon = CALENDAR_CATEGORY_ICONS[cal.category] || CALENDAR_CATEGORY_ICONS.general;
+          return `<button type="button" class="calendar-pref-dialog__option" data-calendar-slug="${Utils.escapeHtml(cal.slug)}">
+            <span class="calendar-pref-dialog__option-icon" aria-hidden="true">${icon}</span>
+            <span class="calendar-pref-dialog__option-name">${Utils.escapeHtml(cal.name)}</span>
+          </button>`;
+        }).join('');
+        list.innerHTML = allOption + calendarOptions;
+        I18n.applyToDOM();
+        list.querySelectorAll('[data-calendar-slug]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            set(btn.dataset.calendarSlug);
+            const select = document.getElementById('calendarPrefSelect');
+            if (select) select.value = btn.dataset.calendarSlug;
+            if (typeof Toast !== 'undefined') {
+              Toast.show(I18n.t('toast.default_calendar_changed'), { type: 'success', duration: 2200 });
+            }
+            close();
+          });
+        });
+      }).catch((err) => {
+        console.warn('[calendar] failed to load calendars for the first-visit prompt:', err);
+        list.innerHTML = `<p class="calendar-pref-dialog__error" data-i18n="calendar.calendars_error">Could not load calendars. Please try again later.</p>`;
+        I18n.applyToDOM();
+      });
+    });
+  }
+
+  return { get, set, loadCalendars, initSelect, promptIfNeeded };
+})();
+
+// ─── Community Calendar (events pulled live from calendar-api.marareih.org) ────
+// Read-only, unauthenticated, CORS-open JSON feed — see marareih.org's
+// calendar-worker/API.md. We fetch one year at a time and let the visitor
+// step forward/back; nothing here writes to that API.
+const CalendarFeature = (() => {
+  const API = 'https://calendar-api.marareih.org';
+  const MIN_YEAR = 1970;
+  const MAX_YEAR = 2200;
+
+  const LOADING_HTML = `
+    <div class="calendar-dialog__loading">
+      <span class="calendar-dialog__spinner" aria-hidden="true"></span>
+      <p data-i18n="calendar.loading">Loading events…</p>
+    </div>`;
+
+  function errorHtml(key, fallback) {
+    return `
+      <div class="calendar-dialog__error">
+        <svg class="calendar-dialog__state-icon" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 17h.01"/></svg>
+        <p data-i18n="${key}">${fallback}</p>
+        <button type="button" class="calendar-dialog__retry" data-calendar-retry data-i18n="calendar.retry">Try again</button>
+      </div>`;
+  }
+
+  const NO_CALENDARS_HTML = `
+    <div class="calendar-dialog__empty">
+      <svg class="calendar-dialog__state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9.5" y1="14.5" x2="14.5" y2="19.5"/><line x1="14.5" y1="14.5" x2="9.5" y2="19.5"/></svg>
+      <p data-i18n="calendar.no_calendars">No calendars available yet.</p>
+    </div>`;
+
+  const eventsCache = {}; // `${calendarSlug}:${year}` -> events[]
+  let calendarsList = null; // null = not loaded yet, [] = loaded but empty
+  let calendarsLoadFailed = false;
+  let dialog = null;
+  let currentYear = new Date().getFullYear();
+  let currentCalendarSlug = null;
+  let requestSeq = 0;
+
+  function isAllDayDate(str) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(str);
+  }
+
+  function formatEventWhen(ev) {
+    if (isAllDayDate(ev.start)) {
+      const startFmt = new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      if (ev.start === ev.end) return startFmt;
+      const endFmt = new Date(ev.end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${startFmt} – ${endFmt}`;
+    }
+    return new Date(ev.start).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function isSingleAllDay(ev) {
+    return isAllDayDate(ev.start) && ev.start === ev.end;
+  }
+
+  /** A compact "05 / MAR" day badge for the common single-day case; falls
+   *  back to the full date range as text for multi-day/timed events. */
+  function eventBadgeHtml(ev) {
+    if (isSingleAllDay(ev)) {
+      const d = new Date(ev.start + 'T00:00:00');
+      const day = d.toLocaleDateString(undefined, { day: '2-digit' });
+      const month = d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+      return `<span class="calendar-event__badge"><span class="calendar-event__badge-day">${day}</span><span class="calendar-event__badge-month">${Utils.escapeHtml(month)}</span></span>`;
+    }
+    return `<span class="calendar-event__badge calendar-event__badge--text">${Utils.escapeHtml(formatEventWhen(ev))}</span>`;
+  }
+
+  function monthLabel(ev) {
+    const d = new Date(isAllDayDate(ev.start) ? ev.start + 'T00:00:00' : ev.start);
+    return d.toLocaleDateString(undefined, { month: 'long' });
+  }
+
+  function currentCalendarName() {
+    const cal = (calendarsList || []).find((c) => c.slug === currentCalendarSlug);
+    return cal ? cal.name : '';
+  }
+
+  // ── Calendar picker (MEC / ECM / MADC / …, whatever exists in the API) ──
+  function renderCalendarPicker() {
+    const picker = dialog.querySelector('#calendarDialogPicker');
+    if (!calendarsList || !calendarsList.length) {
+      picker.innerHTML = '';
+      return;
+    }
+    picker.innerHTML = calendarsList.map((cal) => {
+      const icon = CALENDAR_CATEGORY_ICONS[cal.category] || CALENDAR_CATEGORY_ICONS.general;
+      return `<button type="button" class="calendar-dialog__picker-pill${cal.slug === currentCalendarSlug ? ' active' : ''}" data-calendar-slug="${Utils.escapeHtml(cal.slug)}" aria-pressed="${cal.slug === currentCalendarSlug}">${icon} ${Utils.escapeHtml(cal.name)}</button>`;
+    }).join('');
+    picker.querySelectorAll('[data-calendar-slug]').forEach((btn) => {
+      btn.addEventListener('click', () => selectCalendar(btn.dataset.calendarSlug));
+    });
+  }
+
+  function selectCalendar(slug) {
+    if (slug === currentCalendarSlug) return;
+    currentCalendarSlug = slug;
+    renderCalendarPicker();
+    renderYear(currentYear);
+  }
+
+  async function ensureCalendars() {
+    if (calendarsList !== null || calendarsLoadFailed) return;
+    try {
+      calendarsList = await CalendarPrefs.loadCalendars();
+      const defaultSlug = CalendarPrefs.get();
+      const hasDefault = calendarsList.some((cal) => cal.slug === defaultSlug);
+      currentCalendarSlug = hasDefault ? defaultSlug : (calendarsList.length ? calendarsList[0].slug : null);
+    } catch (err) {
+      console.warn('[calendar] failed to load calendars:', err);
+      calendarsLoadFailed = true;
+    }
+  }
+
+  // ── Event list + inline expandable details, grouped by month ──
+  function renderEvents(events) {
+    const body = dialog.querySelector('#calendarDialogBody');
+    if (!events.length) {
+      body.innerHTML = `
+        <div class="calendar-dialog__empty">
+          <svg class="calendar-dialog__state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9.5" y1="14.5" x2="14.5" y2="19.5"/><line x1="14.5" y1="14.5" x2="9.5" y2="19.5"/></svg>
+          <p></p>
+        </div>`;
+      body.querySelector('p').textContent = I18n.t('calendar.empty_for', { calendar: currentCalendarName(), year: currentYear });
+      return;
+    }
+
+    let lastMonth = null;
+    const rows = events.map((ev, i) => {
+      const month = monthLabel(ev);
+      const monthHeader = month !== lastMonth ? `<li class="calendar-event-month" role="presentation">${Utils.escapeHtml(month)}</li>` : '';
+      lastMonth = month;
+      const delay = (Math.min(i, 10) * 0.04).toFixed(2);
+      return `${monthHeader}<li class="calendar-event" style="animation-delay:${delay}s">
+        <button type="button" class="calendar-event__summary" aria-expanded="false" aria-controls="calEventDetails${i}">
+          ${eventBadgeHtml(ev)}
+          <span class="calendar-event__summary-text">
+            <span class="calendar-event__title">${Utils.escapeHtml(ev.title)}</span>
+            ${ev.location ? `<span class="calendar-event__meta">📍 ${Utils.escapeHtml(ev.location)}</span>` : ''}
+          </span>
+          <svg class="calendar-event__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="calendar-event__details" id="calEventDetails${i}" hidden>
+          <p>${ev.description ? Utils.escapeHtml(ev.description).replace(/\n/g, '<br>') : Utils.escapeHtml(I18n.t('calendar.no_description'))}</p>
+        </div>
+      </li>`;
+    });
+
+    body.innerHTML = `<ul class="calendar-event-list">${rows.join('')}</ul>`;
+
+    body.querySelectorAll('.calendar-event__summary').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const details = btn.nextElementSibling;
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        details.hidden = expanded;
+      });
+    });
+  }
+
+  async function renderYear(year) {
+    if (!currentCalendarSlug) return;
+
+    dialog.querySelector('#calendarDialogYear').textContent = String(year);
+    dialog.querySelectorAll('[data-year-step]').forEach((btn) => {
+      const target = year + Number(btn.dataset.yearStep);
+      btn.disabled = target < MIN_YEAR || target > MAX_YEAR;
+    });
+
+    const cacheKey = `${currentCalendarSlug}:${year}`;
+    if (eventsCache[cacheKey]) {
+      renderEvents(eventsCache[cacheKey]);
+      return;
+    }
+
+    const body = dialog.querySelector('#calendarDialogBody');
+    body.innerHTML = LOADING_HTML;
+    I18n.applyToDOM();
+
+    const seq = ++requestSeq;
+    try {
+      const res = await fetch(`${API}/api/events?year=${year}&calendar=${encodeURIComponent(currentCalendarSlug)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (seq !== requestSeq) return; // superseded by a newer year/calendar switch
+      eventsCache[cacheKey] = data.events || [];
+      renderEvents(eventsCache[cacheKey]);
+    } catch (err) {
+      if (seq !== requestSeq) return;
+      console.warn('[calendar] failed to load events:', err);
+      body.innerHTML = errorHtml('calendar.error', 'Could not load events. Please try again later.');
+      I18n.applyToDOM();
+    }
+  }
+
+  /** Retries whichever request last failed — the calendars list or the
+   *  current year's events — without losing the visitor's place. */
+  function retry() {
+    if (calendarsLoadFailed) {
+      calendarsLoadFailed = false;
+      open();
+      return;
+    }
+    if (currentCalendarSlug) {
+      delete eventsCache[`${currentCalendarSlug}:${currentYear}`];
+      renderYear(currentYear);
+    }
+  }
+
+  function stepYear(delta) {
+    const next = currentYear + delta;
+    if (next < MIN_YEAR || next > MAX_YEAR) return;
+    currentYear = next;
+    renderYear(currentYear);
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape' && dialog && dialog.classList.contains('visible')) close();
+  }
+
+  function close() {
+    if (!dialog) return;
+    dialog.classList.remove('visible');
+    document.body.classList.remove('calendar-dialog-open');
+  }
+
+  function buildDialog() {
+    if (dialog) return dialog;
+
+    dialog = document.createElement('div');
+    dialog.className = 'calendar-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'calendarDialogTitle');
+    dialog.innerHTML = `
+      <div class="calendar-dialog__backdrop" data-calendar-close></div>
+      <section class="calendar-dialog__panel">
+        <header class="calendar-dialog__header">
+          <h2 id="calendarDialogTitle" class="calendar-dialog__title">
+            <span class="calendar-dialog__title-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <span data-i18n="calendar.title">Community Calendar</span>
+          </h2>
+          <button type="button" class="calendar-dialog__close" data-calendar-close aria-label="Close" data-i18n-aria="calendar.close_aria">&times;</button>
+        </header>
+        <div class="calendar-dialog__picker" id="calendarDialogPicker" role="group" aria-label="Choose a calendar" data-i18n-aria="calendar.picker_aria"></div>
+        <div class="calendar-dialog__year-nav">
+          <button type="button" class="calendar-dialog__year-btn" data-year-step="-1" aria-label="Previous year" data-i18n-aria="calendar.prev_year_aria">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="calendar-dialog__year" id="calendarDialogYear"></span>
+          <button type="button" class="calendar-dialog__year-btn" data-year-step="1" aria-label="Next year" data-i18n-aria="calendar.next_year_aria">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="calendar-dialog__body" id="calendarDialogBody"></div>
+        <footer class="calendar-dialog__footer">
+          <a href="https://marareih.org/calendars.html" target="_blank" rel="noopener noreferrer" data-i18n="calendar.subscribe_link">See all calendars &amp; subscribe →</a>
+        </footer>
+      </section>
+    `;
+    document.body.appendChild(dialog);
+    I18n.applyToDOM();
+
+    dialog.querySelectorAll('[data-calendar-close]').forEach((el) => el.addEventListener('click', close));
+    dialog.querySelectorAll('[data-year-step]').forEach((btn) => {
+      btn.addEventListener('click', () => stepYear(Number(btn.dataset.yearStep)));
+    });
+    dialog.addEventListener('click', (e) => {
+      if (e.target.closest('[data-calendar-retry]')) retry();
+    });
+    document.addEventListener('keydown', onKeydown);
+
+    return dialog;
+  }
+
+  async function open() {
+    buildDialog();
+    dialog.classList.add('visible');
+    document.body.classList.add('calendar-dialog-open');
+    dialog.querySelector('.calendar-dialog__close').focus();
+
+    const body = dialog.querySelector('#calendarDialogBody');
+    if (calendarsList === null && !calendarsLoadFailed) {
+      body.innerHTML = LOADING_HTML;
+      I18n.applyToDOM();
+    }
+
+    await ensureCalendars();
+    renderCalendarPicker();
+    dialog.classList.toggle('calendar-dialog--no-calendar', !currentCalendarSlug);
+
+    if (calendarsLoadFailed) {
+      body.innerHTML = errorHtml('calendar.calendars_error', 'Could not load calendars. Please try again later.');
+      I18n.applyToDOM();
+      return;
+    }
+    if (!currentCalendarSlug) {
+      body.innerHTML = NO_CALENDARS_HTML;
+      I18n.applyToDOM();
+      return;
+    }
+    renderYear(currentYear);
+  }
+
+  // Delegated so buttons added later (e.g. the Today's Event card, injected
+  // after this runs) open the dialog too, without needing their own binding.
+  function init() {
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-calendar-open]')) open();
+    });
+  }
+
+  return { init };
+})();
+
+// ─── In-app Notifications (new songs + today's events, checked while the site is open) ────
+// Not push notifications — there's no server-side subscription or send path.
+// While a tab is open we poll the same public APIs everything else here
+// uses, diff against what's already been seen (localStorage), and surface
+// the delta both in the panel and — if permission was granted — as a
+// native browser Notification.
+const NotificationsFeature = (() => {
+  const ITEMS_KEY = 'ml_notif_items';
+  const SEEN_SONGS_KEY = 'ml_notif_seen_songs';
+  const SEEN_EVENTS_KEY = 'ml_notif_seen_events';
+  const SEEN_ARTICLES_KEY = 'ml_notif_seen_articles';
+  const MAX_ITEMS = 30;
+  const MAX_SEEN = 500;
+  const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
+  let items = [];
+
+  function loadItems() {
+    try {
+      const raw = localStorage.getItem(ITEMS_KEY);
+      items = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      items = [];
+    }
+  }
+
+  function saveItems() {
+    items = items.slice(0, MAX_ITEMS);
+    try { localStorage.setItem(ITEMS_KEY, JSON.stringify(items)); } catch (e) { /* ignore */ }
+  }
+
+  function getSeenSet(key) {
+    try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch (e) { return new Set(); }
+  }
+
+  function saveSeenSet(key, set) {
+    try { localStorage.setItem(key, JSON.stringify(Array.from(set).slice(-MAX_SEEN))); } catch (e) { /* ignore */ }
+  }
+
+  function updateBadge() {
+    const badge = document.getElementById('notifBadge');
+    if (!badge) return;
+    const unread = items.filter((i) => !i.read).length;
+    if (unread > 0) {
+      badge.textContent = unread > 9 ? '9+' : String(unread);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+
+  function renderList() {
+    const list = document.getElementById('notifList');
+    if (!list) return;
+    if (!items.length) {
+      list.innerHTML = `<p class="notif-panel__empty" data-i18n="notifications.empty">Nothing new yet.</p>`;
+      I18n.applyToDOM();
+      return;
+    }
+    list.innerHTML = items.map((item) => `
+      <a href="${Utils.escapeHtml(item.url || '#')}" class="notif-item${item.read ? '' : ' unread'}" data-notif-id="${Utils.escapeHtml(item.id)}">
+        <span class="notif-item__icon" aria-hidden="true">${{ song: '🎵', article: '📰', event: '📅' }[item.type] || '🔔'}</span>
+        <span class="notif-item__body">
+          <span class="notif-item__title">${Utils.escapeHtml(item.title)}</span>
+          ${item.body ? `<span class="notif-item__meta">${Utils.escapeHtml(item.body)}</span>` : ''}
+        </span>
+      </a>`).join('');
+  }
+
+  function fireBrowserNotification(item) {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    try {
+      const n = new Notification(item.title, { body: item.body || '', icon: '/icon.svg', tag: item.id });
+      n.onclick = () => {
+        window.focus();
+        if (item.url) window.location.href = item.url;
+        n.close();
+      };
+    } catch (e) {
+      // Notification constructor can throw in some contexts (e.g. certain mobile browsers) — the in-app panel still has it.
+    }
+  }
+
+  function addItem(item) {
+    items = items.filter((i) => i.id !== item.id);
+    items.unshift(item);
+    saveItems();
+    updateBadge();
+    renderList();
+    fireBrowserNotification(item);
+  }
+
+  async function checkNewSongs() {
+    try {
+      const data = await API.getSongs(1, null, 'created_desc');
+      const songs = data.songs || [];
+      const seen = getSeenSet(SEEN_SONGS_KEY);
+      const firstRun = seen.size === 0;
+      const freshSongs = songs.filter((s) => s.slug && !seen.has(s.slug));
+      songs.forEach((s) => { if (s.slug) seen.add(s.slug); });
+      saveSeenSet(SEEN_SONGS_KEY, seen);
+
+      // First check ever: this seeds "already known" songs rather than notifying about the whole catalog.
+      if (firstRun) return;
+
+      freshSongs.forEach((song) => {
+        addItem({
+          id: 'song_' + song.slug,
+          type: 'song',
+          title: I18n.t('notifications.new_song_title'),
+          body: song.title + (song.artist_name || song.artist ? ' — ' + (song.artist_name || song.artist) : ''),
+          url: '/song/' + song.slug,
+          read: false,
+          ts: Date.now(),
+        });
+      });
+    } catch (err) {
+      console.warn('[notifications] failed to check new songs:', err);
+    }
+  }
+
+  async function checkNewArticles() {
+    try {
+      // Sorted by published_at (the default) — that's what "just went live" means for
+      // articles, unlike created_desc which wouldn't move when a long-drafted article
+      // finally gets published.
+      const data = await API.getArticles(1);
+      const articles = data.articles || [];
+      const seen = getSeenSet(SEEN_ARTICLES_KEY);
+      const firstRun = seen.size === 0;
+      const freshArticles = articles.filter((a) => a.slug && !seen.has(a.slug));
+      articles.forEach((a) => { if (a.slug) seen.add(a.slug); });
+      saveSeenSet(SEEN_ARTICLES_KEY, seen);
+
+      // First check ever: seeds "already known" articles rather than notifying about the whole backlog.
+      if (firstRun) return;
+
+      freshArticles.forEach((article) => {
+        addItem({
+          id: 'article_' + article.slug,
+          type: 'article',
+          title: I18n.t('notifications.new_article_title'),
+          body: article.title + ' — ' + article.author_name,
+          url: '/article/' + article.slug,
+          read: false,
+          ts: Date.now(),
+        });
+      });
+    } catch (err) {
+      console.warn('[notifications] failed to check new articles:', err);
+    }
+  }
+
+  async function checkTodaysEvents() {
+    try {
+      const todayStr = Utils.todayLocalISODate();
+      const defaultCal = CalendarPrefs.get();
+      const url = new URL('https://calendar-api.marareih.org/api/events');
+      url.searchParams.set('year', new Date().getFullYear());
+      if (defaultCal) url.searchParams.set('calendar', defaultCal);
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const todaysEvents = (data.events || []).filter((ev) => HomePage.isEventOnDate(ev, todayStr));
+
+      const seen = getSeenSet(SEEN_EVENTS_KEY);
+      todaysEvents.forEach((ev) => {
+        const seenKey = ev.id + ':' + todayStr;
+        if (seen.has(seenKey)) return;
+        seen.add(seenKey);
+        addItem({
+          id: 'event_' + seenKey,
+          type: 'event',
+          title: I18n.t('notifications.event_today_title'),
+          body: ev.title + (ev.location ? ' — ' + ev.location : ''),
+          url: '/',
+          read: false,
+          ts: Date.now(),
+        });
+      });
+      saveSeenSet(SEEN_EVENTS_KEY, seen);
+    } catch (err) {
+      console.warn('[notifications] failed to check today\'s events:', err);
+    }
+  }
+
+  function runChecks() {
+    checkNewSongs();
+    checkNewArticles();
+    checkTodaysEvents();
+  }
+
+  function updatePermissionBanner() {
+    const banner = document.getElementById('notifPermissionBanner');
+    if (!banner) return;
+    banner.hidden = !(typeof Notification !== 'undefined' && Notification.permission === 'default');
+  }
+
+  function markRead(id) {
+    const item = items.find((i) => i.id === id);
+    if (!item || item.read) return;
+    item.read = true;
+    saveItems();
+    updateBadge();
+    const el = document.querySelector(`.notif-item[data-notif-id="${CSS.escape(id)}"]`);
+    if (el) el.classList.remove('unread');
+  }
+
+  function clearAll() {
+    items = [];
+    saveItems();
+    updateBadge();
+    renderList();
+  }
+
+  function init() {
+    loadItems();
+    updateBadge();
+    renderList();
+    updatePermissionBanner();
+
+    const enableBtn = document.getElementById('notifEnableBtn');
+    if (enableBtn) {
+      enableBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (typeof Notification === 'undefined') return;
+        const permission = await Notification.requestPermission();
+        updatePermissionBanner();
+        if (permission === 'granted' && typeof Toast !== 'undefined') {
+          Toast.show(I18n.t('notifications.enabled_toast'), { type: 'success', duration: 2200 });
+        }
+      });
+    }
+
+    const clearBtn = document.getElementById('notifClearBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearAll();
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      const item = e.target.closest('.notif-item');
+      if (item) markRead(item.dataset.notifId);
+    });
+
+    runChecks();
+    setInterval(runChecks, CHECK_INTERVAL_MS);
+  }
+
+  return { init };
+})();
+
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.song-card__favorite, .song-page__favorite');
   if (!btn) return;
@@ -1953,7 +3046,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initAppPromotion();
-  setTimeout(initAppPromotionDialog, 1200);
+  CalendarFeature.init();
+  CalendarPrefs.initSelect();
+  NotificationsFeature.init();
+  // The calendar prompt (first visit only) goes first — once it's dismissed
+  // (or skipped immediately, on a returning visit), the app promo dialog
+  // follows on its usual delay, instead of the two stacking on top of each other.
+  setTimeout(() => {
+    CalendarPrefs.promptIfNeeded().then(() => {
+      setTimeout(initAppPromotionDialog, 400);
+    });
+  }, 900);
 
   // Initialize theme
   Theme.init();
@@ -1961,15 +3064,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Restore the card/list display preference on every song grid on this page
   DisplayMode.init();
 
-  // Settings panel toggle(s)
-  const settingsToggles = document.querySelectorAll('.settings-toggle');
-  if (settingsToggles.length) {
-    settingsToggles.forEach((wrap) => {
-      const btn = wrap.querySelector('.settings-toggle__btn');
+  // Settings + Notifications panel toggle(s) — opening one closes the other.
+  const dropdownToggles = document.querySelectorAll('.settings-toggle, .notif-toggle');
+  if (dropdownToggles.length) {
+    dropdownToggles.forEach((wrap) => {
+      const btn = wrap.querySelector('.settings-toggle__btn, .notif-toggle__btn');
       if (!btn) return;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        settingsToggles.forEach((other) => {
+        dropdownToggles.forEach((other) => {
           if (other !== wrap) other.classList.remove('open');
         });
         wrap.classList.toggle('open');
@@ -1977,38 +3080,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.addEventListener('click', (e) => {
-      settingsToggles.forEach((wrap) => {
+      dropdownToggles.forEach((wrap) => {
         if (!wrap.contains(e.target)) wrap.classList.remove('open');
       });
     });
   }
 
-  // Ensure settings (language + theme) are available in the mobile drawer on small screens.
-  // We move the existing `.settings-toggle` element into the drawer when the header menu
-  // is visible (small screens), and restore it back on larger screens. Moving preserves
-  // event listeners and keeps behavior consistent.
-  (function attachSettingsToDrawer() {
-    const settingsToggle = document.querySelector('.settings-toggle');
+  // Ensure notifications and settings (language + theme) are available in the mobile
+  // drawer on small screens. We move the existing elements into the drawer when the
+  // header menu is visible (small screens), and restore them back on larger screens.
+  // Moving preserves event listeners and keeps behavior consistent.
+  function attachToggleToDrawer(selector) {
+    const toggle = document.querySelector(selector);
     const menuBtn = document.querySelector('.header__menu-btn');
     const mobileDrawer = document.querySelector('.mobile-drawer');
     const mobileDrawerContent = document.querySelector('.mobile-drawer__content');
 
-    if (!settingsToggle || !menuBtn || !mobileDrawer || !mobileDrawerContent) return;
+    if (!toggle || !menuBtn || !mobileDrawer || !mobileDrawerContent) return;
 
-    const originalParent = settingsToggle.parentElement;
-    const originalNext = settingsToggle.nextElementSibling;
+    const originalParent = toggle.parentElement;
+    const originalNext = toggle.nextElementSibling;
     let moved = false;
 
     function updatePlacement() {
       const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
       if (menuVisible && !moved) {
-        mobileDrawerContent.appendChild(settingsToggle);
-        settingsToggle.classList.remove('open');
+        mobileDrawerContent.appendChild(toggle);
+        toggle.classList.remove('open');
         moved = true;
       } else if (!menuVisible && moved) {
-        if (originalNext) originalParent.insertBefore(settingsToggle, originalNext);
-        else originalParent.appendChild(settingsToggle);
-        settingsToggle.classList.remove('open');
+        if (originalNext) originalParent.insertBefore(toggle, originalNext);
+        else originalParent.appendChild(toggle);
+        toggle.classList.remove('open');
         moved = false;
       }
     }
@@ -2016,7 +3119,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update on load and on resize
     updatePlacement();
     window.addEventListener('resize', updatePlacement);
-  })();
+  }
+  attachToggleToDrawer('.notif-toggle');
+  attachToggleToDrawer('.settings-toggle');
 
   // Mobile drawer toggle
   const menuBtn = document.querySelector('.header__menu-btn');
@@ -2081,6 +3186,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       break;
     case 'copyright-owner':
       CopyrightOwnerPage.init();
+      break;
+    case 'article':
+      ArticlePage.init();
+      break;
+    case 'articles':
+      ArticlesPage.init();
       break;
     default:
       HomePage.init();

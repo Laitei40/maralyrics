@@ -21,6 +21,14 @@ export const CAN_DELETE_SONG       = ['manager', 'super_admin'];
 // Reference data (artists / composers / copyright owners) — read is all 6 roles, write is narrower
 export const CAN_MANAGE_REFERENCE_DATA = ['manager', 'super_admin'];
 
+// Articles (Developer Dashboard). Publishing IS the "send notification" action — a
+// published article appears on the public site and is picked up by the client-side
+// notification poller, so there's no separate send permission to gate.
+export const CAN_CREATE_ARTICLE  = ['editor', 'manager', 'super_admin'];
+export const CAN_EDIT_ARTICLE    = ['editor', 'manager', 'super_admin'];
+export const CAN_PUBLISH_ARTICLE = ['editor', 'manager', 'super_admin'];
+export const CAN_DELETE_ARTICLE  = ['manager', 'super_admin'];
+
 // Admin accounts
 export const CAN_VIEW_ADMIN_USERS   = ['manager', 'super_admin'];
 export const CAN_MANAGE_ADMIN_USERS = ['manager', 'super_admin'];

@@ -1,6 +1,23 @@
 {
   "nav": {
-    "popular": "Popular"
+    "popular": "Popular",
+    "articles": "Articles"
+  },
+  "calendar": {
+    "toggle_aria": "Community Calendar",
+    "title": "Community Calendar",
+    "close_aria": "Close",
+    "picker_aria": "Choose a calendar",
+    "prev_year_aria": "Previous year",
+    "next_year_aria": "Next year",
+    "loading": "Loading events…",
+    "empty_for": "No events for {calendar} in {year}.",
+    "no_description": "No additional details for this event.",
+    "error": "Could not load events. Please try again later.",
+    "calendars_error": "Could not load calendars. Please try again later.",
+    "no_calendars": "No calendars available yet.",
+    "retry": "Try again",
+    "subscribe_link": "See all calendars & subscribe →"
   },
   "footer": {
     "tagline": "Preserving Mara music for future generations.",
@@ -29,10 +46,30 @@
     "language_aria": "Choose language",
     "language_menu_aria": "Promotion language options"
   },
+  "calendar_pref_dialog": {
+    "title": "Pick your calendar",
+    "description": "Choose which community calendar's events show in Today's Event on the homepage. You can change this anytime in Settings.",
+    "skip": "Skip for now"
+  },
+  "notifications": {
+    "toggle_aria": "Notifications",
+    "panel_title": "Notifications",
+    "clear_all": "Clear all",
+    "permission_prompt": "Get notified about new songs, articles, and today's events, right in your browser.",
+    "enable": "Enable notifications",
+    "enabled_toast": "Notifications enabled.",
+    "empty": "Nothing new yet.",
+    "new_song_title": "New song added",
+    "new_article_title": "New article published",
+    "event_today_title": "Event today"
+  },
   "settings_panel": {
     "toggle": "Settings",
     "language": "Language",
-    "theme": "Theme"
+    "theme": "Theme",
+    "calendar": "Default Calendar",
+    "calendar_aria": "Default calendar for Today's Event",
+    "calendar_all": "All calendars"
   },
   "offline": {
     "badge_text": "Offline"
@@ -51,6 +88,9 @@
     "all_songs": "All Songs",
     "song_of_the_day": "Song of the Day",
     "song_of_the_day_badge": "Today's Pick",
+    "event_of_the_day": "Today's Event",
+    "event_of_the_day_badge": "Happening Today",
+    "event_of_the_day_link": "View full calendar →",
     "no_songs_title": "No songs found",
     "no_songs_text": "Try a different search term or browse categories above.",
     "no_favorites_title": "No favorites yet",
@@ -76,6 +116,20 @@
     "error_text": "This song may have been removed or the link is incorrect.",
     "various_artists": "Various Artists",
     "various_composers": "Various Composers"
+  },
+  "articles": {
+    "hero_title": "Articles & News",
+    "hero_subtitle": "Updates, announcements, and stories from the MaraLyrics team",
+    "empty_title": "No articles yet",
+    "empty_text": "Check back soon for news and updates from the MaraLyrics team.",
+    "error_title": "Couldn't load articles",
+    "error_text": "Please check your connection and try again."
+  },
+  "article": {
+    "breadcrumb": "Article",
+    "error_title": "Article not found",
+    "error_text": "This article may have been removed or the link is incorrect.",
+    "back_to_articles": "← Back to Articles"
   },
   "artist": {
     "role": "Artist",
@@ -284,7 +338,8 @@
     "language_changed": "Language changed to {language}.",
     "added_to_favorites": "Added to favorites",
     "removed_from_favorites": "Removed from favorites",
-    "favorites_consent_required": "Please accept cookies to save favorites"
+    "favorites_consent_required": "Please accept cookies to save favorites",
+    "default_calendar_changed": "Default calendar updated."
   },
   "theme": {
     "dark": "Dark",
