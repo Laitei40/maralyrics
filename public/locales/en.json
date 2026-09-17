@@ -50,6 +50,17 @@
     "description": "Choose which community calendar's events show in Today's Event on the homepage. You can change this anytime in Settings.",
     "skip": "Skip for now"
   },
+  "notifications": {
+    "toggle_aria": "Notifications",
+    "panel_title": "Notifications",
+    "clear_all": "Clear all",
+    "permission_prompt": "Get notified about new songs and today's events, right in your browser.",
+    "enable": "Enable notifications",
+    "enabled_toast": "Notifications enabled.",
+    "empty": "Nothing new yet.",
+    "new_song_title": "New song added",
+    "event_today_title": "Event today"
+  },
   "settings_panel": {
     "toggle": "Settings",
     "language": "Language",

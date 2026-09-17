@@ -2493,6 +2493,227 @@ const CalendarFeature = (() => {
   return { init };
 })();
 
+// ─── In-app Notifications (new songs + today's events, checked while the site is open) ────
+// Not push notifications — there's no server-side subscription or send path.
+// While a tab is open we poll the same public APIs everything else here
+// uses, diff against what's already been seen (localStorage), and surface
+// the delta both in the panel and — if permission was granted — as a
+// native browser Notification.
+const NotificationsFeature = (() => {
+  const ITEMS_KEY = 'ml_notif_items';
+  const SEEN_SONGS_KEY = 'ml_notif_seen_songs';
+  const SEEN_EVENTS_KEY = 'ml_notif_seen_events';
+  const MAX_ITEMS = 30;
+  const MAX_SEEN = 500;
+  const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
+  let items = [];
+
+  function loadItems() {
+    try {
+      const raw = localStorage.getItem(ITEMS_KEY);
+      items = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      items = [];
+    }
+  }
+
+  function saveItems() {
+    items = items.slice(0, MAX_ITEMS);
+    try { localStorage.setItem(ITEMS_KEY, JSON.stringify(items)); } catch (e) { /* ignore */ }
+  }
+
+  function getSeenSet(key) {
+    try { return new Set(JSON.parse(localStorage.getItem(key) || '[]')); } catch (e) { return new Set(); }
+  }
+
+  function saveSeenSet(key, set) {
+    try { localStorage.setItem(key, JSON.stringify(Array.from(set).slice(-MAX_SEEN))); } catch (e) { /* ignore */ }
+  }
+
+  function updateBadge() {
+    const badge = document.getElementById('notifBadge');
+    if (!badge) return;
+    const unread = items.filter((i) => !i.read).length;
+    if (unread > 0) {
+      badge.textContent = unread > 9 ? '9+' : String(unread);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+
+  function renderList() {
+    const list = document.getElementById('notifList');
+    if (!list) return;
+    if (!items.length) {
+      list.innerHTML = `<p class="notif-panel__empty" data-i18n="notifications.empty">Nothing new yet.</p>`;
+      I18n.applyToDOM();
+      return;
+    }
+    list.innerHTML = items.map((item) => `
+      <a href="${Utils.escapeHtml(item.url || '#')}" class="notif-item${item.read ? '' : ' unread'}" data-notif-id="${Utils.escapeHtml(item.id)}">
+        <span class="notif-item__icon" aria-hidden="true">${item.type === 'song' ? '🎵' : '📅'}</span>
+        <span class="notif-item__body">
+          <span class="notif-item__title">${Utils.escapeHtml(item.title)}</span>
+          ${item.body ? `<span class="notif-item__meta">${Utils.escapeHtml(item.body)}</span>` : ''}
+        </span>
+      </a>`).join('');
+  }
+
+  function fireBrowserNotification(item) {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    try {
+      const n = new Notification(item.title, { body: item.body || '', icon: '/icon.svg', tag: item.id });
+      n.onclick = () => {
+        window.focus();
+        if (item.url) window.location.href = item.url;
+        n.close();
+      };
+    } catch (e) {
+      // Notification constructor can throw in some contexts (e.g. certain mobile browsers) — the in-app panel still has it.
+    }
+  }
+
+  function addItem(item) {
+    items = items.filter((i) => i.id !== item.id);
+    items.unshift(item);
+    saveItems();
+    updateBadge();
+    renderList();
+    fireBrowserNotification(item);
+  }
+
+  async function checkNewSongs() {
+    try {
+      const data = await API.getSongs(1, null, 'created_desc');
+      const songs = data.songs || [];
+      const seen = getSeenSet(SEEN_SONGS_KEY);
+      const firstRun = seen.size === 0;
+      const freshSongs = songs.filter((s) => s.slug && !seen.has(s.slug));
+      songs.forEach((s) => { if (s.slug) seen.add(s.slug); });
+      saveSeenSet(SEEN_SONGS_KEY, seen);
+
+      // First check ever: this seeds "already known" songs rather than notifying about the whole catalog.
+      if (firstRun) return;
+
+      freshSongs.forEach((song) => {
+        addItem({
+          id: 'song_' + song.slug,
+          type: 'song',
+          title: I18n.t('notifications.new_song_title'),
+          body: song.title + (song.artist_name || song.artist ? ' — ' + (song.artist_name || song.artist) : ''),
+          url: '/song/' + song.slug,
+          read: false,
+          ts: Date.now(),
+        });
+      });
+    } catch (err) {
+      console.warn('[notifications] failed to check new songs:', err);
+    }
+  }
+
+  async function checkTodaysEvents() {
+    try {
+      const todayStr = Utils.todayLocalISODate();
+      const defaultCal = CalendarPrefs.get();
+      const url = new URL('https://calendar-api.marareih.org/api/events');
+      url.searchParams.set('year', new Date().getFullYear());
+      if (defaultCal) url.searchParams.set('calendar', defaultCal);
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const todaysEvents = (data.events || []).filter((ev) => HomePage.isEventOnDate(ev, todayStr));
+
+      const seen = getSeenSet(SEEN_EVENTS_KEY);
+      todaysEvents.forEach((ev) => {
+        const seenKey = ev.id + ':' + todayStr;
+        if (seen.has(seenKey)) return;
+        seen.add(seenKey);
+        addItem({
+          id: 'event_' + seenKey,
+          type: 'event',
+          title: I18n.t('notifications.event_today_title'),
+          body: ev.title + (ev.location ? ' — ' + ev.location : ''),
+          url: '/',
+          read: false,
+          ts: Date.now(),
+        });
+      });
+      saveSeenSet(SEEN_EVENTS_KEY, seen);
+    } catch (err) {
+      console.warn('[notifications] failed to check today\'s events:', err);
+    }
+  }
+
+  function runChecks() {
+    checkNewSongs();
+    checkTodaysEvents();
+  }
+
+  function updatePermissionBanner() {
+    const banner = document.getElementById('notifPermissionBanner');
+    if (!banner) return;
+    banner.hidden = !(typeof Notification !== 'undefined' && Notification.permission === 'default');
+  }
+
+  function markRead(id) {
+    const item = items.find((i) => i.id === id);
+    if (!item || item.read) return;
+    item.read = true;
+    saveItems();
+    updateBadge();
+    const el = document.querySelector(`.notif-item[data-notif-id="${CSS.escape(id)}"]`);
+    if (el) el.classList.remove('unread');
+  }
+
+  function clearAll() {
+    items = [];
+    saveItems();
+    updateBadge();
+    renderList();
+  }
+
+  function init() {
+    loadItems();
+    updateBadge();
+    renderList();
+    updatePermissionBanner();
+
+    const enableBtn = document.getElementById('notifEnableBtn');
+    if (enableBtn) {
+      enableBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (typeof Notification === 'undefined') return;
+        const permission = await Notification.requestPermission();
+        updatePermissionBanner();
+        if (permission === 'granted' && typeof Toast !== 'undefined') {
+          Toast.show(I18n.t('notifications.enabled_toast'), { type: 'success', duration: 2200 });
+        }
+      });
+    }
+
+    const clearBtn = document.getElementById('notifClearBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearAll();
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      const item = e.target.closest('.notif-item');
+      if (item) markRead(item.dataset.notifId);
+    });
+
+    runChecks();
+    setInterval(runChecks, CHECK_INTERVAL_MS);
+  }
+
+  return { init };
+})();
+
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.song-card__favorite, .song-page__favorite');
   if (!btn) return;
@@ -2532,6 +2753,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initAppPromotion();
   CalendarFeature.init();
   CalendarPrefs.initSelect();
+  NotificationsFeature.init();
   // The calendar prompt (first visit only) goes first — once it's dismissed
   // (or skipped immediately, on a returning visit), the app promo dialog
   // follows on its usual delay, instead of the two stacking on top of each other.
@@ -2547,15 +2769,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Restore the card/list display preference on every song grid on this page
   DisplayMode.init();
 
-  // Settings panel toggle(s)
-  const settingsToggles = document.querySelectorAll('.settings-toggle');
-  if (settingsToggles.length) {
-    settingsToggles.forEach((wrap) => {
-      const btn = wrap.querySelector('.settings-toggle__btn');
+  // Settings + Notifications panel toggle(s) — opening one closes the other.
+  const dropdownToggles = document.querySelectorAll('.settings-toggle, .notif-toggle');
+  if (dropdownToggles.length) {
+    dropdownToggles.forEach((wrap) => {
+      const btn = wrap.querySelector('.settings-toggle__btn, .notif-toggle__btn');
       if (!btn) return;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        settingsToggles.forEach((other) => {
+        dropdownToggles.forEach((other) => {
           if (other !== wrap) other.classList.remove('open');
         });
         wrap.classList.toggle('open');
@@ -2563,38 +2785,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.addEventListener('click', (e) => {
-      settingsToggles.forEach((wrap) => {
+      dropdownToggles.forEach((wrap) => {
         if (!wrap.contains(e.target)) wrap.classList.remove('open');
       });
     });
   }
 
-  // Ensure settings (language + theme) are available in the mobile drawer on small screens.
-  // We move the existing `.settings-toggle` element into the drawer when the header menu
-  // is visible (small screens), and restore it back on larger screens. Moving preserves
-  // event listeners and keeps behavior consistent.
-  (function attachSettingsToDrawer() {
-    const settingsToggle = document.querySelector('.settings-toggle');
+  // Ensure notifications and settings (language + theme) are available in the mobile
+  // drawer on small screens. We move the existing elements into the drawer when the
+  // header menu is visible (small screens), and restore them back on larger screens.
+  // Moving preserves event listeners and keeps behavior consistent.
+  function attachToggleToDrawer(selector) {
+    const toggle = document.querySelector(selector);
     const menuBtn = document.querySelector('.header__menu-btn');
     const mobileDrawer = document.querySelector('.mobile-drawer');
     const mobileDrawerContent = document.querySelector('.mobile-drawer__content');
 
-    if (!settingsToggle || !menuBtn || !mobileDrawer || !mobileDrawerContent) return;
+    if (!toggle || !menuBtn || !mobileDrawer || !mobileDrawerContent) return;
 
-    const originalParent = settingsToggle.parentElement;
-    const originalNext = settingsToggle.nextElementSibling;
+    const originalParent = toggle.parentElement;
+    const originalNext = toggle.nextElementSibling;
     let moved = false;
 
     function updatePlacement() {
       const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
       if (menuVisible && !moved) {
-        mobileDrawerContent.appendChild(settingsToggle);
-        settingsToggle.classList.remove('open');
+        mobileDrawerContent.appendChild(toggle);
+        toggle.classList.remove('open');
         moved = true;
       } else if (!menuVisible && moved) {
-        if (originalNext) originalParent.insertBefore(settingsToggle, originalNext);
-        else originalParent.appendChild(settingsToggle);
-        settingsToggle.classList.remove('open');
+        if (originalNext) originalParent.insertBefore(toggle, originalNext);
+        else originalParent.appendChild(toggle);
+        toggle.classList.remove('open');
         moved = false;
       }
     }
@@ -2602,7 +2824,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update on load and on resize
     updatePlacement();
     window.addEventListener('resize', updatePlacement);
-  })();
+  }
+  attachToggleToDrawer('.notif-toggle');
+  attachToggleToDrawer('.settings-toggle');
 
   // Mobile drawer toggle
   const menuBtn = document.querySelector('.header__menu-btn');
