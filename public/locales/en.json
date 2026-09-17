@@ -45,6 +45,11 @@
     "language_aria": "Choose language",
     "language_menu_aria": "Promotion language options"
   },
+  "calendar_pref_dialog": {
+    "title": "Pick your calendar",
+    "description": "Choose which community calendar's events show in Today's Event on the homepage. You can change this anytime in Settings.",
+    "skip": "Skip for now"
+  },
   "settings_panel": {
     "toggle": "Settings",
     "language": "Language",

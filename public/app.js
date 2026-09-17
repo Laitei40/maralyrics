@@ -2012,6 +2012,14 @@ function initAppPromotionDialog() {
   dialog.querySelector('.app-promo-dialog__close').focus();
 }
 
+// Mirrors the fixed category set marareih.org's own calendars.html uses, so
+// a calendar's icon matches what it shows there — shared by the calendar
+// dialog's picker pills and the default-calendar prompt/settings.
+const CALENDAR_CATEGORY_ICONS = {
+  general: '📅', church: '⛪', education: '🎓', holiday: '🎉',
+  youth: '🎈', music: '🎵', community: '🤝', women: '👩', family: '👪',
+};
+
 // ─── Calendar preference (default calendar, set in Settings) ───────────────
 // Shared by the Settings dropdown, the calendar dialog's initial selection,
 // and the homepage's "Today's Event" lookup, so all three agree on which
@@ -2019,6 +2027,7 @@ function initAppPromotionDialog() {
 // fetch per page load, so those three don't each make their own request.
 const CalendarPrefs = (() => {
   const STORAGE_KEY = 'ml_default_calendar';
+  const PROMPTED_KEY = 'ml_calendar_pref_prompted';
   const API = 'https://calendar-api.marareih.org';
   let calendarsPromise = null;
 
@@ -2081,7 +2090,90 @@ const CalendarPrefs = (() => {
     });
   }
 
-  return { get, set, loadCalendars, initSelect };
+  /** First-visit-only prompt asking which calendar's events should show in
+   *  Today's Event. Resolves once dismissed (by a choice, Skip, backdrop, or
+   *  Escape) or immediately if there's nothing to ask, so callers can
+   *  sequence it ahead of other first-visit dialogs (e.g. the app promo). */
+  function promptIfNeeded() {
+    return new Promise((resolve) => {
+      let alreadyPrompted = true;
+      try { alreadyPrompted = localStorage.getItem(PROMPTED_KEY) === '1'; } catch (e) { /* default true: skip on storage errors */ }
+
+      if (alreadyPrompted || get()) {
+        resolve();
+        return;
+      }
+      try { localStorage.setItem(PROMPTED_KEY, '1'); } catch (e) { /* ignore */ }
+
+      const dialog = document.createElement('div');
+      dialog.className = 'calendar-pref-dialog';
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.setAttribute('aria-labelledby', 'calendarPrefDialogTitle');
+      dialog.innerHTML = `
+        <div class="calendar-pref-dialog__backdrop" data-calendar-pref-skip></div>
+        <section class="calendar-pref-dialog__panel">
+          <span class="calendar-pref-dialog__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <h2 id="calendarPrefDialogTitle" class="calendar-pref-dialog__title" data-i18n="calendar_pref_dialog.title">Pick your calendar</h2>
+          <p class="calendar-pref-dialog__desc" data-i18n="calendar_pref_dialog.description">Choose which community calendar's events show in Today's Event on the homepage. You can change this anytime in Settings.</p>
+          <div class="calendar-pref-dialog__list" id="calendarPrefDialogList">
+            <p class="calendar-pref-dialog__loading" data-i18n="calendar.loading">Loading events…</p>
+          </div>
+          <button type="button" class="calendar-pref-dialog__skip" data-calendar-pref-skip data-i18n="calendar_pref_dialog.skip">Skip for now</button>
+        </section>
+      `;
+      document.body.appendChild(dialog);
+      I18n.applyToDOM();
+      document.body.classList.add('calendar-pref-dialog-open');
+      requestAnimationFrame(() => dialog.classList.add('visible'));
+
+      const close = () => {
+        dialog.classList.remove('visible');
+        document.body.classList.remove('calendar-pref-dialog-open');
+        document.removeEventListener('keydown', onKeydown);
+        setTimeout(() => dialog.remove(), 250);
+        resolve();
+      };
+      const onKeydown = (e) => { if (e.key === 'Escape') close(); };
+      document.addEventListener('keydown', onKeydown);
+      dialog.querySelectorAll('[data-calendar-pref-skip]').forEach((el) => el.addEventListener('click', close));
+
+      const list = dialog.querySelector('#calendarPrefDialogList');
+      loadCalendars().then((calendars) => {
+        const allOption = `<button type="button" class="calendar-pref-dialog__option calendar-pref-dialog__option--all" data-calendar-slug="">
+          <span class="calendar-pref-dialog__option-name" data-i18n="settings_panel.calendar_all">All calendars</span>
+        </button>`;
+        const calendarOptions = calendars.map((cal) => {
+          const icon = CALENDAR_CATEGORY_ICONS[cal.category] || CALENDAR_CATEGORY_ICONS.general;
+          return `<button type="button" class="calendar-pref-dialog__option" data-calendar-slug="${Utils.escapeHtml(cal.slug)}">
+            <span class="calendar-pref-dialog__option-icon" aria-hidden="true">${icon}</span>
+            <span class="calendar-pref-dialog__option-name">${Utils.escapeHtml(cal.name)}</span>
+          </button>`;
+        }).join('');
+        list.innerHTML = allOption + calendarOptions;
+        I18n.applyToDOM();
+        list.querySelectorAll('[data-calendar-slug]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            set(btn.dataset.calendarSlug);
+            const select = document.getElementById('calendarPrefSelect');
+            if (select) select.value = btn.dataset.calendarSlug;
+            if (typeof Toast !== 'undefined') {
+              Toast.show(I18n.t('toast.default_calendar_changed'), { type: 'success', duration: 2200 });
+            }
+            close();
+          });
+        });
+      }).catch((err) => {
+        console.warn('[calendar] failed to load calendars for the first-visit prompt:', err);
+        list.innerHTML = `<p class="calendar-pref-dialog__error" data-i18n="calendar.calendars_error">Could not load calendars. Please try again later.</p>`;
+        I18n.applyToDOM();
+      });
+    });
+  }
+
+  return { get, set, loadCalendars, initSelect, promptIfNeeded };
 })();
 
 // ─── Community Calendar (events pulled live from calendar-api.marareih.org) ────
@@ -2092,13 +2184,6 @@ const CalendarFeature = (() => {
   const API = 'https://calendar-api.marareih.org';
   const MIN_YEAR = 1970;
   const MAX_YEAR = 2200;
-
-  // Mirrors the fixed category set marareih.org's own calendars.html uses,
-  // so a calendar's icon here matches what it shows there.
-  const CATEGORY_ICONS = {
-    general: '📅', church: '⛪', education: '🎓', holiday: '🎉',
-    youth: '🎈', music: '🎵', community: '🤝', women: '👩', family: '👪',
-  };
 
   const LOADING_HTML = `
     <div class="calendar-dialog__loading">
@@ -2177,7 +2262,7 @@ const CalendarFeature = (() => {
       return;
     }
     picker.innerHTML = calendarsList.map((cal) => {
-      const icon = CATEGORY_ICONS[cal.category] || CATEGORY_ICONS.general;
+      const icon = CALENDAR_CATEGORY_ICONS[cal.category] || CALENDAR_CATEGORY_ICONS.general;
       return `<button type="button" class="calendar-dialog__picker-pill${cal.slug === currentCalendarSlug ? ' active' : ''}" data-calendar-slug="${Utils.escapeHtml(cal.slug)}" aria-pressed="${cal.slug === currentCalendarSlug}">${icon} ${Utils.escapeHtml(cal.name)}</button>`;
     }).join('');
     picker.querySelectorAll('[data-calendar-slug]').forEach((btn) => {
@@ -2445,9 +2530,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initAppPromotion();
-  setTimeout(initAppPromotionDialog, 1200);
   CalendarFeature.init();
   CalendarPrefs.initSelect();
+  // The calendar prompt (first visit only) goes first — once it's dismissed
+  // (or skipped immediately, on a returning visit), the app promo dialog
+  // follows on its usual delay, instead of the two stacking on top of each other.
+  setTimeout(() => {
+    CalendarPrefs.promptIfNeeded().then(() => {
+      setTimeout(initAppPromotionDialog, 400);
+    });
+  }, 900);
 
   // Initialize theme
   Theme.init();

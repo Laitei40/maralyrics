@@ -3235,6 +3235,146 @@ body::before {
   overflow: hidden;
 }
 
+/* ─── First-visit "Pick your calendar" prompt ────────────────────────── */
+.calendar-pref-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+
+.calendar-pref-dialog.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.calendar-pref-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 5, 14, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.calendar-pref-dialog__panel {
+  position: relative;
+  width: min(420px, 100%);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: var(--space-2xl) var(--space-xl) var(--space-xl);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  background: var(--bg-card);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(139, 92, 246, 0.14) inset;
+  text-align: center;
+  transform: translateY(18px) scale(0.98);
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calendar-pref-dialog.visible .calendar-pref-dialog__panel {
+  transform: translateY(0) scale(1);
+}
+
+.calendar-pref-dialog__icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto var(--space-md);
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent), var(--neon-pink));
+  color: #fff;
+  box-shadow: 0 8px 22px var(--accent-glow);
+}
+
+.calendar-pref-dialog__title {
+  margin-bottom: var(--space-sm);
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.calendar-pref-dialog__desc {
+  margin: 0 0 var(--space-lg);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.calendar-pref-dialog__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--space-lg);
+  text-align: left;
+}
+
+.calendar-pref-dialog__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.calendar-pref-dialog__option:hover {
+  border-color: var(--accent);
+  background: rgba(139, 92, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.calendar-pref-dialog__option--all {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.calendar-pref-dialog__option-icon {
+  font-size: 18px;
+}
+
+.calendar-pref-dialog__loading,
+.calendar-pref-dialog__error {
+  padding: var(--space-lg) var(--space-md);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.calendar-pref-dialog__skip {
+  padding: 8px 16px;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.calendar-pref-dialog__skip:hover {
+  color: var(--text-secondary);
+}
+
+.calendar-pref-dialog-open {
+  overflow: hidden;
+}
+
 [data-theme="light"] .app-promo-dialog__panel {
   background: linear-gradient(135deg, #fff 0%, #eef4ff 100%);
   border-color: rgba(0, 0, 0, 0.1);
