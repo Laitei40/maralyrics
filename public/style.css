@@ -2845,6 +2845,41 @@ body::before {
   border-color: var(--accent);
 }
 
+.calendar-dialog__picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: var(--space-md) var(--space-lg) 0;
+}
+
+.calendar-dialog__picker:empty {
+  display: none;
+}
+
+.calendar-dialog__picker-pill {
+  padding: 6px 12px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.calendar-dialog__picker-pill:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.calendar-dialog__picker-pill.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent), var(--neon-pink));
+  color: #fff;
+}
+
 .calendar-dialog__year-nav {
   display: flex;
   align-items: center;
@@ -2908,13 +2943,47 @@ body::before {
 }
 
 .calendar-event {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-sm) var(--space-md);
+  overflow: hidden;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
   background: var(--bg-glass);
+}
+
+.calendar-event__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.calendar-event__summary:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.calendar-event__summary-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-event__chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.calendar-event__summary[aria-expanded="true"] .calendar-event__chevron {
+  transform: rotate(180deg);
 }
 
 .calendar-event__date {
@@ -2936,6 +3005,18 @@ body::before {
   margin: 0;
   color: var(--text-secondary);
   font-size: var(--text-xs);
+}
+
+.calendar-event__details {
+  padding: 0 var(--space-md) var(--space-md);
+  border-top: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.calendar-event__details p {
+  margin: var(--space-sm) 0 0;
 }
 
 .calendar-dialog__footer {

@@ -6,11 +6,15 @@
     "toggle_aria": "Community Calendar",
     "title": "Community Calendar",
     "close_aria": "Close",
+    "picker_aria": "Choose a calendar",
     "prev_year_aria": "Previous year",
     "next_year_aria": "Next year",
     "loading": "Loading events…",
-    "empty": "No events this year.",
+    "empty_for": "No events for {calendar} in {year}.",
+    "no_description": "No additional details for this event.",
     "error": "Could not load events. Please try again later.",
+    "calendars_error": "Could not load calendars. Please try again later.",
+    "no_calendars": "No calendars available yet.",
     "subscribe_link": "See all calendars & subscribe →"
   },
   "footer": {

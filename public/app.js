@@ -1925,9 +1925,12 @@ const CalendarFeature = (() => {
   const MIN_YEAR = 1970;
   const MAX_YEAR = 2200;
 
-  const yearCache = {};
+  const eventsCache = {}; // `${calendarSlug}:${year}` -> events[]
+  let calendarsList = null; // null = not loaded yet, [] = loaded but empty
+  let calendarsLoadFailed = false;
   let dialog = null;
   let currentYear = new Date().getFullYear();
+  let currentCalendarSlug = null;
   let requestSeq = 0;
 
   function isAllDayDate(str) {
@@ -1944,30 +1947,96 @@ const CalendarFeature = (() => {
     return new Date(ev.start).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
+  function currentCalendarName() {
+    const cal = (calendarsList || []).find((c) => c.slug === currentCalendarSlug);
+    return cal ? cal.name : '';
+  }
+
+  // ── Calendar picker (MEC / ECM / MADC / …, whatever exists in the API) ──
+  function renderCalendarPicker() {
+    const picker = dialog.querySelector('#calendarDialogPicker');
+    if (!calendarsList || !calendarsList.length) {
+      picker.innerHTML = '';
+      return;
+    }
+    picker.innerHTML = calendarsList.map((cal) => `
+      <button type="button" class="calendar-dialog__picker-pill${cal.slug === currentCalendarSlug ? ' active' : ''}" data-calendar-slug="${Utils.escapeHtml(cal.slug)}" aria-pressed="${cal.slug === currentCalendarSlug}">${Utils.escapeHtml(cal.name)}</button>
+    `).join('');
+    picker.querySelectorAll('[data-calendar-slug]').forEach((btn) => {
+      btn.addEventListener('click', () => selectCalendar(btn.dataset.calendarSlug));
+    });
+  }
+
+  function selectCalendar(slug) {
+    if (slug === currentCalendarSlug) return;
+    currentCalendarSlug = slug;
+    renderCalendarPicker();
+    renderYear(currentYear);
+  }
+
+  async function ensureCalendars() {
+    if (calendarsList !== null || calendarsLoadFailed) return;
+    try {
+      const res = await fetch(`${API}/api/calendars`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      calendarsList = (data.calendars || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+      currentCalendarSlug = calendarsList.length ? calendarsList[0].slug : null;
+    } catch (err) {
+      console.warn('[calendar] failed to load calendars:', err);
+      calendarsLoadFailed = true;
+    }
+  }
+
+  // ── Event list + inline expandable details ──
   function renderEvents(events) {
     const body = dialog.querySelector('#calendarDialogBody');
     if (!events.length) {
-      body.innerHTML = `<p class="calendar-dialog__empty" data-i18n="calendar.empty">No events this year.</p>`;
-      I18n.applyToDOM();
+      const p = document.createElement('p');
+      p.className = 'calendar-dialog__empty';
+      p.textContent = I18n.t('calendar.empty_for', { calendar: currentCalendarName(), year: currentYear });
+      body.innerHTML = '';
+      body.appendChild(p);
       return;
     }
-    body.innerHTML = `<ul class="calendar-event-list">${events.map((ev) => `
+
+    body.innerHTML = `<ul class="calendar-event-list">${events.map((ev, i) => `
       <li class="calendar-event">
-        <div class="calendar-event__date">${Utils.escapeHtml(formatEventWhen(ev))}</div>
-        <h3 class="calendar-event__title">${Utils.escapeHtml(ev.title)}</h3>
-        ${ev.location ? `<p class="calendar-event__meta">📍 ${Utils.escapeHtml(ev.location)}</p>` : ''}
+        <button type="button" class="calendar-event__summary" aria-expanded="false" aria-controls="calEventDetails${i}">
+          <span class="calendar-event__summary-text">
+            <span class="calendar-event__date">${Utils.escapeHtml(formatEventWhen(ev))}</span>
+            <span class="calendar-event__title">${Utils.escapeHtml(ev.title)}</span>
+            ${ev.location ? `<span class="calendar-event__meta">📍 ${Utils.escapeHtml(ev.location)}</span>` : ''}
+          </span>
+          <svg class="calendar-event__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="calendar-event__details" id="calEventDetails${i}" hidden>
+          <p>${ev.description ? Utils.escapeHtml(ev.description).replace(/\n/g, '<br>') : Utils.escapeHtml(I18n.t('calendar.no_description'))}</p>
+        </div>
       </li>`).join('')}</ul>`;
+
+    body.querySelectorAll('.calendar-event__summary').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const details = btn.nextElementSibling;
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        details.hidden = expanded;
+      });
+    });
   }
 
   async function renderYear(year) {
+    if (!currentCalendarSlug) return;
+
     dialog.querySelector('#calendarDialogYear').textContent = String(year);
     dialog.querySelectorAll('[data-year-step]').forEach((btn) => {
       const target = year + Number(btn.dataset.yearStep);
       btn.disabled = target < MIN_YEAR || target > MAX_YEAR;
     });
 
-    if (yearCache[year]) {
-      renderEvents(yearCache[year]);
+    const cacheKey = `${currentCalendarSlug}:${year}`;
+    if (eventsCache[cacheKey]) {
+      renderEvents(eventsCache[cacheKey]);
       return;
     }
 
@@ -1977,12 +2046,12 @@ const CalendarFeature = (() => {
 
     const seq = ++requestSeq;
     try {
-      const res = await fetch(`${API}/api/events?year=${year}`);
+      const res = await fetch(`${API}/api/events?year=${year}&calendar=${encodeURIComponent(currentCalendarSlug)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      if (seq !== requestSeq) return; // superseded by a newer year switch
-      yearCache[year] = data.events || [];
-      renderEvents(yearCache[year]);
+      if (seq !== requestSeq) return; // superseded by a newer year/calendar switch
+      eventsCache[cacheKey] = data.events || [];
+      renderEvents(eventsCache[cacheKey]);
     } catch (err) {
       if (seq !== requestSeq) return;
       console.warn('[calendar] failed to load events:', err);
@@ -2026,6 +2095,7 @@ const CalendarFeature = (() => {
           </h2>
           <button type="button" class="calendar-dialog__close" data-calendar-close aria-label="Close" data-i18n-aria="calendar.close_aria">&times;</button>
         </header>
+        <div class="calendar-dialog__picker" id="calendarDialogPicker" role="group" aria-label="Choose a calendar" data-i18n-aria="calendar.picker_aria"></div>
         <div class="calendar-dialog__year-nav">
           <button type="button" class="calendar-dialog__year-btn" data-year-step="-1" aria-label="Previous year" data-i18n-aria="calendar.prev_year_aria">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -2053,12 +2123,32 @@ const CalendarFeature = (() => {
     return dialog;
   }
 
-  function open() {
+  async function open() {
     buildDialog();
     dialog.classList.add('visible');
     document.body.classList.add('calendar-dialog-open');
-    renderYear(currentYear);
     dialog.querySelector('.calendar-dialog__close').focus();
+
+    const body = dialog.querySelector('#calendarDialogBody');
+    if (calendarsList === null && !calendarsLoadFailed) {
+      body.innerHTML = `<p class="calendar-dialog__loading" data-i18n="calendar.loading">Loading events…</p>`;
+      I18n.applyToDOM();
+    }
+
+    await ensureCalendars();
+    renderCalendarPicker();
+
+    if (calendarsLoadFailed) {
+      body.innerHTML = `<p class="calendar-dialog__error" data-i18n="calendar.calendars_error">Could not load calendars. Please try again later.</p>`;
+      I18n.applyToDOM();
+      return;
+    }
+    if (!currentCalendarSlug) {
+      body.innerHTML = `<p class="calendar-dialog__empty" data-i18n="calendar.no_calendars">No calendars available yet.</p>`;
+      I18n.applyToDOM();
+      return;
+    }
+    renderYear(currentYear);
   }
 
   function init() {
