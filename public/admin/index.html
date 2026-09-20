@@ -1021,7 +1021,21 @@
 
         <div class="form-group">
           <label class="form-label" for="articleFormContent">Content <span class="required">*</span></label>
-          <textarea id="articleFormContent" class="form-input form-textarea" rows="12" required placeholder="Full article text. Separate paragraphs with a blank line."></textarea>
+          <div class="rte-toolbar" data-for="articleFormContent">
+            <button type="button" class="rte-toolbar__btn" data-cmd="bold" title="Bold" aria-label="Bold"><b>B</b></button>
+            <button type="button" class="rte-toolbar__btn" data-cmd="italic" title="Italic" aria-label="Italic"><i>I</i></button>
+            <button type="button" class="rte-toolbar__btn" data-cmd="underline" title="Underline" aria-label="Underline"><u>U</u></button>
+            <span class="rte-toolbar__sep"></span>
+            <button type="button" class="rte-toolbar__btn" data-cmd="formatBlock" data-value="h2" title="Heading" aria-label="Heading">H2</button>
+            <button type="button" class="rte-toolbar__btn" data-cmd="formatBlock" data-value="blockquote" title="Quote" aria-label="Quote">&ldquo;</button>
+            <span class="rte-toolbar__sep"></span>
+            <button type="button" class="rte-toolbar__btn" data-cmd="insertUnorderedList" title="Bullet list" aria-label="Bullet list">&#9776;</button>
+            <button type="button" class="rte-toolbar__btn" data-cmd="insertOrderedList" title="Numbered list" aria-label="Numbered list">1.</button>
+            <button type="button" class="rte-toolbar__btn" data-cmd="createLink" title="Insert link" aria-label="Insert link">&#128279;</button>
+            <span class="rte-toolbar__sep"></span>
+            <button type="button" class="rte-toolbar__btn" data-cmd="removeFormat" title="Clear formatting" aria-label="Clear formatting">&#10005;</button>
+          </div>
+          <div id="articleFormContent" class="form-input form-textarea rte-editor" contenteditable="true" data-placeholder="Write the full article. Use the toolbar to format text — bold, headings, lists, links." required></div>
         </div>
 
         <div id="articleFormMessage" class="form-message" style="display:none;"></div>
