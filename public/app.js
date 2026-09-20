@@ -32,6 +32,15 @@ const Utils = {
       .replace(/'/g, '&#39;');
   },
 
+  /** Strip HTML tags for contexts that need plain text — meta descriptions,
+   *  JSON-LD, share text — from a field that may contain the article editor's
+   *  sanitized rich-text HTML. Collapses whitespace left behind by removed
+   *  block tags so paragraphs don't run together without a space. */
+  stripHtml(html) {
+    if (!html) return '';
+    return String(html).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  },
+
   /** Debounce function calls. */
   debounce(fn, delay) {
     let timer;
@@ -2015,9 +2024,10 @@ const ArticlePage = {
     }
 
     if (contentEl) {
-      // Content is stored as plain text with blank-line-separated paragraphs.
-      const paragraphs = (article.content || '').replace(/\\n/g, '\n').split(/\n{2,}/).filter(Boolean);
-      contentEl.innerHTML = paragraphs.map((p) => `<p>${Utils.escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('');
+      // Content is sanitized server-side (an allowlist of tags/attributes —
+      // see worker/lib/sanitizeHtml.js) before it's ever stored, so it's
+      // safe to render directly rather than escaping it as plain text.
+      contentEl.innerHTML = article.content || '';
     }
 
     this._currentArticle = article;
@@ -2055,7 +2065,7 @@ const ArticlePage = {
 
   updateMeta(article) {
     const title = `${article.title} | MaraLyrics`;
-    const desc = (article.summary || article.content || '').slice(0, 200);
+    const desc = (article.summary || Utils.stripHtml(article.content)).slice(0, 200);
     const url = `https://maralyrics.com/article/${article.slug}`;
 
     document.title = title;

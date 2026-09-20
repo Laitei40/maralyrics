@@ -7,9 +7,15 @@ function escapeHtml(value = '') {
     .replace(/'/g, '&#39;');
 }
 
+// Content is sanitized rich-text HTML (see worker/lib/sanitizeHtml.js) —
+// strip tags before using it as a plain-text meta description fallback.
+function stripHtml(html = '') {
+  return String(html).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function buildArticleSeo(article) {
   const title = `${article.title} | MaraLyrics`;
-  const description = (article.summary || article.content || '').slice(0, 200);
+  const description = (article.summary || stripHtml(article.content)).slice(0, 200);
   const url = `https://maralyrics.com/article/${article.slug}`;
 
   const schema = {

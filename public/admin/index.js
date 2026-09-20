@@ -1888,6 +1888,7 @@ function initDashboard() {
   document.getElementById('articleFormSlug').addEventListener('input', function () {
     this.dataset.manual = this.value ? '1' : '';
   });
+  wireArticleRte();
   document.getElementById('articleFilterStatus').addEventListener('change', () => loadArticles(1));
   let articleSearchTimer;
   document.getElementById('articleSearch').addEventListener('input', (e) => {
@@ -2334,11 +2335,52 @@ function closeArticleModal() {
 function clearArticleForm() {
   document.getElementById('articleForm').reset();
   document.getElementById('articleFormId').value = '';
+  document.getElementById('articleFormContent').innerHTML = '';
   document.getElementById('articleFormMessage').style.display = 'none';
   document.getElementById('articleFormSlug').dataset.manual = '';
   document.getElementById('articleStatusRow').style.display = 'none';
   document.getElementById('articleBtnSubmit').style.display = '';
   setArticleFieldsDisabled(false);
+}
+
+// Wires the toolbar above the Article "Content" field — a contenteditable div
+// driven by document.execCommand, the only rich-text field in this dashboard.
+function wireArticleRte() {
+  const toolbar = document.querySelector('.rte-toolbar[data-for="articleFormContent"]');
+  const editor = document.getElementById('articleFormContent');
+  if (!toolbar || !editor) return;
+
+  toolbar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.rte-toolbar__btn');
+    if (!btn) return;
+    e.preventDefault();
+    editor.focus();
+    const cmd = btn.dataset.cmd;
+    if (cmd === 'createLink') {
+      const url = prompt('Link URL:', 'https://');
+      if (!url) return;
+      document.execCommand('createLink', false, url);
+    } else if (cmd === 'formatBlock') {
+      document.execCommand('formatBlock', false, btn.dataset.value);
+    } else {
+      document.execCommand(cmd, false, null);
+    }
+  });
+
+  // Reflect active formatting (bold/italic/underline/lists) on the toolbar as
+  // the caret moves, same as a normal word processor toolbar.
+  const updateActiveStates = () => {
+    toolbar.querySelectorAll('.rte-toolbar__btn[data-cmd]').forEach((btn) => {
+      const cmd = btn.dataset.cmd;
+      if (cmd === 'createLink' || cmd === 'removeFormat' || cmd === 'formatBlock') return;
+      let active = false;
+      try { active = document.queryCommandState(cmd); } catch { /* unsupported in this browser */ }
+      btn.classList.toggle('active', active);
+    });
+  };
+  editor.addEventListener('keyup', updateActiveStates);
+  editor.addEventListener('mouseup', updateActiveStates);
+  editor.addEventListener('focus', updateActiveStates);
 }
 function showArticleMessage(text, isError = false) {
   const el = document.getElementById('articleFormMessage');
@@ -2348,10 +2390,12 @@ function showArticleMessage(text, isError = false) {
 }
 
 function setArticleFieldsDisabled(disabled) {
-  ['articleFormTitle', 'articleFormAuthor', 'articleFormSlug', 'articleFormSummary', 'articleFormContent'].forEach((id) => {
+  ['articleFormTitle', 'articleFormAuthor', 'articleFormSlug', 'articleFormSummary'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.disabled = disabled;
   });
+  const editor = document.getElementById('articleFormContent');
+  if (editor) editor.contentEditable = disabled ? 'false' : 'true';
 }
 
 // Populates the status badge + Publish/Unpublish button — mirrors renderSongStatusRow.
@@ -2398,7 +2442,7 @@ async function editArticle(id) {
     document.getElementById('articleFormAuthor').value = item.author_name || '';
     document.getElementById('articleFormSlug').value = item.slug || '';
     document.getElementById('articleFormSummary').value = item.summary || '';
-    document.getElementById('articleFormContent').value = item.content || '';
+    document.getElementById('articleFormContent').innerHTML = item.content || '';
     renderArticleStatusRow(item);
   } catch (err) {
     showArticleMessage('Failed to load: ' + err.message, true);
@@ -2413,9 +2457,13 @@ async function saveArticle(e) {
   const author_name = document.getElementById('articleFormAuthor').value.trim();
   const slug = document.getElementById('articleFormSlug').value.trim();
   const summary = document.getElementById('articleFormSummary').value.trim();
-  const content = document.getElementById('articleFormContent').value.trim();
+  const contentEl = document.getElementById('articleFormContent');
+  const content = contentEl.innerHTML.trim();
+  // A "visually empty" contenteditable div can still contain markup like
+  // <p><br></p> — textContent is the reliable empty check.
+  const contentIsEmpty = !contentEl.textContent.trim();
 
-  if (!title || !author_name || !content) {
+  if (!title || !author_name || contentIsEmpty) {
     showArticleMessage('Title, author name, and content are required.', true);
     return;
   }

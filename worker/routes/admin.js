@@ -23,6 +23,7 @@ import {
 } from '../lib/permissions.js';
 import { logAudit } from '../lib/audit.js';
 import { AVATARS } from '../lib/avatars.js';
+import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
 
 const app = new Hono();
 
@@ -1044,9 +1045,10 @@ articlesApp.get('/:id', async (c) => {
 
 articlesApp.post('/', requireRole(...CAN_CREATE_ARTICLE), async (c) => {
   const data = await c.req.json().catch(() => ({}));
-  const { title, author_name, summary, content } = data;
+  const { title, author_name, summary } = data;
+  const content = await sanitizeArticleHtml(data.content);
 
-  if (!title || !author_name || !content) {
+  if (!title || !author_name || isHtmlEmpty(content)) {
     return c.json({ error: 'title, author_name, and content are required' }, 400);
   }
   const slug = data.slug?.trim() || slugify(title);
@@ -1071,9 +1073,10 @@ articlesApp.post('/', requireRole(...CAN_CREATE_ARTICLE), async (c) => {
 articlesApp.put('/:id', requireRole(...CAN_EDIT_ARTICLE), async (c) => {
   const id = c.req.param('id');
   const data = await c.req.json().catch(() => ({}));
-  const { title, author_name, summary, content } = data;
+  const { title, author_name, summary } = data;
+  const content = await sanitizeArticleHtml(data.content);
 
-  if (!title || !author_name || !content) {
+  if (!title || !author_name || isHtmlEmpty(content)) {
     return c.json({ error: 'title, author_name, and content are required' }, 400);
   }
   const slug = data.slug?.trim() || slugify(title);
