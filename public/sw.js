@@ -75,6 +75,14 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
+  // Skip anything the Cache API can't store — most commonly a browser
+  // extension's own chrome-extension:// resources, which can reach this
+  // listener because isStaticAsset() below only checks the pathname, not
+  // the scheme. Letting the browser handle these directly (rather than
+  // intercepting into a strategy that calls cache.put() on them) avoids
+  // an unhandled rejection: "Request scheme '...' is unsupported".
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
   // Skip admin paths, external origins (except fonts/CDN)
   if (url.pathname.startsWith('/admin')) return;
 
@@ -119,7 +127,7 @@ async function networkFirstWithCache(request, cacheName, maxAge) {
     const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
+      cache.put(request, response.clone()).catch(() => {});
     }
     return response;
   } catch {
@@ -147,7 +155,7 @@ async function cacheFirstWithNetwork(request, cacheName) {
     const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
+      cache.put(request, response.clone()).catch(() => {});
     }
     return response;
   } catch {
@@ -164,7 +172,7 @@ async function staleWhileRevalidate(request, cacheName) {
   const cached = await cache.match(request);
   const fetchPromise = fetch(request).then((response) => {
     if (response.ok) {
-      cache.put(request, response.clone());
+      cache.put(request, response.clone()).catch(() => {});
     }
     return response;
   }).catch(() => null);
@@ -190,7 +198,7 @@ async function serveSpaShell(request, pathname) {
     const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(PAGE_CACHE);
-      cache.put(shellPath, response.clone());
+      cache.put(shellPath, response.clone()).catch(() => {});
     }
     return response;
   } catch {
@@ -220,7 +228,7 @@ self.addEventListener('message', (event) => {
         cache.match(page).then((existing) => {
           if (!existing) {
             fetch(page).then((res) => {
-              if (res.ok) cache.put(page, res);
+              if (res.ok) cache.put(page, res).catch(() => {});
             }).catch(() => {});
           }
         });
@@ -235,7 +243,7 @@ self.addEventListener('message', (event) => {
       ['/popular?limit=6', '/categories'].forEach((endpoint) => {
         const url = apiBase + endpoint;
         fetch(url).then((res) => {
-          if (res.ok) cache.put(url, res);
+          if (res.ok) cache.put(url, res).catch(() => {});
         }).catch(() => {});
       });
     });
