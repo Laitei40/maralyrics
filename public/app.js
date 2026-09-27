@@ -971,7 +971,12 @@ const HomePage = {
       const url = new URL('https://calendar-api.marareih.org/api/events');
       url.searchParams.set('year', year);
       if (defaultCal) url.searchParams.set('calendar', defaultCal);
-      const res = await fetch(url);
+      // The calendar API caches this response for 5 minutes (browser + CDN
+      // edge) — fine for browsing other years, but "is there an event
+      // today" needs to reflect an event added minutes ago, not up to 5
+      // minutes stale. Bust both cache layers with a unique query param.
+      url.searchParams.set('_', Date.now());
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const match = (data.events || []).find((ev) => this.isEventOnDate(ev, todayStr)) || null;
@@ -2924,8 +2929,13 @@ const NotificationsFeature = (() => {
       const url = new URL('https://calendar-api.marareih.org/api/events');
       url.searchParams.set('year', new Date().getFullYear());
       if (defaultCal) url.searchParams.set('calendar', defaultCal);
+      // See the matching comment in HomePage.getTodaysEvent() — this
+      // endpoint is cached for 5 minutes server-side, which combined with
+      // this poll's own 5-minute interval could delay a same-day event
+      // notification by up to ~10 minutes. Bust both cache layers.
+      url.searchParams.set('_', Date.now());
 
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const todaysEvents = (data.events || []).filter((ev) => HomePage.isEventOnDate(ev, todayStr));
