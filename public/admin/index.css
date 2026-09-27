@@ -82,6 +82,17 @@
   margin-bottom: var(--space-xl);
   border-bottom: 1px solid var(--border-glass);
   padding-bottom: 0;
+  /* 10 tabs are wider than any phone viewport — without this, body's
+     overflow-x: hidden (site-wide, for the public pages) clips the
+     overflow off-screen instead of just letting it wrap, so the whole
+     tab bar silently disappears rather than looking cramped. Scrolling
+     keeps every tab reachable at any width. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.admin__tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .admin__tab {
@@ -96,6 +107,8 @@
   transition: all var(--transition-fast);
   font-family: var(--font-sans);
   margin-bottom: -1px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .admin__tab:hover {
@@ -695,12 +708,36 @@
   .modal__form {
     padding: var(--space-md);
   }
+
+  /* The header row (logo, "View Site", role badge, Settings) doesn't
+     have a mobile drawer like the public pages — let it wrap onto a
+     second line instead of clipping or overlapping. */
+  .header {
+    height: auto;
+    min-height: var(--header-height);
+  }
+
+  .header__inner {
+    flex-wrap: wrap;
+    row-gap: var(--space-xs);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .header__nav {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-xs);
+  }
 }
 
 @media (max-width: 480px) {
   .admin-table th:nth-child(3),
   .admin-table td:nth-child(3) {
     display: none;
+  }
+
+  .admin__stats {
+    grid-template-columns: 1fr;
   }
 
   .stat-card {
