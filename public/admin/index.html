@@ -8,6 +8,9 @@
   <meta name="robots" content="noindex, nofollow" />
   <meta name="theme-color" content="#0a0e1a" />
 
+  <!-- PWA: installable + works offline (Songs & Articles) — see sw.js/offline-sync.js -->
+  <link rel="manifest" href="manifest.json" />
+
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="icon.svg" />
 
@@ -54,6 +57,13 @@
         MaraLyrics
       </a>
       <nav class="header__nav">
+        <div class="sync-status" id="syncStatus" title="Offline sync status">
+          <span class="sync-status__dot sync-status__dot--online" id="syncStatusDot"></span>
+          <span id="syncStatusText">Online</span>
+        </div>
+        <button type="button" id="btnSyncNow" class="btn btn--sm btn--ghost" style="display:none;" title="Sync queued offline changes now">🔄 Sync Now</button>
+        <button type="button" id="btnViewConflicts" class="btn btn--sm btn--danger-text" style="display:none;" title="Resolve sync conflicts">⚠️ Conflicts</button>
+        <button type="button" id="btnInstallApp" class="btn btn--sm btn--ghost" style="display:none;" title="Install this dashboard as an app">⬇️ Install App</button>
         <a href="https://maralyrics.com" class="header__nav-link">View Site</a>
         <span class="admin-badge" id="currentAdminLabel">Admin</span>
         <div class="settings-menu" id="settingsMenu">
@@ -1091,6 +1101,27 @@
     </div>
   </div>
 
+  <!-- ─── Sync Conflict Modal ────────────────── -->
+  <!-- Shown when a queued offline edit (or a direct online save) hits a song/article
+       that changed server-side since it was loaded — see admin.js's expected_updated_at
+       check and offline-sync.js's resolveConflict(). -->
+  <div id="conflictModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="conflictBackdrop"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h2 class="modal__title">Resolve Sync Conflicts</h2>
+        <button class="modal__close" id="conflictModalClose">&times;</button>
+      </div>
+      <p class="modal__text">
+        These were changed by someone else after you loaded your copy. Choose which version to keep.
+      </p>
+      <div id="conflictList"></div>
+      <div class="modal__actions">
+        <button type="button" id="conflictBtnClose" class="btn btn--ghost" onclick="OfflineSync.closeConflictModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── Footer ─────────────────────────────── -->
   <footer class="footer">
     <div class="container">
@@ -1099,6 +1130,8 @@
   </footer>
 
   <script src="/toast.js"></script>
+  <script src="offline-db.js"></script>
+  <script src="offline-sync.js"></script>
   <script src="index.js"></script>
 </body>
 </html>
