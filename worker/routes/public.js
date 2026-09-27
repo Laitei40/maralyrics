@@ -311,10 +311,16 @@ app.get('/search', async (c) => {
        JOIN songs s ON s.id = f.rowid
        LEFT JOIN copyright_owners co ON s.copyright_owner_id = co.id
        WHERE songs_fts MATCH ? AND s.status = 'published'
-       ORDER BY rank
+       ORDER BY (LOWER(s.title) != LOWER(?)), bm25(songs_fts, 10.0, 1.0)
        LIMIT 30`
     )
-    .bind(ftsQuery)
+    // songs_fts's default rank weighs the title and lyrics columns equally,
+    // so a song whose (much longer) lyrics merely mention the query more
+    // often could outrank a song whose title matches exactly. Weighting
+    // title 10x over lyrics fixes that for near-matches, and the exact
+    // (case-insensitive) title comparison guarantees a literal title match
+    // always sorts first, regardless of what bm25 makes of the lyrics.
+    .bind(ftsQuery, q)
     .all()
     .catch(() => ({ results: [] })); // malformed FTS query (e.g. bare punctuation) — fall back to no results
 
