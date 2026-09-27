@@ -634,8 +634,16 @@ songsApp.put('/:id', requireRole(...CAN_EDIT_SONG_DIRECT), async (c) => {
     if (!artistsOk) return c.json({ error: 'One or more selected artists do not exist' }, 400);
     if (!composersOk) return c.json({ error: 'One or more selected composers do not exist' }, 400);
 
-    const existing = await db.prepare('SELECT id FROM songs WHERE id = ?').bind(id).first();
+    const existing = await db.prepare('SELECT id, updated_at FROM songs WHERE id = ?').bind(id).first();
     if (!existing) return c.json({ error: 'Not found' }, 404);
+
+    // Optimistic concurrency check: the client sends back the updated_at it loaded (e.g.
+    // from an offline cache). If the row has since changed server-side, refuse the write
+    // instead of silently clobbering it — the client shows a conflict screen instead.
+    if (data.expected_updated_at && data.expected_updated_at !== existing.updated_at) {
+      const current = await getSongWithPeople(db, id);
+      return c.json({ error: 'conflict', message: 'This song was changed by someone else since you loaded it.', current }, 409);
+    }
 
     // status is deliberately never touched here — status changes go through PUT /:id/status.
     // The song row write and both junction-table rewrites run as one atomic batch so a
@@ -1083,8 +1091,14 @@ articlesApp.put('/:id', requireRole(...CAN_EDIT_ARTICLE), async (c) => {
 
   try {
     const db = c.env.DB;
-    const existing = await db.prepare('SELECT id FROM articles WHERE id = ?').bind(id).first();
+    const existing = await db.prepare('SELECT id, updated_at FROM articles WHERE id = ?').bind(id).first();
     if (!existing) return c.json({ error: 'Not found' }, 404);
+
+    // Same optimistic concurrency check as songs — see comment there.
+    if (data.expected_updated_at && data.expected_updated_at !== existing.updated_at) {
+      const current = await db.prepare('SELECT * FROM articles WHERE id = ?').bind(id).first();
+      return c.json({ error: 'conflict', message: 'This article was changed by someone else since you loaded it.', current }, 409);
+    }
 
     // status/published_at are deliberately never touched here — status changes go
     // through PUT /:id/status, same split as songs.

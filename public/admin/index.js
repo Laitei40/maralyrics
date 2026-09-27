@@ -521,12 +521,23 @@ async function handleAuthFailure(res) {
   }
 }
 
+// Carries the HTTP status + parsed body onto the thrown Error (not just its message) so
+// callers can tell a 409 conflict apart from any other failure and read the server's
+// current version back out of err.body.current — used by the offline sync queue and by
+// direct online saves alike, since a conflicting concurrent edit can happen either way.
+function apiError(status, data) {
+  const err = new Error((data && data.error) || `Error ${status}`);
+  err.status = status;
+  err.body = data;
+  return err;
+}
+
 async function apiGet(url) {
   const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) {
     await handleAuthFailure(res);
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Error ${res.status}`);
+    throw apiError(res.status, data);
   }
   return res.json();
 }
@@ -540,7 +551,7 @@ async function apiPost(url, body) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     await handleAuthFailure(res);
-    throw new Error(data.error || `Error ${res.status}`);
+    throw apiError(res.status, data);
   }
   return data;
 }
@@ -554,7 +565,7 @@ async function apiPut(url, body) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     await handleAuthFailure(res);
-    throw new Error(data.error || `Error ${res.status}`);
+    throw apiError(res.status, data);
   }
   return data;
 }
@@ -564,7 +575,7 @@ async function apiDelete(url) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     await handleAuthFailure(res);
-    throw new Error(data.error || `Error ${res.status}`);
+    throw apiError(res.status, data);
   }
   return data;
 }
@@ -607,8 +618,17 @@ async function populateDropdowns() {
       allArtists = aData.artists || [];
       allComposers = cData.composers || [];
       allCopyrightOwners = coData.copyright_owners || [];
+      OfflineSync.cacheReferenceData({
+        artists: allArtists, composers: allComposers, copyright_owners: allCopyrightOwners,
+      }).catch(() => {});
     } catch (err) {
       console.warn('Failed to load dropdowns:', err);
+      if (OfflineSync.isNetworkError(err)) {
+        const cached = await OfflineSync.getCachedReferenceData();
+        allArtists = cached.artists || [];
+        allComposers = cached.composers || [];
+        allCopyrightOwners = cached.copyright_owners || [];
+      }
     }
 
     buildCheckboxList(document.getElementById('formArtist'), allArtists);
@@ -648,10 +668,28 @@ async function loadSongs(page = 1, query = currentSearchQuery) {
     currentPage = data.page;
     totalPages = data.totalPages;
 
+    OfflineSync.cacheList('song', allSongs).catch(() => {});
     renderSongsTable(allSongs);
     renderPagination();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    if (!OfflineSync.isNetworkError(err)) {
+      tbody.innerHTML = `<tr><td colspan="8" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+      return;
+    }
+    // Offline (or the API is unreachable) — fall back to whatever was last cached,
+    // filtered client-side since the server-side search can't run.
+    try {
+      const cached = await OfflineSync.getCachedList('song');
+      allSongs = filterBySearch(cached, currentSearchQuery, ['title', 'artist_name', 'composer_name', 'category'])
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      currentPage = 1;
+      totalPages = 1;
+      renderSongsTable(allSongs);
+      document.getElementById('adminPagination').innerHTML = '';
+      if (typeof Toast !== 'undefined') Toast.show('Offline — showing cached songs.', { type: 'info' });
+    } catch {
+      tbody.innerHTML = '<tr><td colspan="8" class="admin-table__empty" style="color:var(--danger);">Offline and no cached songs available.</td></tr>';
+    }
   }
 }
 
@@ -715,7 +753,18 @@ function renderSongsTable(songs) {
   // instead of labeling it "Edit" for a form they can't actually change anything in.
   const canEditOrReview = hasRole(...CAN_CREATE_SONG);
 
-  tbody.innerHTML = songs.map((song) => `
+  tbody.innerHTML = songs.map((song) => {
+    // Not-yet-synced records (created offline, or an offline edit queued against a real
+    // song) never get status-change/delete/view-live actions — there's nothing live to
+    // act on until the sync queue lands them on the server.
+    const isUnsynced = song._offlineLocal || song._offlinePending || OfflineSync.isPending('song', song.id);
+    const hasConflict = OfflineSync.hasConflict('song', song.id);
+    const idArg = JSON.stringify(song.id);
+    const syncBadge = hasConflict
+      ? '<span class="sync-badge sync-badge--conflict" title="A newer version exists on the server">⚠️ Conflict</span>'
+      : isUnsynced ? '<span class="sync-badge sync-badge--pending" title="Queued, waiting to sync">🔄 Pending sync</span>' : '';
+
+    return `
     <tr data-id="${song.id}">
       <td>
         <div class="admin-table__title">${escapeHtml(song.title)}</div>
@@ -724,21 +773,22 @@ function renderSongsTable(songs) {
       <td>${escapeHtml(song.artist_name || song.artist || '—')}</td>
       <td>${escapeHtml(song.composer_name || song.composer || '—')}</td>
       <td>${song.category ? `<span class="song-card__category">${escapeHtml(song.category)}</span>` : '—'}</td>
-      <td>${statusBadgeHtml(song.status || 'published')}</td>
+      <td>${statusBadgeHtml(song.status || 'published')}${syncBadge}</td>
       <td>${formatViews(song.views)}</td>
       <td>${formatDate(song.created_at)}</td>
       <td>
         <div class="admin-table__actions">
           ${canEditOrReview
-            ? `<button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="Edit">✏️</button>`
-            : `<button class="btn btn--sm btn--ghost" onclick="editSong(${song.id})" title="View">👁️</button>`}
-          ${songStatusActionsHtml(song)}
-          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${song.id}, 'song')" title="Delete">🗑️</button>` : ''}
-          <a href="${SITE_ORIGIN}/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
+            ? `<button class="btn btn--sm btn--ghost" onclick="editSong(${idArg})" title="Edit">✏️</button>`
+            : `<button class="btn btn--sm btn--ghost" onclick="editSong(${idArg})" title="View">👁️</button>`}
+          ${isUnsynced ? '' : songStatusActionsHtml(song)}
+          ${canDelete && !isUnsynced ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${idArg}, 'song')" title="Delete">🗑️</button>` : ''}
+          ${isUnsynced ? '' : `<a href="${SITE_ORIGIN}/song/${escapeHtml(song.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>`}
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderPagination() {
@@ -780,6 +830,7 @@ function clearSongForm() {
   // "manual" flag can survive from a slug edited in a previous session and
   // silently block auto-slug generation for every song created/edited after.
   document.getElementById('formSlug').dataset.manual = '';
+  currentSongLoadedUpdatedAt = null;
   hideDraftBanner('songDraftBanner', 'songDraftIndicator');
 }
 function showFormMessage(text, isError = false) {
@@ -883,30 +934,61 @@ async function openNewSong() {
   }
 }
 
+// Set whenever a song is loaded into the edit form — sent back as expected_updated_at
+// on save so the server can detect a concurrent edit (see admin.js songsApp.put).
+let currentSongLoadedUpdatedAt = null;
+
+function populateSongForm(song) {
+  document.getElementById('formSongId').value = song.id;
+  document.getElementById('formTitle').value = song.title || '';
+  setSelectedIds(document.getElementById('formArtist'), (song.artists || []).map(a => a.id));
+  setSelectedIds(document.getElementById('formComposer'), (song.composers || []).map(c => c.id));
+  document.getElementById('formCategory').value = song.category || '';
+  document.getElementById('formCopyrightOwner').value = song.copyright_owner_id || '';
+  document.getElementById('formSlug').value = song.slug || '';
+  document.getElementById('formLyrics').value = song.lyrics || '';
+  currentSongLoadedUpdatedAt = song.updated_at || null;
+  applySongModalPermissions('edit', getAdminInfo()?.role, song);
+}
+
 async function editSong(id) {
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'Edit Song';
   await populateDropdowns();
   openSongModal();
 
+  // A still-unsynced offline record only exists in the local cache — there's no
+  // server copy to fetch yet.
+  const isLocalOnly = typeof id === 'string' && id.startsWith('local-song-');
+  if (isLocalOnly) {
+    const song = await OfflineSync.getCachedOne('song', id);
+    if (!song) { showFormMessage('This queued song is no longer available.', true); return; }
+    populateSongForm(song);
+    return;
+  }
+
   try {
     const song = await apiGet(`${ADMIN_API}/songs/${id}`);
-    document.getElementById('formSongId').value = song.id;
-    document.getElementById('formTitle').value = song.title || '';
-    setSelectedIds(document.getElementById('formArtist'), (song.artists || []).map(a => a.id));
-    setSelectedIds(document.getElementById('formComposer'), (song.composers || []).map(c => c.id));
-    document.getElementById('formCategory').value = song.category || '';
-    document.getElementById('formCopyrightOwner').value = song.copyright_owner_id || '';
-    document.getElementById('formSlug').value = song.slug || '';
-    document.getElementById('formLyrics').value = song.lyrics || '';
-    applySongModalPermissions('edit', getAdminInfo()?.role, song);
-    // Check for unsaved draft for this song
+    OfflineSync.cacheDetail('song', song).catch(() => {});
+    populateSongForm(song);
     const draft = loadDraft('song', song.id);
     if (draft && (draft.title || draft.lyrics)) {
       showDraftBanner('songDraftBanner');
     }
   } catch (err) {
-    showFormMessage('Failed to load song: ' + err.message, true);
+    if (!OfflineSync.isNetworkError(err)) {
+      showFormMessage('Failed to load song: ' + err.message, true);
+      return;
+    }
+    const cached = await OfflineSync.getCachedOne('song', id);
+    if (cached && cached.artists) {
+      populateSongForm(cached);
+      if (typeof Toast !== 'undefined') Toast.show('Offline — editing the cached copy of this song.', { type: 'info' });
+    } else if (cached) {
+      showFormMessage('Offline: only summary data is cached for this song — open it once while online to enable offline editing.', true);
+    } else {
+      showFormMessage('Offline and this song isn’t cached yet.', true);
+    }
   }
 }
 
@@ -940,13 +1022,35 @@ async function saveSongDirect(e) {
   const error = validateSongFormData(body);
   if (error) { showFormMessage(error, true); return; }
 
+  const isLocalOnly = !!id && id.startsWith('local-song-');
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true;
   btn.textContent = 'Saving...';
+  const refData = { artists: allArtists, composers: allComposers };
+
+  // Offline, or this is a still-unsynced offline record being edited further: write
+  // straight to the offline queue — see offline-sync.js.
+  if (!OfflineSync.isOnline() || isLocalOnly) {
+    try {
+      if (id) await OfflineSync.queueUpdate('song', isLocalOnly ? id : Number(id), body, currentSongLoadedUpdatedAt, refData);
+      else await OfflineSync.queueCreate('song', body, refData);
+      showFormMessage(OfflineSync.isOnline() ? 'Saved — syncing…' : 'Saved offline — will sync when back online.');
+      clearDraft('song', id || null);
+      hideDraftBanner('songDraftBanner', 'songDraftIndicator');
+      setTimeout(() => { closeSongModal(); loadSongs(currentPage); refreshStats(); }, 800);
+      if (OfflineSync.isOnline()) OfflineSync.processQueue();
+    } catch (err) {
+      showFormMessage(err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = id ? 'Update Song' : 'Create Song';
+    }
+    return;
+  }
 
   try {
     if (id) {
-      await apiPut(`${ADMIN_API}/songs/${id}`, body);
+      await apiPut(`${ADMIN_API}/songs/${id}`, { ...body, expected_updated_at: currentSongLoadedUpdatedAt });
       showFormMessage('Song updated successfully!');
     } else {
       await apiPost(`${ADMIN_API}/songs`, body);
@@ -962,7 +1066,29 @@ async function saveSongDirect(e) {
       refreshStats();
     }, 800);
   } catch (err) {
-    showFormMessage(err.message, true);
+    if (err.status === 409 && err.body && err.body.current) {
+      // Same "someone else changed this" conflict the offline sync queue handles —
+      // routed through the one conflict-resolution modal instead of a plain error.
+      await OfflineSync.recordDirectConflict('song', Number(id), body, currentSongLoadedUpdatedAt, err.body.current);
+      showFormMessage('This song was changed by someone else since you loaded it.', true);
+      closeSongModal();
+      loadSongs(currentPage);
+      OfflineSync.openConflictModal();
+    } else if (OfflineSync.isNetworkError(err)) {
+      // Connectivity dropped between the isOnline() check above and this request —
+      // fall back to queueing instead of losing the edit.
+      try {
+        if (id) await OfflineSync.queueUpdate('song', Number(id), body, currentSongLoadedUpdatedAt, refData);
+        else await OfflineSync.queueCreate('song', body, refData);
+        showFormMessage('Connection lost — saved offline, will sync when back online.');
+        clearDraft('song', id || null);
+        setTimeout(() => { closeSongModal(); loadSongs(currentPage); }, 800);
+      } catch (queueErr) {
+        showFormMessage(queueErr.message, true);
+      }
+    } else {
+      showFormMessage(err.message, true);
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = id ? 'Update Song' : 'Create Song';
@@ -1768,11 +1894,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Verify the stored session is still valid (also refreshes cached role info)
+  // Verify the stored session is still valid (also refreshes cached role info). A
+  // network failure here (offline, or the API unreachable) is NOT a session failure —
+  // falling into the same "session expired" branch would wipe a perfectly good token
+  // just because there's no connectivity yet, locking the admin out of the offline app
+  // they came here for. Only an actual auth rejection (401 from apiGet) clears the session.
   try {
     const me = await apiGet(`${ADMIN_API}/auth/me`);
     setAdminInfo(me);
-  } catch {
+  } catch (err) {
+    if (OfflineSync.isNetworkError(err) && getAdminInfo()) {
+      initDashboard();
+      return;
+    }
     clearAdminSession();
     showLoginOverlay('Session expired. Please sign in again.');
     return;
@@ -1781,9 +1915,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDashboard();
 });
 
+// Refreshes whichever table is on screen after the offline queue syncs or changes —
+// bound once at load time (not inside initDashboard, which can re-run on re-login).
+window.addEventListener('ml:sync-complete', () => {
+  loadSongs(currentPage);
+  loadArticles(currentArticlePage);
+  refreshStats();
+});
+window.addEventListener('ml:queue-changed', () => {
+  renderSongsTable(allSongs);
+  renderArticlesTable(allArticles);
+});
+
 let dashboardInitialized = false;
 function initDashboard() {
   applyRoleVisibility();
+  OfflineSync.init();
 
   if (dashboardInitialized) {
     // A session-expiry (handleAuthFailure) shows the login overlay without
@@ -2238,11 +2385,31 @@ async function loadArticles(page = 1, query = currentArticleSearchQuery) {
     currentArticlePage = data.page;
     totalArticlePages = data.totalPages;
 
+    OfflineSync.cacheList('article', allArticles).catch(() => {});
     renderArticlesTable(allArticles);
     renderArticlesPagination();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    if (!OfflineSync.isNetworkError(err)) {
+      tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+      return;
+    }
+    try {
+      const cached = await OfflineSync.getCachedList('article');
+      allArticles = filterBySearch(cached, currentArticleSearchQuery, ['title', 'author_name'])
+        .filter((a) => !statusFilterValue() || a.status === statusFilterValue())
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      currentArticlePage = 1;
+      totalArticlePages = 1;
+      renderArticlesTable(allArticles);
+      document.getElementById('articlesPagination').innerHTML = '';
+      if (typeof Toast !== 'undefined') Toast.show('Offline — showing cached articles.', { type: 'info' });
+    } catch {
+      tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Offline and no cached articles available.</td></tr>';
+    }
   }
+}
+function statusFilterValue() {
+  return document.getElementById('articleFilterStatus')?.value || '';
 }
 
 function articleStatusBadgeHtml(status) {
@@ -2288,27 +2455,36 @@ function renderArticlesTable(articles) {
   const canDelete = hasRole(...CAN_DELETE_ARTICLE);
   const canEdit = hasRole(...CAN_EDIT_ARTICLE);
 
-  tbody.innerHTML = articles.map((article) => `
+  tbody.innerHTML = articles.map((article) => {
+    const isUnsynced = article._offlineLocal || article._offlinePending || OfflineSync.isPending('article', article.id);
+    const hasConflict = OfflineSync.hasConflict('article', article.id);
+    const idArg = JSON.stringify(article.id);
+    const syncBadge = hasConflict
+      ? '<span class="sync-badge sync-badge--conflict" title="A newer version exists on the server">⚠️ Conflict</span>'
+      : isUnsynced ? '<span class="sync-badge sync-badge--pending" title="Queued, waiting to sync">🔄 Pending sync</span>' : '';
+
+    return `
     <tr data-id="${article.id}">
       <td>
         <div class="admin-table__title">${escapeHtml(article.title)}</div>
         <div class="admin-table__slug">/article/${escapeHtml(article.slug)}</div>
       </td>
       <td>${escapeHtml(article.author_name)}</td>
-      <td>${articleStatusBadgeHtml(article.status)}</td>
+      <td>${articleStatusBadgeHtml(article.status)}${syncBadge}</td>
       <td>${formatDate(article.created_at)}</td>
       <td>
         <div class="admin-table__actions">
           ${canEdit
-            ? `<button class="btn btn--sm btn--ghost" onclick="editArticle(${article.id})" title="Edit">✏️</button>`
-            : `<button class="btn btn--sm btn--ghost" onclick="editArticle(${article.id})" title="View">👁️</button>`}
-          ${articleStatusActionsHtml(article)}
-          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${article.id}, 'article')" title="Delete">🗑️</button>` : ''}
-          ${article.status === 'published' ? `<a href="${SITE_ORIGIN}/article/${escapeHtml(article.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>` : ''}
+            ? `<button class="btn btn--sm btn--ghost" onclick="editArticle(${idArg})" title="Edit">✏️</button>`
+            : `<button class="btn btn--sm btn--ghost" onclick="editArticle(${idArg})" title="View">👁️</button>`}
+          ${isUnsynced ? '' : articleStatusActionsHtml(article)}
+          ${canDelete && !isUnsynced ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${idArg}, 'article')" title="Delete">🗑️</button>` : ''}
+          ${!isUnsynced && article.status === 'published' ? `<a href="${SITE_ORIGIN}/article/${escapeHtml(article.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>` : ''}
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderArticlesPagination() {
@@ -2332,6 +2508,10 @@ function closeArticleModal() {
   document.body.style.overflow = '';
   clearArticleForm();
 }
+// Set whenever an article is loaded into the edit form — sent back as
+// expected_updated_at on save (see currentSongLoadedUpdatedAt for the song equivalent).
+let currentArticleLoadedUpdatedAt = null;
+
 function clearArticleForm() {
   document.getElementById('articleForm').reset();
   document.getElementById('articleFormId').value = '';
@@ -2340,6 +2520,7 @@ function clearArticleForm() {
   document.getElementById('articleFormSlug').dataset.manual = '';
   document.getElementById('articleStatusRow').style.display = 'none';
   document.getElementById('articleBtnSubmit').style.display = '';
+  currentArticleLoadedUpdatedAt = null;
   setArticleFieldsDisabled(false);
 }
 
@@ -2426,6 +2607,17 @@ function openNewArticle() {
   document.getElementById('articleFormTitle').focus();
 }
 
+function populateArticleForm(item) {
+  document.getElementById('articleFormId').value = item.id;
+  document.getElementById('articleFormTitle').value = item.title || '';
+  document.getElementById('articleFormAuthor').value = item.author_name || '';
+  document.getElementById('articleFormSlug').value = item.slug || '';
+  document.getElementById('articleFormSummary').value = item.summary || '';
+  document.getElementById('articleFormContent').innerHTML = item.content || '';
+  currentArticleLoadedUpdatedAt = item.updated_at || null;
+  renderArticleStatusRow(item);
+}
+
 async function editArticle(id) {
   clearArticleForm();
   document.getElementById('articleModalTitle').textContent = 'Edit Article';
@@ -2435,17 +2627,30 @@ async function editArticle(id) {
   document.getElementById('articleBtnSubmit').style.display = canEdit ? '' : 'none';
   openArticleModal();
 
+  const isLocalOnly = typeof id === 'string' && id.startsWith('local-article-');
+  if (isLocalOnly) {
+    const item = await OfflineSync.getCachedOne('article', id);
+    if (!item) { showArticleMessage('This queued article is no longer available.', true); return; }
+    populateArticleForm(item);
+    return;
+  }
+
   try {
     const item = await apiGet(`${ADMIN_API}/articles/${id}`);
-    document.getElementById('articleFormId').value = item.id;
-    document.getElementById('articleFormTitle').value = item.title || '';
-    document.getElementById('articleFormAuthor').value = item.author_name || '';
-    document.getElementById('articleFormSlug').value = item.slug || '';
-    document.getElementById('articleFormSummary').value = item.summary || '';
-    document.getElementById('articleFormContent').innerHTML = item.content || '';
-    renderArticleStatusRow(item);
+    OfflineSync.cacheDetail('article', item).catch(() => {});
+    populateArticleForm(item);
   } catch (err) {
-    showArticleMessage('Failed to load: ' + err.message, true);
+    if (!OfflineSync.isNetworkError(err)) {
+      showArticleMessage('Failed to load: ' + err.message, true);
+      return;
+    }
+    const cached = await OfflineSync.getCachedOne('article', id);
+    if (cached) {
+      populateArticleForm(cached);
+      if (typeof Toast !== 'undefined') Toast.show('Offline — editing the cached copy of this article.', { type: 'info' });
+    } else {
+      showArticleMessage('Offline and this article isn’t cached yet.', true);
+    }
   }
 }
 
@@ -2471,11 +2676,28 @@ async function saveArticle(e) {
   const btn = document.getElementById('articleBtnSubmit');
   btn.disabled = true;
   btn.textContent = 'Saving...';
+  const body = { title, author_name, slug, summary, content };
+  const isLocalOnly = !!id && id.startsWith('local-article-');
+
+  if (!OfflineSync.isOnline() || isLocalOnly) {
+    try {
+      if (id) await OfflineSync.queueUpdate('article', isLocalOnly ? id : Number(id), body, currentArticleLoadedUpdatedAt);
+      else await OfflineSync.queueCreate('article', body);
+      showArticleMessage(OfflineSync.isOnline() ? 'Saved — syncing…' : 'Saved offline — will sync when back online.');
+      setTimeout(() => { closeArticleModal(); loadArticles(currentArticlePage); }, 900);
+      if (OfflineSync.isOnline()) OfflineSync.processQueue();
+    } catch (err) {
+      showArticleMessage(err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = id ? 'Update Article' : 'Create Article';
+    }
+    return;
+  }
 
   try {
-    const body = { title, author_name, slug, summary, content };
     if (id) {
-      await apiPut(`${ADMIN_API}/articles/${id}`, body);
+      await apiPut(`${ADMIN_API}/articles/${id}`, { ...body, expected_updated_at: currentArticleLoadedUpdatedAt });
       showArticleMessage('Article updated successfully!');
     } else {
       await apiPost(`${ADMIN_API}/articles`, body);
@@ -2487,7 +2709,24 @@ async function saveArticle(e) {
       loadArticles(currentArticlePage);
     }, 900);
   } catch (err) {
-    showArticleMessage(err.message, true);
+    if (err.status === 409 && err.body && err.body.current) {
+      await OfflineSync.recordDirectConflict('article', Number(id), body, currentArticleLoadedUpdatedAt, err.body.current);
+      showArticleMessage('This article was changed by someone else since you loaded it.', true);
+      closeArticleModal();
+      loadArticles(currentArticlePage);
+      OfflineSync.openConflictModal();
+    } else if (OfflineSync.isNetworkError(err)) {
+      try {
+        if (id) await OfflineSync.queueUpdate('article', Number(id), body, currentArticleLoadedUpdatedAt);
+        else await OfflineSync.queueCreate('article', body);
+        showArticleMessage('Connection lost — saved offline, will sync when back online.');
+        setTimeout(() => { closeArticleModal(); loadArticles(currentArticlePage); }, 900);
+      } catch (queueErr) {
+        showArticleMessage(queueErr.message, true);
+      }
+    } else {
+      showArticleMessage(err.message, true);
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = id ? 'Update Article' : 'Create Article';
