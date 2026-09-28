@@ -1,0 +1,15 @@
+# Build output
+*/build/
+.gradle/
+local.properties
+
+# Never commit signing material — the release keystore lives only as a
+# GitHub Actions secret (see .github/workflows/build-android.yml).
+*.keystore
+*.jks
+keystore.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store

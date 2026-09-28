@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches public/admin/manifest.json's theme_color / background_color,
+         so the native chrome (status bar, splash screen) doesn't flash a
+         different color than the PWA itself uses. -->
+    <color name="statusBarColor">#0A0E1A</color>
+    <color name="navigationBarColor">#0A0E1A</color>
+    <color name="backgroundColor">#0A0E1A</color>
+</resources>

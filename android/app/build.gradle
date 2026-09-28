@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.maralyrics.admin'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.maralyrics.admin"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    // Release signing is supplied by CI via -PRELEASE_STORE_FILE=... (see
+    // .github/workflows/build-android.yml), never committed to the repo.
+    // Building locally without those properties still produces a valid,
+    // debug-signed APK — just not one that verifies against
+    // public/.well-known/assetlinks.json on a real device.
+    signingConfigs {
+        release {
+            if (project.hasProperty('RELEASE_STORE_FILE')) {
+                storeFile file(RELEASE_STORE_FILE)
+                storePassword RELEASE_STORE_PASSWORD
+                keyAlias RELEASE_KEY_ALIAS
+                keyPassword RELEASE_KEY_PASSWORD
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (project.hasProperty('RELEASE_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // Trusted Web Activity launcher (LauncherActivity) + Custom Tabs plumbing.
+    // This is the whole app — no Java/Kotlin source needed, the manifest's
+    // meta-data configures it entirely.
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
