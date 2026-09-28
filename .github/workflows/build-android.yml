@@ -13,6 +13,11 @@ name: Build Android admin app
 # Without them, this still builds a debug-signed APK (useful to sanity-check
 # the project compiles) but it won't verify against
 # public/.well-known/assetlinks.json on a real device.
+#
+# Note: secrets can't be referenced in a step's `if:` condition (GitHub
+# Actions rejects the whole workflow at dispatch time with "Unrecognized
+# named-value: 'secrets'" if you try) — they're passed via `env:` instead,
+# and the choice between a release and a debug build is made in shell.
 on:
   push:
     branches: [main]
@@ -31,6 +36,11 @@ jobs:
     defaults:
       run:
         working-directory: android
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,31 +56,20 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Decode release keystore
-        id: keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Build APK (release if signing secrets are set, debug otherwise)
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
-          echo "has_keystore=true" >> "$GITHUB_OUTPUT"
-
-      - name: Build signed release APK
-        if: steps.keystore.outputs.has_keystore == 'true'
-        run: |
-          ./gradlew assembleRelease \
-            -PRELEASE_STORE_FILE=release.keystore \
-            -PRELEASE_STORE_PASSWORD="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-            -PRELEASE_KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}" \
-            -PRELEASE_KEY_PASSWORD="${{ secrets.ANDROID_KEY_PASSWORD }}"
-
-      - name: Build debug APK (no keystore secret configured yet)
-        if: steps.keystore.outputs.has_keystore != 'true'
-        run: |
-          echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set — building a debug-signed APK instead of a release one. See the comment at the top of this workflow file for the one-time setup."
-          ./gradlew assembleDebug
-
-      - name: Remove decoded keystore
-        if: always() && steps.keystore.outputs.has_keystore == 'true'
-        run: rm -f release.keystore
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+            ./gradlew assembleRelease \
+              -PRELEASE_STORE_FILE=release.keystore \
+              -PRELEASE_STORE_PASSWORD="$ANDROID_KEYSTORE_PASSWORD" \
+              -PRELEASE_KEY_ALIAS="$ANDROID_KEY_ALIAS" \
+              -PRELEASE_KEY_PASSWORD="$ANDROID_KEY_PASSWORD"
+            rm -f release.keystore
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set — building a debug-signed APK instead of a release one. See the comment at the top of this workflow file for the one-time setup."
+            ./gradlew assembleDebug
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
