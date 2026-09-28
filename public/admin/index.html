@@ -28,9 +28,9 @@
   <!-- ─── Login Overlay ──────────────────────── -->
   <div id="loginOverlay" class="modal" style="display:none;">
     <div class="modal__backdrop"></div>
-    <div class="modal__content modal__content--sm">
+    <div class="modal__content modal__content--sm" role="dialog" aria-modal="true" aria-labelledby="loginModalTitleText">
       <div class="modal__header">
-        <h2 class="modal__title">Admin Sign In</h2>
+        <h2 class="modal__title" id="loginModalTitleText">Admin Sign In</h2>
       </div>
       <form id="loginForm" class="modal__form">
         <div id="loginError" class="form-message form-message--error" style="display:none;"></div>
@@ -483,7 +483,7 @@
   <!-- ─── Feedback Detail Modal ────────────── -->
   <div id="feedbackModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="feedbackBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="feedbackModalTitle">Feedback Detail</h2>
         <button class="modal__close" id="feedbackModalClose">&times;</button>
@@ -528,7 +528,7 @@
   <!-- ─── Song Modal (Create / Edit) ─────────── -->
   <div id="songModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="modalBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="modalTitle">New Song</h2>
         <button class="modal__close" id="modalClose">&times;</button>
@@ -616,7 +616,7 @@
   <!-- ─── Revision Review Modal ──────────────── -->
   <div id="revisionModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="revisionBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="revisionModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="revisionModalTitle">Revision Detail</h2>
         <button class="modal__close" id="revisionModalClose">&times;</button>
@@ -666,7 +666,7 @@
   <!-- ─── Contact Detail Modal ────────────────── -->
   <div id="contactModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="contactBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="contactModalTitle">Message Detail</h2>
         <button class="modal__close" id="contactModalClose">&times;</button>
@@ -706,9 +706,9 @@
   <!-- ─── Profile View / Self-Management Modal ── -->
   <div id="profileModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="profileBackdrop"></div>
-    <div class="modal__content modal__content--sm">
+    <div class="modal__content modal__content--sm" role="dialog" aria-modal="true" aria-labelledby="profileModalTitleText">
       <div class="modal__header">
-        <h2 class="modal__title">Profile</h2>
+        <h2 class="modal__title" id="profileModalTitleText">Profile</h2>
         <button class="modal__close" id="profileModalClose">&times;</button>
       </div>
       <div class="profile-view">
@@ -790,7 +790,7 @@
   <!-- ─── Delete Confirmation Modal ──────────── -->
   <div id="deleteModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="deleteBackdrop"></div>
-    <div class="modal__content modal__content--sm">
+    <div class="modal__content modal__content--sm" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="deleteModalTitle">Delete Item</h2>
         <button class="modal__close" id="deleteModalClose">&times;</button>
@@ -808,7 +808,7 @@
   <!-- ─── Artist / Composer Modal ────────────── -->
   <div id="personModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="personBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="personModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="personModalTitle">New Artist</h2>
         <button class="modal__close" id="personModalClose">&times;</button>
@@ -895,7 +895,7 @@
   <!-- ─── Copyright Owner Modal ──────────────── -->
   <div id="copyrightOwnerModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="coBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="coModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="coModalTitle">New Copyright Owner</h2>
         <button class="modal__close" id="coModalClose">&times;</button>
@@ -991,7 +991,7 @@
   <!-- ─── Article Modal (Create / Edit) ─────── -->
   <div id="articleModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="articleBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="articleModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="articleModalTitle">New Article</h2>
         <button class="modal__close" id="articleModalClose">&times;</button>
@@ -1061,7 +1061,7 @@
   <!-- ─── Admin User Modal (Create / Edit) ──── -->
   <div id="adminUserModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="adminUserBackdrop"></div>
-    <div class="modal__content modal__content--sm">
+    <div class="modal__content modal__content--sm" role="dialog" aria-modal="true" aria-labelledby="adminUserModalTitle">
       <div class="modal__header">
         <h2 class="modal__title" id="adminUserModalTitle">New Admin</h2>
         <button class="modal__close" id="adminUserModalClose">&times;</button>
@@ -1107,9 +1107,9 @@
        check and offline-sync.js's resolveConflict(). -->
   <div id="conflictModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="conflictBackdrop"></div>
-    <div class="modal__content">
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="conflictModalTitleText">
       <div class="modal__header">
-        <h2 class="modal__title">Resolve Sync Conflicts</h2>
+        <h2 class="modal__title" id="conflictModalTitleText">Resolve Sync Conflicts</h2>
         <button class="modal__close" id="conflictModalClose">&times;</button>
       </div>
       <p class="modal__text">

@@ -1041,6 +1041,12 @@ async function saveSongDirect(e) {
       if (OfflineSync.isOnline()) OfflineSync.processQueue();
     } catch (err) {
       showFormMessage(err.message, true);
+      if (err.staleLocalId) {
+        // The record this modal was editing finished syncing to a real id in the
+        // background — there's nothing left to save under the old local id. Bail out to
+        // the table instead of silently losing the edit (see offline-sync.js queueUpdate).
+        setTimeout(() => { closeSongModal(); loadSongs(currentPage); }, 1200);
+      }
     } finally {
       btn.disabled = false;
       btn.textContent = id ? 'Update Song' : 'Create Song';
@@ -1052,6 +1058,9 @@ async function saveSongDirect(e) {
     if (id) {
       await apiPut(`${ADMIN_API}/songs/${id}`, { ...body, expected_updated_at: currentSongLoadedUpdatedAt });
       showFormMessage('Song updated successfully!');
+      // A successful edit supersedes any conflict left over from an earlier, abandoned
+      // attempt on this same song (see offline-sync.js recordDirectConflict).
+      OfflineSync.clearConflict('song', Number(id)).catch(() => {});
     } else {
       await apiPost(`${ADMIN_API}/songs`, body);
       showFormMessage('Song created successfully!');
@@ -2688,6 +2697,9 @@ async function saveArticle(e) {
       if (OfflineSync.isOnline()) OfflineSync.processQueue();
     } catch (err) {
       showArticleMessage(err.message, true);
+      if (err.staleLocalId) {
+        setTimeout(() => { closeArticleModal(); loadArticles(currentArticlePage); }, 1200);
+      }
     } finally {
       btn.disabled = false;
       btn.textContent = id ? 'Update Article' : 'Create Article';
@@ -2699,6 +2711,7 @@ async function saveArticle(e) {
     if (id) {
       await apiPut(`${ADMIN_API}/articles/${id}`, { ...body, expected_updated_at: currentArticleLoadedUpdatedAt });
       showArticleMessage('Article updated successfully!');
+      OfflineSync.clearConflict('article', Number(id)).catch(() => {});
     } else {
       await apiPost(`${ADMIN_API}/articles`, body);
       showArticleMessage('Article created as a draft. Publish it from the table to make it public and notify visitors.');
