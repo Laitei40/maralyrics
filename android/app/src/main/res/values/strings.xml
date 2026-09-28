@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MaraLyrics Admin</string>
+
+    <!-- Mirrors public/.well-known/assetlinks.json — lets the androidbrowserhelper
+         library confirm this app is the one the site delegated trust to, for
+         features like notification delegation. Keep the fingerprint in sync
+         with whatever keystore actually signs the release build. -->
+    <string name="asset_statements">
+        [{
+          &quot;relation&quot;: [&quot;delegate_permission/common.handle_all_urls&quot;],
+          &quot;target&quot;: {
+            &quot;namespace&quot;: &quot;android_app&quot;,
+            &quot;package_name&quot;: &quot;com.maralyrics.admin&quot;,
+            &quot;sha256_cert_fingerprints&quot;: [&quot;4A:BA:ED:D9:85:AE:68:7A:6C:C3:BD:7B:DE:1C:8B:46:13:C9:D9:A9:2E:FD:56:66:D2:67:F2:1D:BB:69:BB:A6&quot;]
+          }
+        }]
+    </string>
+</resources>
