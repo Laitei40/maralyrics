@@ -17,7 +17,10 @@ const ALLOWED_ATTRS = {
 // legitimate article content once the wrapper is stripped.
 const DROP_ENTIRELY = new Set(['script', 'style', 'noscript', 'template', 'head', 'title']);
 
-const SAFE_HREF = /^(https?:|mailto:)/i;
+// Exported so any other field that stores an admin-supplied URL (artist/composer
+// social links, copyright-owner website) can be checked against the same allowlist
+// instead of accepting any scheme, including javascript:.
+export const SAFE_HREF = /^(https?:|mailto:)/i;
 
 export async function sanitizeArticleHtml(html) {
   if (!html) return '';

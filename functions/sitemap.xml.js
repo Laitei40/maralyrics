@@ -28,17 +28,19 @@ const STATIC_PAGES = [
   { path: '/terms', priority: '0.3' },
   { path: '/copyright', priority: '0.3' },
   { path: '/contact', priority: '0.4' },
+  { path: '/articles', priority: '0.5' },
 ];
 
 export async function onRequest(context) {
   try {
     const db = context.env.DB;
 
-    const [songs, artists, composers, copyrightOwners] = await Promise.all([
+    const [songs, artists, composers, copyrightOwners, articles] = await Promise.all([
       db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM songs WHERE slug IS NOT NULL AND status = 'published' ORDER BY id DESC`).all(),
       db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM artists WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
       db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM composers WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
       db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM copyright_owners WHERE slug IS NOT NULL ORDER BY id DESC`).all(),
+      db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM articles WHERE slug IS NOT NULL AND status = 'published' ORDER BY id DESC`).all(),
     ]);
 
     let urls = '';
@@ -63,6 +65,10 @@ export async function onRequest(context) {
 
     for (const owner of copyrightOwners.results || []) {
       urls += urlEntry(`https://maralyrics.com/copyright-owner/${owner.slug}`, owner.lastmod, 'monthly', '0.4');
+    }
+
+    for (const article of articles.results || []) {
+      urls += urlEntry(`https://maralyrics.com/article/${article.slug}`, article.lastmod, 'monthly', '0.6');
     }
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
