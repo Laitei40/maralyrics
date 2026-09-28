@@ -288,7 +288,9 @@ profileApp.put('/', async (c) => {
   const data = await c.req.json().catch(() => ({}));
   const { username, avatar } = data;
 
-  if (username !== undefined && !username.trim()) return c.json({ error: 'Username cannot be empty' }, 400);
+  if (username !== undefined && (typeof username !== 'string' || !username.trim())) {
+    return c.json({ error: 'Username cannot be empty' }, 400);
+  }
   if (avatar !== undefined && avatar !== null && !AVATARS.includes(avatar)) {
     return c.json({ error: 'Invalid avatar selection' }, 400);
   }

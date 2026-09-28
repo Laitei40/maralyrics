@@ -107,7 +107,18 @@ const OfflineSync = (() => {
 
     if (isLocal) {
       const createEntry = pending.find((p) => p.entity === entity && p.op === 'create' && p.localId === id);
-      if (createEntry) await OfflineDB.updatePendingChange(createEntry.queueId, { payload: body });
+      if (!createEntry) {
+        // This local id's create already synced (and its queue entry + local-id store
+        // record were removed) while this edit was in flight — e.g. the sync queue ran
+        // in the background while an edit modal opened against the old id was still open.
+        // `id` no longer refers to anything: writing a new record under it would silently
+        // orphan this edit forever (nothing would ever queue it for sync). Fail loudly
+        // instead so the caller can point the admin at the now-real, already-synced record.
+        const err = new Error('This record finished syncing while you were editing it — please reopen it to keep editing.');
+        err.staleLocalId = true;
+        throw err;
+      }
+      await OfflineDB.updatePendingChange(createEntry.queueId, { payload: body });
     } else {
       const existingUpdate = pending.find((p) => p.entity === entity && p.op === 'update' && p.remoteId === id && p.status !== 'conflict');
       if (existingUpdate) {
@@ -197,12 +208,35 @@ const OfflineSync = (() => {
   // Records a conflict hit on a direct (online) save — same 409 shape the sync queue
   // handles, just discovered immediately instead of during a later processQueue() run.
   // Routes it through the same conflict-resolution UI so there's only one code path.
+  //
+  // Replaces any existing (unresolved) queue entry for this same record instead of always
+  // adding a new one — without this, closing the conflict modal without resolving it and
+  // then successfully editing the same record again leaves the old conflict permanently
+  // stuck in the queue with a now-superseded payload, which "Keep My Edit" could later
+  // silently apply over the newer, already-saved edit.
   async function recordDirectConflict(entity, remoteId, payload, expectedUpdatedAt, current) {
-    await OfflineDB.addPendingChange({
-      entity, op: 'update', remoteId, payload, expectedUpdatedAt,
-      status: 'conflict', conflictCurrent: current,
-    });
+    const existing = pendingCache.find((p) => p.entity === entity && p.remoteId === remoteId);
+    if (existing) {
+      await OfflineDB.updatePendingChange(existing.queueId, {
+        op: 'update', payload, expectedUpdatedAt, status: 'conflict', conflictCurrent: current,
+      });
+    } else {
+      await OfflineDB.addPendingChange({
+        entity, op: 'update', remoteId, payload, expectedUpdatedAt,
+        status: 'conflict', conflictCurrent: current,
+      });
+    }
     await refreshPendingCache();
+  }
+
+  // Called after a direct save succeeds — clears any conflict entry left over from an
+  // earlier, since-abandoned edit to this same record (see recordDirectConflict above).
+  async function clearConflict(entity, remoteId) {
+    const existing = pendingCache.find((p) => p.entity === entity && p.remoteId === remoteId && p.status === 'conflict');
+    if (existing) {
+      await OfflineDB.deletePendingChange(existing.queueId);
+      await refreshPendingCache();
+    }
   }
 
   async function resolveConflict(queueId, choice) {
@@ -225,6 +259,13 @@ const OfflineSync = (() => {
         if (err && err.status === 409) {
           await OfflineDB.updatePendingChange(item.queueId, { conflictCurrent: err.body && err.body.current });
         } else {
+          // Network drop, a validation error, a 404 (the record was deleted meanwhile), etc.
+          // The only callers are inline onclick handlers with no .catch() of their own, so a
+          // bare re-throw here used to become a silent unhandled rejection — the button
+          // looked like it did nothing. Surface it instead and leave the conflict entry as-is
+          // so the admin can retry.
+          if (typeof Toast !== 'undefined') Toast.show('Could not apply your edit: ' + err.message, { type: 'error' });
+          await refreshPendingCache();
           throw err;
         }
       }
@@ -278,8 +319,8 @@ const OfflineSync = (() => {
             </div>
           </div>
           <div class="conflict-item__actions">
-            <button type="button" class="btn btn--sm btn--ghost" onclick="OfflineSync.resolveConflict(${c.queueId}, 'theirs').then(() => { OfflineSync.renderConflicts(); if (typeof loadSongs === 'function') loadSongs(currentPage); if (typeof loadArticles === 'function') loadArticles(currentArticlePage); })">Keep Live Version</button>
-            <button type="button" class="btn btn--sm btn--primary" onclick="OfflineSync.resolveConflict(${c.queueId}, 'mine').then(() => { OfflineSync.renderConflicts(); if (typeof loadSongs === 'function') loadSongs(currentPage); if (typeof loadArticles === 'function') loadArticles(currentArticlePage); })">Keep My Edit</button>
+            <button type="button" class="btn btn--sm btn--ghost" onclick="OfflineSync.resolveConflict(${c.queueId}, 'theirs').then(() => { OfflineSync.renderConflicts(); if (typeof loadSongs === 'function') loadSongs(currentPage); if (typeof loadArticles === 'function') loadArticles(currentArticlePage); }).catch(() => {})">Keep Live Version</button>
+            <button type="button" class="btn btn--sm btn--primary" onclick="OfflineSync.resolveConflict(${c.queueId}, 'mine').then(() => { OfflineSync.renderConflicts(); if (typeof loadSongs === 'function') loadSongs(currentPage); if (typeof loadArticles === 'function') loadArticles(currentArticlePage); }).catch(() => {})">Keep My Edit</button>
           </div>
         </div>
       `;
@@ -296,9 +337,18 @@ const OfflineSync = (() => {
     if (modal) modal.style.display = 'none';
   }
 
+  // Matches index.js's escapeHtml() exactly (including the apostrophe, which that file's
+  // own comment explains matters for attribute contexts) — kept in sync by hand since this
+  // module loads before index.js and can't import it. Only used in text-node positions
+  // today (renderConflicts), but a drifted copy is a latent hazard if that ever changes.
   function escapeHtml(str) {
     if (str == null) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // ─── Install prompt ──────────────────────────────
@@ -365,7 +415,7 @@ const OfflineSync = (() => {
     cacheList, cacheDetail, getCachedList, getCachedOne,
     cacheReferenceData, getCachedReferenceData,
     queueCreate, queueUpdate, isPending, hasConflict, pendingCount, conflictCount, getConflicts,
-    processQueue, resolveConflict, recordDirectConflict,
+    processQueue, resolveConflict, recordDirectConflict, clearConflict,
     updateStatusIndicator, renderConflicts, openConflictModal, closeConflictModal,
     promptInstall,
   };

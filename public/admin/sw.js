@@ -26,10 +26,15 @@ const SHELL_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // No blanket .catch() here (unlike an earlier version of this file): cache.addAll() is
+  // atomic — if any one of SHELL_ASSETS fails to fetch, swallowing that error would leave
+  // the cache completely empty while still calling skipWaiting() as if install succeeded,
+  // silently defeating offline support with no visible symptom until an admin actually
+  // needs it. Letting the rejection propagate fails the install instead, so the browser
+  // retries on the next registration attempt (matches public/sw.js's own precache step).
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then((cache) => cache.addAll(SHELL_ASSETS))
-      .catch(() => {})
       .then(() => self.skipWaiting())
   );
 });
@@ -58,7 +63,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          caches.open(CACHE_VERSION).then((cache) => cache.put(req, res.clone())).catch(() => {});
+          // Only cache a genuinely successful response — an error page (a Worker 5xx, a
+          // misconfigured route) must never become the offline fallback shell.
+          if (res && res.ok) caches.open(CACHE_VERSION).then((cache) => cache.put(req, res.clone())).catch(() => {});
           return res;
         })
         .catch(() => caches.match('./index.html'))
