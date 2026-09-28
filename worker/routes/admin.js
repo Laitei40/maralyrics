@@ -23,7 +23,7 @@ import {
 } from '../lib/permissions.js';
 import { logAudit } from '../lib/audit.js';
 import { AVATARS } from '../lib/avatars.js';
-import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
+import { sanitizeArticleHtml, isHtmlEmpty, SAFE_HREF } from '../lib/sanitizeHtml.js';
 
 const app = new Hono();
 
@@ -48,15 +48,42 @@ const DUMMY_PASSWORD_HASH = 'pbkdf2$100000$4nula02FmgoXy-aLB5wSGw$E1Lhp2PKZX5qQM
 
 // ── Auth: login is public (exempted in worker.js); /me and /change-password
 // run behind requireAuth like everything else under /api/v1/admin/*. ──
+// Brute-force protection: lock a username out for LOGIN_LOCKOUT_WINDOW_MINUTES after
+// LOGIN_LOCKOUT_THRESHOLD failed attempts within that same window. Keyed by the
+// submitted username (not IP — D1 has no fast per-IP counter here, and the username is
+// already what an attacker is trying to guess the password for) so this also caps how
+// many password guesses a single account can be hit with, regardless of source.
+const LOGIN_LOCKOUT_WINDOW_MINUTES = 15;
+const LOGIN_LOCKOUT_THRESHOLD = 5;
+
 app.post('/auth/login', async (c) => {
   const { username, password } = await c.req.json().catch(() => ({}));
   if (!username || !password) return c.json({ error: 'Username and password are required' }, 400);
 
-  const user = await c.env.DB.prepare('SELECT * FROM admin_users WHERE username = ?').bind(username).first();
+  const db = c.env.DB;
+
+  // Prune this username's expired attempts before counting — keeps the table small
+  // without a separate cleanup job, and a legitimate user's lockout clears itself over
+  // time even without ever successfully logging back in.
+  await db
+    .prepare(`DELETE FROM login_attempts WHERE username = ? AND created_at < datetime('now', ?)`)
+    .bind(username, `-${LOGIN_LOCKOUT_WINDOW_MINUTES} minutes`)
+    .run();
+
+  const { count } = await db.prepare('SELECT COUNT(*) AS count FROM login_attempts WHERE username = ?').bind(username).first();
+  if (count >= LOGIN_LOCKOUT_THRESHOLD) {
+    return c.json({ error: `Too many failed attempts. Try again in ${LOGIN_LOCKOUT_WINDOW_MINUTES} minutes.` }, 429);
+  }
+
+  const user = await db.prepare('SELECT * FROM admin_users WHERE username = ?').bind(username).first();
   const passwordOk = await verifyPassword(password, user ? user.password_hash : DUMMY_PASSWORD_HASH);
   if (!user || !passwordOk) {
+    await db.prepare('INSERT INTO login_attempts (username) VALUES (?)').bind(username).run();
     return c.json({ error: 'Invalid username or password' }, 401);
   }
+
+  // A successful login clears this account's slate, same as any normal lockout scheme.
+  await db.prepare('DELETE FROM login_attempts WHERE username = ?').bind(username).run();
 
   const token = await signJWT({ sub: user.id, username: user.username, role: user.role }, c.env.JWT_SECRET);
   return c.json({ token, id: user.id, username: user.username, role: user.role });
@@ -314,6 +341,40 @@ profileApp.post('/delete', async (c) => {
 
 app.route('/profile', profileApp);
 
+// A data: URI is legitimate here (the dashboard's image-upload crop tool produces one),
+// unlike an <a href> link, which only ever needs to be a real web/mail address — so image
+// URLs get their own, slightly wider allowlist instead of reusing SAFE_HREF.
+const SAFE_IMAGE_SRC = /^(https?:|data:image\/)/i;
+
+// Rejects (rather than silently stripping) an unsafe scheme like javascript: in a
+// URL field an admin submits — these end up rendered as a public-facing <a href> or
+// <img src>, so a bad value here isn't just malformed data, it's stored XSS waiting
+// for a visitor (or another admin, since the JWT lives in the same origin) to click it.
+function isSafeLinkUrl(url) {
+  return typeof url === 'string' && SAFE_HREF.test(url.trim());
+}
+function isSafeImageUrl(url) {
+  return typeof url === 'string' && SAFE_IMAGE_SRC.test(url.trim());
+}
+
+// social_links is stored as a JSON-encoded array of URL strings (built client-side by
+// the dashboard's "Add Social Link" rows). Returns { ok: true, value } with the array
+// re-serialized (trimmed, empties dropped), or { ok: false } if anything in it isn't a
+// safe http(s)/mailto URL.
+function validateSocialLinks(raw) {
+  if (!raw) return { ok: true, value: null };
+  let links;
+  try {
+    links = JSON.parse(raw);
+  } catch {
+    return { ok: false };
+  }
+  if (!Array.isArray(links)) return { ok: false };
+  const cleaned = links.map((u) => String(u || '').trim()).filter(Boolean);
+  if (!cleaned.every(isSafeLinkUrl)) return { ok: false };
+  return { ok: true, value: cleaned.length ? JSON.stringify(cleaned) : null };
+}
+
 // ── Generic CRUD for simple "person" resources: artists, composers ──
 // Read is open to any authenticated admin (all 6 roles); write (create/edit/delete)
 // is restricted to Manager + Admin — the "shared reference data" owners.
@@ -336,12 +397,15 @@ function personCrud(table) {
     const data = await c.req.json().catch(() => ({}));
     const { name, bio, image_url, social_links } = data;
     if (!name) return c.json({ error: 'name is required' }, 400);
+    if (image_url && !isSafeImageUrl(image_url)) return c.json({ error: 'image_url must be an http(s) or data:image URL' }, 400);
+    const links = validateSocialLinks(social_links);
+    if (!links.ok) return c.json({ error: 'social_links must be http(s) or mailto URLs' }, 400);
     const slug = data.slug?.trim() || slugify(name);
 
     try {
       const result = await c.env.DB
         .prepare(`INSERT INTO ${table} (name, slug, bio, image_url, social_links) VALUES (?, ?, ?, ?, ?)`)
-        .bind(name, slug, bio || null, image_url || null, social_links || null)
+        .bind(name, slug, bio || null, image_url || null, links.value)
         .run();
       const row = await c.env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(result.meta.last_row_id).first();
       await logAudit(c.env.DB, c.get('admin'), `${targetType}.create`, targetType, result.meta.last_row_id, name);
@@ -356,12 +420,15 @@ function personCrud(table) {
     const data = await c.req.json().catch(() => ({}));
     const { name, bio, image_url, social_links } = data;
     if (!name) return c.json({ error: 'name is required' }, 400);
+    if (image_url && !isSafeImageUrl(image_url)) return c.json({ error: 'image_url must be an http(s) or data:image URL' }, 400);
+    const links = validateSocialLinks(social_links);
+    if (!links.ok) return c.json({ error: 'social_links must be http(s) or mailto URLs' }, 400);
     const slug = data.slug?.trim() || slugify(name);
 
     try {
       const result = await c.env.DB
         .prepare(`UPDATE ${table} SET name = ?, slug = ?, bio = ?, image_url = ?, social_links = ? WHERE id = ?`)
-        .bind(name, slug, bio || null, image_url || null, social_links || null, id)
+        .bind(name, slug, bio || null, image_url || null, links.value, id)
         .run();
       if (result.meta.changes === 0) return c.json({ error: 'Not found' }, 404);
       const row = await c.env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(id).first();
@@ -408,6 +475,7 @@ coApp.get('/:id', async (c) => {
 coApp.post('/', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {
   const data = await c.req.json().catch(() => ({}));
   if (!data.name) return c.json({ error: 'name is required' }, 400);
+  if (data.website && !isSafeLinkUrl(data.website)) return c.json({ error: 'website must be an http(s) or mailto URL' }, 400);
   const slug = data.slug?.trim() || slugify(data.name);
   const values = CO_FIELDS.map((f) => data[f] || null);
 
@@ -431,6 +499,7 @@ coApp.put('/:id', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {
   const id = c.req.param('id');
   const data = await c.req.json().catch(() => ({}));
   if (!data.name) return c.json({ error: 'name is required' }, 400);
+  if (data.website && !isSafeLinkUrl(data.website)) return c.json({ error: 'website must be an http(s) or mailto URL' }, 400);
   const slug = data.slug?.trim() || slugify(data.name);
   const values = CO_FIELDS.map((f) => data[f] || null);
 

@@ -146,6 +146,15 @@ const Utils = {
     return /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
   },
 
+  /** Only http(s)/mailto is safe to put in an href — anything else (javascript:, data:,
+   *  vbscript:, ...) executes on click instead of navigating. Mirrors the server-side
+   *  SAFE_HREF allowlist (worker/lib/sanitizeHtml.js) that already gates article links;
+   *  applied here too as defense in depth for admin-supplied social/website links, which
+   *  should already be rejected at write time but shouldn't be trusted blindly at render time. */
+  isSafeUrl(url) {
+    return /^(https?:|mailto:)/i.test(String(url || '').trim());
+  },
+
   /** Client-side sort matching the /songs API's `sort` values — used for lists (like
    *  favorites) that aren't fetched through that paginated endpoint. */
   sortSongs(songs, sortKey) {
@@ -1638,7 +1647,9 @@ const ProfilePage = {
       try {
         const links = JSON.parse(data.social_links);
         if (Array.isArray(links) && links.length) {
-          socialEl.innerHTML = links.map(url => {
+          // The worker already rejects a non-http(s)/mailto link at write time — this
+          // filter is defense in depth against old rows saved before that check existed.
+          socialEl.innerHTML = links.filter(Utils.isSafeUrl).map(url => {
             const p = Utils.detectSocialPlatform(url);
             return `<a href="${Utils.escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="social-icon" title="${Utils.escapeHtml(p.name)}">${p.icon}</a>`;
           }).join('');
@@ -1671,10 +1682,20 @@ const ProfilePage = {
   },
 
   updateMeta(data) {
-    const typeLabel = I18n.t(`${this.type}.role`);
-    const title = `${data.name} — ${typeLabel} — MaraLyrics`;
+    // Kept byte-identical to the server-side title/description templates in
+    // functions/artist/[[catchall]].js and functions/composer/[[catchall]].js — a
+    // crawler/social scraper sees the SSR version before this ever runs, so a page
+    // whose meta tags change wording once JS loads looks inconsistent to both.
+    // Deliberately English/SEO-fixed rather than i18n-driven, same as Song/Article's.
     const songCount = data.songs?.length || 0;
-    const desc = `${data.name} — ${typeLabel} on MaraLyrics. ${songCount} song${songCount !== 1 ? 's' : ''}.${data.bio ? ' ' + data.bio.substring(0, 120) : ''}`;
+    const countText = songCount === 1 ? '1 song' : `${songCount} songs`;
+    const bio = data.bio ? ` ${data.bio}` : '';
+    const title = this.type === 'artist'
+      ? `${data.name} — Mara Artist Lyrics & Songs | MaraLyrics`
+      : `${data.name} — Mara Composer | MaraLyrics`;
+    const desc = this.type === 'artist'
+      ? `Explore ${countText} by ${data.name} on MaraLyrics.${bio}`.trim().slice(0, 300)
+      : `Explore ${countText} composed by ${data.name} on MaraLyrics.${bio}`.trim().slice(0, 300);
 
     document.title = title;
 
@@ -1704,12 +1725,25 @@ const ProfilePage = {
 
     const jsonLd = document.getElementById('jsonLd');
     if (jsonLd) {
+      // Matches the SSR schema's fields exactly (image/sameAs, not description) —
+      // see functions/artist|composer/[[catchall]].js's buildArtistSeo/buildComposerSeo.
+      let sameAs;
+      try {
+        const links = JSON.parse(data.social_links || 'null');
+        // Same filter as the rendered social-icon links above — a pre-existing row saved
+        // before the server-side URL-scheme check (see worker/routes/admin.js) shouldn't
+        // surface an unsafe URL here either, even though JSON-LD isn't itself clickable.
+        const safe = Array.isArray(links) ? links.filter(Utils.isSafeUrl) : [];
+        if (safe.length) sameAs = safe;
+      } catch { /* malformed social_links — omit sameAs, same as the SSR side */ }
+
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': this.type === 'artist' ? 'MusicGroup' : 'Person',
         name: data.name,
-        description: data.bio || '',
         url: window.location.href,
+        ...(data.image_url ? { image: data.image_url } : {}),
+        ...(sameAs ? { sameAs } : {}),
       });
     }
   },
@@ -1825,7 +1859,14 @@ const CopyrightOwnerPage = {
         visibleFields.forEach(f => {
           let val = Utils.escapeHtml(f.value);
           if (f.isEmail) val = `<a href="mailto:${val}" class="meta-link">${val}</a>`;
-          if (f.isUrl) val = `<a href="${Utils.escapeHtml(Utils.normalizeUrl(f.value))}" target="_blank" rel="noopener noreferrer" class="meta-link">${val}</a>`;
+          if (f.isUrl) {
+            const normalized = Utils.normalizeUrl(f.value);
+            // Same defense-in-depth as the social links above — render unsafe/malformed
+            // values as plain text instead of a clickable link.
+            if (Utils.isSafeUrl(normalized)) {
+              val = `<a href="${Utils.escapeHtml(normalized)}" target="_blank" rel="noopener noreferrer" class="meta-link">${val}</a>`;
+            }
+          }
           html += `<div class="copyright-info__row"><span class="copyright-info__label">${f.label}</span><span class="copyright-info__value">${val}</span></div>`;
         });
         if (owner.notes) {
@@ -1862,11 +1903,14 @@ const CopyrightOwnerPage = {
   },
 
   updateMeta(data) {
+    // Kept byte-identical to functions/copyright-owner/[[catchall]].js's buildOwnerSeo —
+    // see the comment on ProfilePage.updateMeta above for why.
     const owner = data.owner || data;
-    const coRole = I18n.t('copyright_owner.role');
-    const title = `${owner.name} — ${coRole} — MaraLyrics`;
     const songCount = data.songs?.length || 0;
-    const desc = `${owner.name} — ${coRole} on MaraLyrics. ${songCount} claimed song${songCount !== 1 ? 's' : ''}.`;
+    const countText = songCount === 1 ? '1 song' : `${songCount} songs`;
+    const org = owner.organization ? ` (${owner.organization})` : '';
+    const title = `${owner.name} — Copyright Owner | MaraLyrics`;
+    const desc = `${countText} claimed by ${owner.name}${org} on MaraLyrics.`.trim().slice(0, 300);
 
     document.title = title;
     const metaDesc = document.getElementById('metaDesc');
@@ -1891,9 +1935,10 @@ const CopyrightOwnerPage = {
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'Organization',
-        name: owner.name,
-        description: `${I18n.t('copyright_owner.role')}${owner.organization ? ' — ' + owner.organization : ''}`,
+        name: owner.organization || owner.name,
         url: window.location.href,
+        ...(owner.website && Utils.isSafeUrl(owner.website) ? { sameAs: [owner.website] } : {}),
+        ...(owner.email ? { email: owner.email } : {}),
       });
     }
   },

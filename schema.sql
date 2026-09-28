@@ -123,6 +123,18 @@ CREATE TABLE IF NOT EXISTS admin_users (
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Failed admin login attempts, keyed by the submitted username — checked before the
+-- password hash comparison in POST /auth/login to lock an account out after too many
+-- attempts in a short window (brute-force protection). Rows are pruned opportunistically
+-- by the same query that checks them, so this never needs its own cleanup job.
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    username   TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_attempts_username_created ON login_attempts(username, created_at);
+
 -- Any admin can follow/unfollow any other admin's profile.
 CREATE TABLE IF NOT EXISTS admin_follows (
     follower_id INTEGER NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,

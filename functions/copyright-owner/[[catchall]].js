@@ -1,11 +1,4 @@
-function escapeHtml(value = '') {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+import { injectSeoMeta, seoResponse, notFoundResponse, isSafeUrl } from '../_shared/seo.js';
 
 function buildOwnerSeo(owner, songCount) {
   const title = `${owner.name} — Copyright Owner | MaraLyrics`;
@@ -19,7 +12,7 @@ function buildOwnerSeo(owner, songCount) {
     '@type': 'Organization',
     name: owner.organization || owner.name,
     url,
-    ...(owner.website ? { sameAs: [owner.website] } : {}),
+    ...(owner.website && isSafeUrl(owner.website) ? { sameAs: [owner.website] } : {}),
     ...(owner.email ? { email: owner.email } : {}),
   };
 
@@ -50,26 +43,9 @@ export async function onRequest(context) {
   if (!slug) return assetResponse;
 
   const result = await fetchOwner(context.env.DB, slug);
-  if (!result) return assetResponse;
+  if (!result) return notFoundResponse(assetResponse);
 
   const html = await assetResponse.text();
-  const { title, description, url, schema } = buildOwnerSeo(result.owner, result.songCount);
-
-  const injected = html
-    .replace(/<title id="pageTitle">[\s\S]*?<\/title>/, `<title id="pageTitle">${escapeHtml(title)}</title>`)
-    .replace(/<meta name="description" id="metaDesc" content="[^"]*"\s*\/>/, `<meta name="description" id="metaDesc" content="${escapeHtml(description)}" />`)
-    .replace(/<meta property="og:title" id="ogTitle" content="[^"]*"\s*\/>/, `<meta property="og:title" id="ogTitle" content="${escapeHtml(title)}" />`)
-    .replace(/<meta property="og:description" id="ogDesc" content="[^"]*"\s*\/>/, `<meta property="og:description" id="ogDesc" content="${escapeHtml(description)}" />`)
-    .replace(/<meta property="og:url" id="ogUrl" content="[^"]*"\s*\/>/, `<meta property="og:url" id="ogUrl" content="${escapeHtml(url)}" />`)
-    .replace(/<meta name="twitter:title" id="twTitle" content="[^"]*"\s*\/>/, `<meta name="twitter:title" id="twTitle" content="${escapeHtml(title)}" />`)
-    .replace(/<meta name="twitter:description" id="twDesc" content="[^"]*"\s*\/>/, `<meta name="twitter:description" id="twDesc" content="${escapeHtml(description)}" />`)
-    .replace(/<link rel="canonical" id="canonicalUrl" href="[^"]*"\s*\/>/, `<link rel="canonical" id="canonicalUrl" href="${escapeHtml(url)}" />`)
-    .replace(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="jsonLd">\n${JSON.stringify(schema, null, 2).replace(/</g, '\\u003c')}\n</script>`);
-
-  return new Response(injected, {
-    headers: {
-      'Content-Type': 'text/html; charset=UTF-8',
-      'Cache-Control': 'public, max-age=300',
-    },
-  });
+  const seo = buildOwnerSeo(result.owner, result.songCount);
+  return seoResponse(injectSeoMeta(html, seo));
 }
