@@ -67,13 +67,17 @@ jobs:
       - name: Build APK (release if signing secrets are set, debug otherwise)
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+            # build.gradle's signingConfigs.release resolves RELEASE_STORE_FILE
+            # with file(...), which is relative to the *app* module's project
+            # dir (android/app/), not this step's android/ working-directory —
+            # so the keystore has to land in app/, not here.
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/release.keystore
             ./gradlew assembleRelease \
               -PRELEASE_STORE_FILE=release.keystore \
               -PRELEASE_STORE_PASSWORD="$ANDROID_KEYSTORE_PASSWORD" \
               -PRELEASE_KEY_ALIAS="$ANDROID_KEY_ALIAS" \
               -PRELEASE_KEY_PASSWORD="$ANDROID_KEY_PASSWORD"
-            rm -f release.keystore
+            rm -f app/release.keystore
           else
             echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set — building a debug-signed APK instead of a release one. See the comment at the top of this workflow file for the one-time setup."
             ./gradlew assembleDebug
