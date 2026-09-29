@@ -72,7 +72,7 @@ async function handleLogin(e) {
     if (!res.ok) throw new Error(data.error || 'Login failed');
 
     setAdminToken(data.token);
-    setAdminInfo({ id: data.id, username: data.username, role: data.role });
+    setAdminInfo({ id: data.id, username: data.username, role: data.role, avatar: data.avatar });
     hideLoginOverlay();
     document.getElementById('loginForm').reset();
     initDashboard();
@@ -165,8 +165,16 @@ const ROLE_TABS = {
 
 function applyRoleVisibility() {
   const info = getAdminInfo();
-  const label = document.getElementById('currentAdminLabel');
-  if (label) label.textContent = info ? `${info.username} (${roleLabel(info.role)})` : 'Admin';
+  const avatarEl = document.getElementById('headerUserAvatar');
+  const nameEl = document.getElementById('headerUserName');
+  const badgeEl = document.getElementById('headerUserRoleBadge');
+  if (avatarEl && nameEl && badgeEl) {
+    avatarEl.textContent = info ? avatarHtml(info.avatar, info.username) : '👤';
+    nameEl.textContent = info ? info.username : 'Admin';
+    badgeEl.textContent = info ? roleLabel(info.role) : '';
+    badgeEl.className = info ? roleBadgeClass(info.role) : 'role-badge';
+    badgeEl.style.display = info ? '' : 'none';
+  }
 
   let firstVisibleTab = null;
   document.querySelectorAll('.admin__tab').forEach((tab) => {
@@ -205,8 +213,26 @@ function roleLabel(role) {
     reviewer: 'Reviewer',
     editor: 'Editor',
     manager: 'Manager',
-    super_admin: 'Admin (Super Admin)',
+    super_admin: 'Super Admin',
   }[role] || role;
+}
+
+// Per-role badge color, escalating from neutral (viewer) to the gradient reserved
+// for super_admin — keeps "who can do what" scannable at a glance anywhere a role
+// is shown (header, admins table, profile card, profile directory).
+const ROLE_BADGE_CLASS = {
+  viewer: 'role-badge--viewer',
+  translator: 'role-badge--translator',
+  reviewer: 'role-badge--reviewer',
+  editor: 'role-badge--editor',
+  manager: 'role-badge--manager',
+  super_admin: 'role-badge--super_admin',
+};
+function roleBadgeClass(role) {
+  return 'role-badge ' + (ROLE_BADGE_CLASS[role] || '');
+}
+function roleBadgeHtml(role, extraClass = '') {
+  return `<span class="${roleBadgeClass(role)}${extraClass ? ' ' + extraClass : ''}">${escapeHtml(roleLabel(role))}</span>`;
 }
 
 // State
@@ -1778,7 +1804,7 @@ async function loadAdminUsers() {
 function renderAdminUsersTable() {
   const tbody = document.getElementById('adminUsersTableBody');
   const query = document.getElementById('adminUserSearch')?.value || '';
-  // Search by the role label actually shown in the table (e.g. "Admin (Super Admin)"),
+  // Search by the role label actually shown in the table (e.g. "Super Admin"),
   // not just the raw role slug (e.g. "super_admin"), so what the user sees is what matches.
   const q = normalizeForSearch(query).trim();
   const filtered = !q ? allAdminUsers : allAdminUsers.filter(u =>
@@ -1788,7 +1814,7 @@ function renderAdminUsersTable() {
     return;
   }
   const me = getAdminInfo();
-  // A Manager may not touch an existing Admin (Super Admin) account at all — same rule the
+  // A Manager may not touch an existing Super Admin account at all — same rule the
   // backend enforces on PUT/DELETE /admin-users/:id — so hide those rows' actions client-side too.
   const canGrantSuperAdmin = hasRole('super_admin');
   tbody.innerHTML = filtered.map(u => {
@@ -1797,8 +1823,8 @@ function renderAdminUsersTable() {
     const locked = (u.role === 'super_admin' && !canGrantSuperAdmin) || (me && me.id === u.id);
     return `
     <tr data-id="${u.id}">
-      <td><div class="admin-table__title">${escapeHtml(u.username)}${me && me.id === u.id ? ' <span class="admin-badge" style="font-size:10px;">You</span>' : ''}</div></td>
-      <td>${escapeHtml(roleLabel(u.role))}</td>
+      <td><div class="admin-table__title">${escapeHtml(u.username)}${me && me.id === u.id ? ' <span class="role-badge role-badge--you">You</span>' : ''}</div></td>
+      <td>${roleBadgeHtml(u.role)}</td>
       <td>${formatDate(u.created_at)}</td>
       <td>
         <div class="admin-table__actions">
@@ -1963,6 +1989,10 @@ function initDashboard() {
   document.getElementById('btnChangePassword').addEventListener('click', () => { closeSettingsMenu(); changePassword(); });
   document.getElementById('btnMyProfile').addEventListener('click', () => {
     closeSettingsMenu();
+    const info = getAdminInfo();
+    if (info) openProfileModal(info.id);
+  });
+  document.getElementById('headerUser').addEventListener('click', () => {
     const info = getAdminInfo();
     if (info) openProfileModal(info.id);
   });
@@ -3161,6 +3191,7 @@ async function openProfileModal(id) {
     document.getElementById('profileAvatar').textContent = avatarHtml(profile.avatar, profile.username);
     document.getElementById('profileUsername').textContent = profile.username;
     document.getElementById('profileRoleBadge').textContent = roleLabel(profile.role);
+    document.getElementById('profileRoleBadge').className = roleBadgeClass(profile.role);
     document.getElementById('profileJoined').textContent = 'Joined ' + formatDate(profile.created_at);
     document.getElementById('profileFollowers').textContent = profile.follower_count;
     document.getElementById('profileFollowing').textContent = profile.following_count;
@@ -3232,7 +3263,7 @@ function renderProfileDirectory() {
     <button type="button" class="profile-directory__item${u.id === currentProfileId ? ' profile-directory__item--active' : ''}" onclick="openProfileModal(${u.id})">
       <span class="profile-avatar profile-avatar--sm">${avatarHtml(u.avatar, u.username)}</span>
       <span class="profile-directory__name">${escapeHtml(u.username)}</span>
-      <span class="profile-directory__role">${escapeHtml(roleLabel(u.role))}</span>
+      ${roleBadgeHtml(u.role, 'role-badge--tiny')}
     </button>
   `).join('');
 }
@@ -3274,9 +3305,9 @@ async function saveProfileChanges() {
   try {
     const updated = await apiPut(`${ADMIN_API}/profile`, { username, avatar: selectedAvatar });
     showProfileMessage('Profile updated successfully!');
-    // Keep the cached session info (header label, role checks) in sync with the new username.
+    // Keep the cached session info (header chip, role checks) in sync with the new username/avatar.
     const info = getAdminInfo();
-    if (info) setAdminInfo({ ...info, username: updated.username });
+    if (info) setAdminInfo({ ...info, username: updated.username, avatar: updated.avatar });
     applyRoleVisibility();
     document.getElementById('profileUsername').textContent = updated.username;
     document.getElementById('profileAvatar').textContent = avatarHtml(updated.avatar, updated.username);

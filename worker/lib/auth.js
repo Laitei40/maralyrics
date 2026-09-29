@@ -103,7 +103,7 @@ export async function verifyPassword(password, stored) {
 }
 
 // ─── Middleware ──────────────────────────────────────
-/** Requires `Authorization: Bearer <jwt>`; on success, `c.get('admin')` is `{ sub, username, role, iat, exp }`. */
+/** Requires `Authorization: Bearer <jwt>`; on success, `c.get('admin')` is `{ sub, username, role, avatar, iat, exp }`. */
 export async function requireAuth(c, next) {
   if (!c.env.JWT_SECRET) {
     return c.json({ error: 'Admin API is not configured (JWT_SECRET missing).' }, 500);
@@ -123,12 +123,12 @@ export async function requireAuth(c, next) {
   // Re-check against the DB (indexed PK lookup, cheap) so a deleted or role-changed account
   // can't keep acting on a still-valid JWT until it naturally expires (up to 12h) — otherwise
   // e.g. self-deleting your own account wouldn't actually revoke access until token expiry.
-  const user = await c.env.DB.prepare('SELECT username, role FROM admin_users WHERE id = ?').bind(payload.sub).first();
+  const user = await c.env.DB.prepare('SELECT username, role, avatar FROM admin_users WHERE id = ?').bind(payload.sub).first();
   if (!user) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  c.set('admin', { ...payload, username: user.username, role: user.role });
+  c.set('admin', { ...payload, username: user.username, role: user.role, avatar: user.avatar });
   await next();
 }
 

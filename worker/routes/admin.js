@@ -86,12 +86,12 @@ app.post('/auth/login', async (c) => {
   await db.prepare('DELETE FROM login_attempts WHERE username = ?').bind(username).run();
 
   const token = await signJWT({ sub: user.id, username: user.username, role: user.role }, c.env.JWT_SECRET);
-  return c.json({ token, id: user.id, username: user.username, role: user.role });
+  return c.json({ token, id: user.id, username: user.username, role: user.role, avatar: user.avatar });
 });
 
 app.get('/auth/me', (c) => {
   const admin = c.get('admin');
-  return c.json({ id: admin.sub, username: admin.username, role: admin.role });
+  return c.json({ id: admin.sub, username: admin.username, role: admin.role, avatar: admin.avatar });
 });
 
 app.post('/auth/change-password', async (c) => {
