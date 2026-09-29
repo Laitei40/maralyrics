@@ -65,7 +65,11 @@
         <button type="button" id="btnViewConflicts" class="btn btn--sm btn--danger-text" style="display:none;" title="Resolve sync conflicts">⚠️ Conflicts</button>
         <button type="button" id="btnInstallApp" class="btn btn--sm btn--ghost" style="display:none;" title="Install this dashboard as an app">⬇️ Install App</button>
         <a href="https://maralyrics.com" class="header__nav-link">View Site</a>
-        <span class="admin-badge" id="currentAdminLabel">Admin</span>
+        <button type="button" class="header__user" id="headerUser" title="View my profile">
+          <span class="profile-avatar profile-avatar--sm" id="headerUserAvatar">👤</span>
+          <span class="header__user-name" id="headerUserName">Admin</span>
+          <span class="role-badge" id="headerUserRoleBadge" style="display:none;"></span>
+        </button>
         <div class="settings-menu" id="settingsMenu">
           <button type="button" id="btnSettingsToggle" class="header__nav-link settings-menu__trigger">⚙️ Settings</button>
           <div class="settings-menu__dropdown" id="settingsDropdown" style="display:none;">
@@ -716,7 +720,7 @@
           <div class="profile-avatar profile-avatar--lg" id="profileAvatar">👤</div>
           <div class="profile-view__info">
             <div class="profile-view__username" id="profileUsername">—</div>
-            <span class="admin-badge" id="profileRoleBadge">Role</span>
+            <span class="role-badge" id="profileRoleBadge">Role</span>
             <div class="profile-view__joined" id="profileJoined">—</div>
           </div>
         </div>
@@ -1089,7 +1093,7 @@
             <option value="reviewer">Reviewer</option>
             <option value="editor">Editor</option>
             <option value="manager">Manager</option>
-            <option value="super_admin">Admin (Super Admin)</option>
+            <option value="super_admin">Super Admin</option>
           </select>
         </div>
 
