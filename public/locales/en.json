@@ -60,6 +60,7 @@
     "enabled_toast": "Notifications enabled.",
     "empty": "Nothing new yet.",
     "new_song_title": "New song added",
+    "and_more": "and {count} more",
     "new_article_title": "New article published",
     "event_today_title": "Event today"
   },

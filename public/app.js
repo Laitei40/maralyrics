@@ -2906,6 +2906,17 @@ const NotificationsFeature = (() => {
     fireBrowserNotification(item);
   }
 
+  // All credited artists, up to 5 — "A, B, C and 2 more" beyond that. Falls back to the legacy
+  // single artist_name/artist field when the API didn't send the `artists` list.
+  const MAX_NOTIF_ARTISTS = 5;
+  function artistsLabel(song) {
+    const names = (Array.isArray(song.artists) ? song.artists.map((a) => a && a.name).filter(Boolean) : []);
+    if (!names.length) return song.artist_name || song.artist || '';
+    const shown = names.slice(0, MAX_NOTIF_ARTISTS).join(', ');
+    const extra = names.length - MAX_NOTIF_ARTISTS;
+    return extra > 0 ? shown + ' ' + I18n.t('notifications.and_more', { count: extra }) : shown;
+  }
+
   async function checkNewSongs() {
     try {
       const data = await API.getSongs(1, null, 'created_desc');
@@ -2924,7 +2935,7 @@ const NotificationsFeature = (() => {
           id: 'song_' + song.slug,
           type: 'song',
           title: I18n.t('notifications.new_song_title'),
-          body: song.title + (song.artist_name || song.artist ? ' — ' + (song.artist_name || song.artist) : ''),
+          body: song.title + (artistsLabel(song) ? ' — ' + artistsLabel(song) : ''),
           url: '/song/' + song.slug,
           read: false,
           ts: Date.now(),
