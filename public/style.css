@@ -1207,6 +1207,40 @@ body::before {
   fill: currentColor;
 }
 
+/* ─── Pin Toggle (sits left of the favorite button; shown only for favorited songs) ────── */
+.song-card__pin {
+  position: absolute;
+  top: var(--space-sm);
+  right: calc(var(--space-sm) + 34px);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.song-card__pin[hidden], .song-page__pin[hidden] { display: none; }
+.song-card__pin:hover,
+.song-card__pin.active {
+  color: var(--accent-light, #a78bfa);
+  border-color: rgba(139, 92, 246, 0.45);
+  background: rgba(139, 92, 246, 0.14);
+}
+.song-card__pin.active svg { fill: currentColor; }
+.song-page__pin.active { color: var(--accent-light, #a78bfa); border-color: rgba(139, 92, 246, 0.45); }
+.song-page__pin.active svg { fill: currentColor; }
+.song-grid.list .song-card__pin {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 /* ─── List Display Mode ────────────────────────────────────────
    Applied by DisplayMode via a `.list` modifier on `.song-grid` — the same card
    markup lays itself out as a compact row instead of a grid tile. */

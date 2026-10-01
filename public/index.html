@@ -227,6 +227,15 @@
       <div id="searchSuggestions" class="search-suggestions" style="display:none;"></div>
     </section>
 
+    <!-- Pinned songs: up to 7 favorites the visitor pinned (cookie). Hidden until at least one is pinned. -->
+    <section id="pinnedSection" class="fade-in" style="display:none;">
+      <h2 class="section-title" id="pinned">
+        <span class="section-title__icon">📌</span>
+        <span data-i18n="home.pinned_songs">Pinned Songs</span>
+      </h2>
+      <div id="pinnedGrid" class="song-grid"></div>
+    </section>
+
     <!-- Song of the Day (hidden until loaded — a new site with zero songs stays hidden) -->
     <section id="songOfTheDaySection" class="fade-in" style="display:none;">
       <h2 class="section-title">
