@@ -90,12 +90,12 @@ app.get('/stats', async (c) => {
 
 app.get('/contributors', async (c) => {
   const cache = caches.default;
-  const cacheKey = new Request('https://api.maralyrics.com/api/v1/contributors?v=2', c.req.raw);
+  const cacheKey = new Request('https://api.maralyrics.com/api/v1/contributors?v=3', c.req.raw);
 
   const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
-  const ghRes = await fetch('https://api.github.com/repos/Laitei40/maralyrics/contributors', {
+  const ghRes = await fetch('https://api.github.com/repos/laiteichozah/maralyrics/contributors', {
     headers: {
       'User-Agent': 'maralyrics-worker',
       Accept: 'application/vnd.github+json',
