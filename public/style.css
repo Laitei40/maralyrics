@@ -2672,16 +2672,6 @@ body::before {
 .role-mark svg { width: 62%; height: 62%; fill: currentColor; display: block; }
 .role-mark--manager { background: #f59e0b; }
 .role-mark--super_admin { background: linear-gradient(135deg, #1d9bf0, #0a6fd6); }
-.team-role {
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  background: #6366f1;
-  padding: 1px 8px;
-  border-radius: var(--radius-full);
-}
-.team-role--manager { background: #f59e0b; color: #3a2405; }
-.team-role--super_admin { background: linear-gradient(135deg, #1d9bf0, #0a6fd6); }
 
 .contribute-cta {
   margin-top: var(--space-lg);
