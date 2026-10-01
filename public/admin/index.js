@@ -192,13 +192,9 @@ function applyRoleVisibility() {
   const info = getAdminInfo();
   const avatarEl = document.getElementById('headerUserAvatar');
   const nameEl = document.getElementById('headerUserName');
-  const badgeEl = document.getElementById('headerUserRoleBadge');
-  if (avatarEl && nameEl && badgeEl) {
+  if (avatarEl && nameEl) {
     avatarEl.innerHTML = avatarMarkupFor(info || {});
     nameEl.textContent = info ? info.username : 'Admin';
-    badgeEl.textContent = info ? roleLabel(info.role) : '';
-    badgeEl.className = info ? roleBadgeClass(info.role) : 'role-badge';
-    badgeEl.style.display = info ? '' : 'none';
   }
 
   let firstVisibleTab = null;
@@ -3292,8 +3288,6 @@ async function openProfileModal(id) {
     const profile = await apiGet(`${ADMIN_API}/admin-users/${id}/profile`);
     document.getElementById('profileAvatar').innerHTML = avatarMarkupFor(profile, 'lg');
     document.getElementById('profileUsername').textContent = profile.username;
-    document.getElementById('profileRoleBadge').textContent = roleLabel(profile.role);
-    document.getElementById('profileRoleBadge').className = roleBadgeClass(profile.role);
     document.getElementById('profileJoined').textContent = 'Joined ' + formatDate(profile.created_at);
     document.getElementById('profileFollowers').textContent = profile.follower_count;
     document.getElementById('profileFollowing').textContent = profile.following_count;
@@ -3365,7 +3359,6 @@ function renderProfileDirectory() {
     <button type="button" class="profile-directory__item${u.id === currentProfileId ? ' profile-directory__item--active' : ''}" onclick="openProfileModal(${u.id})">
       ${avatarMarkupFor(u)}
       <span class="profile-directory__name">${escapeHtml(u.username)}</span>
-      ${roleBadgeHtml(u.role, 'role-badge--tiny')}
     </button>
   `).join('');
 }
