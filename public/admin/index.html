@@ -66,7 +66,7 @@
         <button type="button" id="btnInstallApp" class="btn btn--sm btn--ghost" style="display:none;" title="Install this dashboard as an app">⬇️ Install App</button>
         <a href="https://maralyrics.com" class="header__nav-link">View Site</a>
         <button type="button" class="header__user" id="headerUser" title="View my profile">
-          <span class="profile-avatar profile-avatar--sm" id="headerUserAvatar">👤</span>
+          <span id="headerUserAvatar"></span>
           <span class="header__user-name" id="headerUserName">Admin</span>
           <span class="role-badge" id="headerUserRoleBadge" style="display:none;"></span>
         </button>
@@ -567,12 +567,28 @@
             <input type="text" id="formArtistFilter" class="form-input form-input--sm" placeholder="Filter artists..." style="margin-bottom:6px;" />
             <div id="formArtist" class="checkbox-list"></div>
             <span class="checkbox-list__count">0 / 20 selected</span>
+            <div class="quick-add" data-kind="artist" style="display:none;">
+              <button type="button" class="btn btn--sm btn--ghost quick-add__toggle">+ New artist</button>
+              <div class="quick-add__form" style="display:none;">
+                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New artist name" maxlength="200" />
+                <button type="button" class="btn btn--sm btn--primary quick-add__save">Add</button>
+                <button type="button" class="btn btn--sm btn--ghost quick-add__cancel">Cancel</button>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Composer(s) <span class="form-hint">(up to 20 — check all that apply)</span></label>
             <input type="text" id="formComposerFilter" class="form-input form-input--sm" placeholder="Filter composers..." style="margin-bottom:6px;" />
             <div id="formComposer" class="checkbox-list"></div>
             <span class="checkbox-list__count">0 / 20 selected</span>
+            <div class="quick-add" data-kind="composer" style="display:none;">
+              <button type="button" class="btn btn--sm btn--ghost quick-add__toggle">+ New composer</button>
+              <div class="quick-add__form" style="display:none;">
+                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New composer name" maxlength="200" />
+                <button type="button" class="btn btn--sm btn--primary quick-add__save">Add</button>
+                <button type="button" class="btn btn--sm btn--ghost quick-add__cancel">Cancel</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -581,6 +597,14 @@
           <select id="formCopyrightOwner" class="form-input">
             <option value="">— None —</option>
           </select>
+            <div class="quick-add" data-kind="copyright-owner" style="display:none;">
+              <button type="button" class="btn btn--sm btn--ghost quick-add__toggle">+ New copyright holder</button>
+              <div class="quick-add__form" style="display:none;">
+                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New copyright holder name" maxlength="200" />
+                <button type="button" class="btn btn--sm btn--primary quick-add__save">Add</button>
+                <button type="button" class="btn btn--sm btn--ghost quick-add__cancel">Cancel</button>
+              </div>
+            </div>
         </div>
 
         <div class="form-group">
@@ -707,6 +731,30 @@
     </div>
   </div>
 
+  <!-- ─── Profile Photo Crop Modal ───────────── -->
+  <div id="photoCropModal" class="modal" style="display:none;z-index:1100;">
+    <div class="modal__backdrop" id="photoCropBackdrop"></div>
+    <div class="modal__content modal__content--sm" role="dialog" aria-modal="true" aria-labelledby="photoCropTitle">
+      <div class="modal__header">
+        <h2 class="modal__title" id="photoCropTitle">Crop Profile Photo</h2>
+        <button class="modal__close" id="photoCropClose" type="button">&times;</button>
+      </div>
+      <div class="photo-crop">
+        <canvas id="photoCropCanvas" width="300" height="300"></canvas>
+        <label class="photo-crop__zoom">
+          <span class="form-hint">Zoom</span>
+          <input type="range" id="photoCropZoom" min="1" max="4" step="0.01" value="1" />
+        </label>
+        <span class="form-hint">Drag the image to reposition it.</span>
+        <div id="photoCropMessage" class="form-message" style="display:none;"></div>
+        <div class="modal__actions">
+          <button type="button" id="photoCropCancel" class="btn btn--ghost">Cancel</button>
+          <button type="button" id="photoCropSave" class="btn btn--primary">Save Photo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── Profile View / Self-Management Modal ── -->
   <div id="profileModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="profileBackdrop"></div>
@@ -717,7 +765,7 @@
       </div>
       <div class="profile-view">
         <div class="profile-view__header">
-          <div class="profile-avatar profile-avatar--lg" id="profileAvatar">👤</div>
+          <div id="profileAvatar"></div>
           <div class="profile-view__info">
             <div class="profile-view__username" id="profileUsername">—</div>
             <span class="role-badge" id="profileRoleBadge">Role</span>
@@ -757,7 +805,19 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Avatar</label>
+            <label class="form-label">Profile Photo</label>
+            <div class="photo-upload">
+              <label class="btn btn--sm btn--primary photo-upload__btn">
+                Upload &amp; Crop
+                <input type="file" id="profilePhotoFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+              </label>
+              <button type="button" id="profileBtnRemovePhoto" class="btn btn--sm btn--ghost btn--danger-text">Remove Photo</button>
+              <span class="form-hint">Shown instead of the avatar below.</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Avatar <span class="form-hint">(used when no photo is set)</span></label>
             <div class="avatar-picker" id="avatarPicker"></div>
           </div>
 

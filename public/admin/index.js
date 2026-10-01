@@ -72,7 +72,7 @@ async function handleLogin(e) {
     if (!res.ok) throw new Error(data.error || 'Login failed');
 
     setAdminToken(data.token);
-    setAdminInfo({ id: data.id, username: data.username, role: data.role, avatar: data.avatar });
+    setAdminInfo({ id: data.id, username: data.username, role: data.role, avatar: data.avatar, photo: data.photo });
     hideLoginOverlay();
     document.getElementById('loginForm').reset();
     initDashboard();
@@ -146,8 +146,33 @@ const AVATARS = [
   '🦖', '🐳', '🌵', '🌸', '⭐', '🔥', '🎧', '🎸',
 ];
 
-function avatarHtml(avatar, username) {
-  return avatar || (username ? username.charAt(0).toUpperCase() : '👤');
+// Default avatar: an inline SVG silhouette (the 👤 emoji renders as tofu / inconsistently on some systems).
+const DEFAULT_AVATAR_SVG = '<svg class="profile-avatar__default" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c0-4.7 3.8-7.8 8.5-7.8s8.5 3.1 8.5 7.8z"/></svg>';
+
+// One small icon per role, drawn in a 24x24 box and filled white inside the colored role mark.
+const ROLE_MARK_ICON = {
+  viewer: '<path d="M12 5C7 5 2.7 8.1 1 12c1.7 3.9 6 7 11 7s9.3-3.1 11-7c-1.7-3.9-6-7-11-7zm0 11a4 4 0 110-8 4 4 0 010 8zm0-6a2 2 0 100 4 2 2 0 000-4z"/>',
+  translator: '<path d="M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/>',
+  reviewer: '<path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" stroke="currentColor" stroke-width="1.5"/>',
+  editor: '<path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zM20.7 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75z"/>',
+  manager: '<path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8l-6.2 3.4 1.4-7L2 9.4l7-.9z"/>',
+  super_admin: '<path d="M6.5 3h11L22 9l-10 13L2 9z"/>',
+};
+
+function roleMarkHtml(role) {
+  const icon = ROLE_MARK_ICON[role];
+  if (!icon) return '';
+  return `<span class="role-mark role-mark--${role}" title="${escapeHtml(roleLabel(role))}" aria-label="${escapeHtml(roleLabel(role))}"><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg></span>`;
+}
+
+// photo (uploaded) > emoji avatar > default icon, with the role's mark on the corner.
+// `size` is '' (header/list, 32px) or 'lg' (profile card).
+function avatarMarkupFor({ photo, avatar, role } = {}, size = '') {
+  const inner = photo
+    ? `<img class="profile-avatar__img" src="${escapeHtml(photo)}" alt="" />`
+    : (avatar ? escapeHtml(avatar) : DEFAULT_AVATAR_SVG);
+  const sizeClass = size === 'lg' ? 'profile-avatar--lg' : 'profile-avatar--sm';
+  return `<span class="avatar-wrap${size === 'lg' ? ' avatar-wrap--lg' : ''}"><span class="profile-avatar ${sizeClass}">${inner}</span>${roleMarkHtml(role)}</span>`;
 }
 
 const ROLE_TABS = {
@@ -169,7 +194,7 @@ function applyRoleVisibility() {
   const nameEl = document.getElementById('headerUserName');
   const badgeEl = document.getElementById('headerUserRoleBadge');
   if (avatarEl && nameEl && badgeEl) {
-    avatarEl.textContent = info ? avatarHtml(info.avatar, info.username) : '👤';
+    avatarEl.innerHTML = avatarMarkupFor(info || {});
     nameEl.textContent = info ? info.username : 'Admin';
     badgeEl.textContent = info ? roleLabel(info.role) : '';
     badgeEl.className = info ? roleBadgeClass(info.role) : 'role-badge';
@@ -196,6 +221,7 @@ function applyRoleVisibility() {
   toggleEl('btnNewCopyrightOwner', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewArticle', hasRole(...CAN_CREATE_ARTICLE));
   toggleEl('btnNewAdminUser', hasRole(...CAN_MANAGE_ADMIN_USERS));
+  wireQuickAdd();
 
   const superAdminOption = document.querySelector('#auFormRole option[value="super_admin"]');
   if (superAdminOption) superAdminOption.style.display = hasRole('super_admin') ? '' : 'none';
@@ -670,6 +696,72 @@ async function populateDropdowns() {
     await dropdownsLoadPromise;
   } finally {
     dropdownsLoadPromise = null;
+  }
+}
+
+// ─── Inline "create new" in the song form ───────
+// Creates just the name (the server derives the slug); the full record can be filled in later
+// from the Artists / Composers / Copyright Owners tabs. The new entry is added to the list and
+// auto-selected so the song being written needs no round trip. Same permission as those tabs.
+const QUICK_ADD = {
+  artist: { path: 'artists', label: 'artist' },
+  composer: { path: 'composers', label: 'composer' },
+  'copyright-owner': { path: 'copyright-owners', label: 'copyright holder' },
+};
+
+function wireQuickAdd() {
+  const allowed = hasRole(...CAN_MANAGE_REFERENCE_DATA);
+  document.querySelectorAll('.quick-add').forEach((box) => {
+    box.style.display = allowed ? '' : 'none';
+    if (box.dataset.wired) return;
+    box.dataset.wired = '1';
+    const toggle = box.querySelector('.quick-add__toggle');
+    const form = box.querySelector('.quick-add__form');
+    const input = box.querySelector('.quick-add__input');
+    const save = box.querySelector('.quick-add__save');
+    const close = () => { form.style.display = 'none'; toggle.style.display = ''; input.value = ''; };
+    toggle.addEventListener('click', () => { toggle.style.display = 'none'; form.style.display = 'flex'; input.focus(); });
+    box.querySelector('.quick-add__cancel').addEventListener('click', close);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); save.click(); }
+      else if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    });
+    save.addEventListener('click', async () => {
+      const name = input.value.trim();
+      if (!name) { input.focus(); return; }
+      const { path, label } = QUICK_ADD[box.dataset.kind];
+      save.disabled = true;
+      try {
+        const created = await apiPost(`${ADMIN_API}/${path}`, { name });
+        addQuickCreated(box.dataset.kind, created);
+        if (typeof Toast !== 'undefined') Toast.show(`Created ${label} "${created.name}".`, { type: 'success' });
+        close();
+      } catch (err) {
+        if (typeof Toast !== 'undefined') Toast.show(err.message || `Could not create ${label}.`, { type: 'error' });
+        else alert(err.message || `Could not create ${label}.`);
+      } finally {
+        save.disabled = false;
+      }
+    });
+  });
+}
+
+function addQuickCreated(kind, created) {
+  if (kind === 'copyright-owner') {
+    allCopyrightOwners.push(created);
+    const sel = document.getElementById('formCopyrightOwner');
+    sel.insertAdjacentHTML('beforeend', `<option value="${created.id}">${escapeHtml(created.name)}</option>`);
+    sel.value = String(created.id);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  } else {
+    const list = kind === 'artist' ? allArtists : allComposers;
+    const el = document.getElementById(kind === 'artist' ? 'formArtist' : 'formComposer');
+    const selected = getSelectedIds(el);
+    list.push(created);
+    buildCheckboxList(el, list);
+    // Rebuilding resets every checkbox — restore the prior picks, then tick the new one.
+    setSelectedIds(el, [...selected, created.id].slice(0, MAX_CREDITED_PEOPLE_CLIENT));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 }
 
@@ -2007,6 +2099,7 @@ function initDashboard() {
   document.getElementById('profileBtnClose').addEventListener('click', closeProfileModal);
   document.getElementById('profileBtnFollow').addEventListener('click', toggleProfileFollow);
   document.getElementById('profileBtnSaveChanges').addEventListener('click', saveProfileChanges);
+  wirePhotoCrop();
   document.getElementById('profileBtnChangePassword').addEventListener('click', changePassword);
   document.getElementById('profileBtnDeleteAccount').addEventListener('click', showDeleteAccountConfirm);
   document.getElementById('profileBtnCancelDelete').addEventListener('click', cancelDeleteAccountConfirm);
@@ -2018,6 +2111,15 @@ function initDashboard() {
   document.getElementById('adminUserModalClose')?.addEventListener('click', closeAdminUserModal);
   document.getElementById('adminUserBackdrop')?.addEventListener('click', closeAdminUserModal);
   document.getElementById('auBtnCancel')?.addEventListener('click', closeAdminUserModal);
+
+  // Sessions that predate profile photos have none cached — pull it once so the header avatar is right.
+  apiGet(`${ADMIN_API}/auth/me`).then((me) => {
+    const info = getAdminInfo();
+    if (info && (info.photo || null) !== (me.photo || null)) {
+      setAdminInfo({ ...info, photo: me.photo });
+      applyRoleVisibility();
+    }
+  }).catch(() => {});
 
   // Load songs + populate dropdowns
   loadSongs();
@@ -3188,7 +3290,7 @@ async function openProfileModal(id) {
 
   try {
     const profile = await apiGet(`${ADMIN_API}/admin-users/${id}/profile`);
-    document.getElementById('profileAvatar').textContent = avatarHtml(profile.avatar, profile.username);
+    document.getElementById('profileAvatar').innerHTML = avatarMarkupFor(profile, 'lg');
     document.getElementById('profileUsername').textContent = profile.username;
     document.getElementById('profileRoleBadge').textContent = roleLabel(profile.role);
     document.getElementById('profileRoleBadge').className = roleBadgeClass(profile.role);
@@ -3261,11 +3363,165 @@ function renderProfileDirectory() {
   }
   listEl.innerHTML = allAdminDirectory.map(u => `
     <button type="button" class="profile-directory__item${u.id === currentProfileId ? ' profile-directory__item--active' : ''}" onclick="openProfileModal(${u.id})">
-      <span class="profile-avatar profile-avatar--sm">${avatarHtml(u.avatar, u.username)}</span>
+      ${avatarMarkupFor(u)}
       <span class="profile-directory__name">${escapeHtml(u.username)}</span>
       ${roleBadgeHtml(u.role, 'role-badge--tiny')}
     </button>
   `).join('');
+}
+
+// ─── Profile photo upload + square crop ─────────
+// Drag to position, slider/wheel to zoom; the visible 300px square is exported as a 256px JPEG
+// (small enough to store in the row) and saved straight away via PUT /profile.
+const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, dragging: null };
+const PHOTO_OUT_SIZE = 256;
+const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
+
+function photoCropClamp() {
+  const s = photoCrop.minScale * photoCrop.zoom;
+  const w = photoCrop.img.width * s, h = photoCrop.img.height * s;
+  photoCrop.x = Math.min(0, Math.max(photoCrop.size - w, photoCrop.x));
+  photoCrop.y = Math.min(0, Math.max(photoCrop.size - h, photoCrop.y));
+}
+
+function photoCropDraw() {
+  if (!photoCrop.img) return;
+  const canvas = document.getElementById('photoCropCanvas');
+  const ctx = canvas.getContext('2d');
+  const size = photoCrop.size;
+  const s = photoCrop.minScale * photoCrop.zoom;
+  ctx.clearRect(0, 0, size, size);
+  ctx.drawImage(photoCrop.img, photoCrop.x, photoCrop.y, photoCrop.img.width * s, photoCrop.img.height * s);
+  // Dim everything outside the circle the avatar will actually show.
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath();
+  ctx.rect(0, 0, size, size);
+  ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2, true);
+  ctx.fill('evenodd');
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function photoCropSetZoom(zoom) {
+  const half = photoCrop.size / 2;
+  const oldS = photoCrop.minScale * photoCrop.zoom;
+  const cx = (half - photoCrop.x) / oldS, cy = (half - photoCrop.y) / oldS;
+  photoCrop.zoom = Math.min(4, Math.max(1, zoom));
+  const newS = photoCrop.minScale * photoCrop.zoom;
+  photoCrop.x = half - cx * newS;
+  photoCrop.y = half - cy * newS;
+  photoCropClamp();
+  document.getElementById('photoCropZoom').value = photoCrop.zoom;
+  photoCropDraw();
+}
+
+function showPhotoCropMessage(text) {
+  const el = document.getElementById('photoCropMessage');
+  el.textContent = text;
+  el.className = 'form-message form-message--error';
+  el.style.display = text ? 'block' : 'none';
+}
+
+function openPhotoCrop(file) {
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { showProfileMessage('Please choose an image file.', true); return; }
+  if (file.size > MAX_PHOTO_FILE_BYTES) { showProfileMessage('That image is too large (max 15 MB).', true); return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    photoCrop.img = img;
+    photoCrop.minScale = Math.max(photoCrop.size / img.width, photoCrop.size / img.height);
+    photoCrop.zoom = 1;
+    photoCrop.x = (photoCrop.size - img.width * photoCrop.minScale) / 2;
+    photoCrop.y = (photoCrop.size - img.height * photoCrop.minScale) / 2;
+    document.getElementById('photoCropZoom').value = 1;
+    showPhotoCropMessage('');
+    document.getElementById('photoCropModal').style.display = 'flex';
+    photoCropDraw();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); showProfileMessage('Could not read that image.', true); };
+  img.src = url;
+}
+
+function closePhotoCrop() {
+  document.getElementById('photoCropModal').style.display = 'none';
+  photoCrop.img = null;
+}
+
+async function savePhoto(photo) {
+  const updated = await apiPut(`${ADMIN_API}/profile`, { photo });
+  const info = getAdminInfo();
+  if (info) setAdminInfo({ ...info, photo: updated.photo });
+  applyRoleVisibility();
+  document.getElementById('profileAvatar').innerHTML = avatarMarkupFor(updated, 'lg');
+  loadProfileDirectory();
+}
+
+async function applyPhotoCrop() {
+  if (!photoCrop.img) return;
+  const out = document.createElement('canvas');
+  out.width = out.height = PHOTO_OUT_SIZE;
+  const ratio = PHOTO_OUT_SIZE / photoCrop.size;
+  const s = photoCrop.minScale * photoCrop.zoom * ratio;
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#fff'; // JPEG has no alpha — transparent PNGs would turn black otherwise
+  ctx.fillRect(0, 0, PHOTO_OUT_SIZE, PHOTO_OUT_SIZE);
+  ctx.drawImage(photoCrop.img, photoCrop.x * ratio, photoCrop.y * ratio, photoCrop.img.width * s, photoCrop.img.height * s);
+  const btn = document.getElementById('photoCropSave');
+  btn.disabled = true;
+  try {
+    await savePhoto(out.toDataURL('image/jpeg', 0.88));
+    closePhotoCrop();
+    showProfileMessage('Photo updated!');
+  } catch (err) {
+    showPhotoCropMessage(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function removePhoto() {
+  try {
+    await savePhoto(null);
+    showProfileMessage('Photo removed.');
+  } catch (err) {
+    showProfileMessage(err.message, true);
+  }
+}
+
+function wirePhotoCrop() {
+  const canvas = document.getElementById('photoCropCanvas');
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    photoCrop.dragging = { px: e.clientX, py: e.clientY, x: photoCrop.x, y: photoCrop.y };
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    const d = photoCrop.dragging;
+    if (!d || !photoCrop.img) return;
+    const k = photoCrop.size / canvas.getBoundingClientRect().width; // canvas may be CSS-scaled down
+    photoCrop.x = d.x + (e.clientX - d.px) * k;
+    photoCrop.y = d.y + (e.clientY - d.py) * k;
+    photoCropClamp();
+    photoCropDraw();
+  });
+  ['pointerup', 'pointercancel'].forEach(t => canvas.addEventListener(t, () => { photoCrop.dragging = null; }));
+  canvas.addEventListener('wheel', (e) => {
+    if (!photoCrop.img) return;
+    e.preventDefault();
+    photoCropSetZoom(photoCrop.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+  }, { passive: false });
+  document.getElementById('photoCropZoom').addEventListener('input', (e) => photoCropSetZoom(Number(e.target.value)));
+  document.getElementById('photoCropSave').addEventListener('click', applyPhotoCrop);
+  ['photoCropCancel', 'photoCropClose', 'photoCropBackdrop'].forEach(id => document.getElementById(id).addEventListener('click', closePhotoCrop));
+  const fileInput = document.getElementById('profilePhotoFile');
+  fileInput.addEventListener('change', () => { openPhotoCrop(fileInput.files[0]); fileInput.value = ''; });
+  document.getElementById('profileBtnRemovePhoto').addEventListener('click', removePhoto);
 }
 
 async function toggleProfileFollow() {
@@ -3307,10 +3563,10 @@ async function saveProfileChanges() {
     showProfileMessage('Profile updated successfully!');
     // Keep the cached session info (header chip, role checks) in sync with the new username/avatar.
     const info = getAdminInfo();
-    if (info) setAdminInfo({ ...info, username: updated.username, avatar: updated.avatar });
+    if (info) setAdminInfo({ ...info, username: updated.username, avatar: updated.avatar, photo: updated.photo });
     applyRoleVisibility();
     document.getElementById('profileUsername').textContent = updated.username;
-    document.getElementById('profileAvatar').textContent = avatarHtml(updated.avatar, updated.username);
+    document.getElementById('profileAvatar').innerHTML = avatarMarkupFor(updated, 'lg');
     loadProfileDirectory();
   } catch (err) {
     showProfileMessage(err.message, true);

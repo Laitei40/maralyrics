@@ -190,6 +190,13 @@
 
       <section class="static-page__section">
         <h2 class="static-page__heading" data-i18n="project.contributors_heading">Contributors</h2>
+        <h3 class="static-page__subheading" data-i18n="project.editors_heading">Editors</h3>
+        <p data-i18n="project.editors_intro">The people who write, edit and curate the songs and lyrics on MaraLyrics.</p>
+        <div class="contributors-grid contributors-grid--team" id="teamGrid">
+          <p class="contributors-grid__status" id="teamStatus" data-i18n="project.editors_loading">Loading editors…</p>
+        </div>
+
+        <h3 class="static-page__subheading" data-i18n="project.developers_heading">Developers</h3>
         <p data-i18n="project.contributors_intro">MaraLyrics is built in the open. These are the people who have contributed code on GitHub.</p>
         <div class="contributors-grid" id="contributorsGrid">
           <p class="contributors-grid__status" id="contributorsStatus" data-i18n="project.contributors_loading">Loading contributors…</p>
@@ -285,6 +292,53 @@
         })
         .catch(() => {
           document.querySelectorAll('.stat-tile__value').forEach((el) => { el.textContent = '—'; });
+        });
+    })();
+
+    // ─── Editors (site team: name, photo, role) ─────────────
+    (function () {
+      const grid = document.getElementById('teamGrid');
+      const status = document.getElementById('teamStatus');
+      const LABELS = { editor: 'Editor', manager: 'Manager', super_admin: 'Super Admin' };
+      // Same per-role mark as the admin dashboard (icon paths on a 24x24 box).
+      const MARKS = {
+        editor: '<path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75zM20.7 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75z"/>',
+        manager: '<path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8l-6.2 3.4 1.4-7L2 9.4l7-.9z"/>',
+        super_admin: '<path d="M6.5 3h11L22 9l-10 13L2 9z"/>',
+      };
+      const DEFAULT_ICON = '<svg class="team-avatar__default" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c0-4.7 3.8-7.8 8.5-7.8s8.5 3.1 8.5 7.8z"/></svg>';
+      const esc = (v) => String(v).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+      // Only inline-safe image data URLs are ever rendered as a photo.
+      const safePhoto = (p) => typeof p === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(p);
+
+      fetch(API_BASE + '/team')
+        .then((res) => { if (!res.ok) throw new Error('team request failed'); return res.json(); })
+        .then((data) => {
+          const team = data.team;
+          if (!Array.isArray(team) || team.length === 0) {
+            status.textContent = I18n.t('project.editors_none');
+            return;
+          }
+          status.remove();
+          grid.innerHTML = team.map((m) => {
+            const label = LABELS[m.role] || m.role;
+            const inner = safePhoto(m.photo)
+              ? `<img src="${m.photo}" alt="" class="team-avatar__img" loading="lazy" />`
+              : (m.avatar ? esc(m.avatar) : DEFAULT_ICON);
+            const mark = MARKS[m.role]
+              ? `<span class="role-mark role-mark--${esc(m.role)}"><svg viewBox="0 0 24 24" aria-hidden="true">${MARKS[m.role]}</svg></span>`
+              : '';
+            return `
+            <div class="contributor-card contributor-card--team" title="${esc(m.username)} — ${esc(label)}">
+              <span class="team-avatar-wrap"><span class="team-avatar">${inner}</span>${mark}</span>
+              <span class="contributor-card__name">${esc(m.username)}</span>
+              <span class="team-role team-role--${esc(m.role)}">${esc(label)}</span>
+            </div>
+          `;
+          }).join('');
+        })
+        .catch(() => {
+          status.textContent = I18n.t('project.editors_error');
         });
     })();
 
