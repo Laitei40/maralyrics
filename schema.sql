@@ -57,6 +57,20 @@ CREATE TABLE IF NOT EXISTS copyright_owners (
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Sponsors & partners shown on the public Project page (a section appears only once it has an entry)
+CREATE TABLE IF NOT EXISTS supporters (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind        TEXT NOT NULL CHECK (kind IN ('sponsor', 'partner')),
+    name        TEXT NOT NULL,
+    description TEXT,
+    logo_url    TEXT,
+    website_url TEXT,
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_supporters_kind ON supporters(kind, sort_order);
+
 -- Songs table
 CREATE TABLE IF NOT EXISTS songs (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,

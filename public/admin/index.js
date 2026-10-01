@@ -181,6 +181,7 @@ const ROLE_TABS = {
   composers: ROLES_ALL,
   'copyright-owners': ROLES_ALL,
   articles: ROLES_ALL,
+  supporters: CAN_MANAGE_REFERENCE_DATA,
   reports: ['translator', 'reviewer', 'editor', 'manager', 'super_admin'],
   revisions: ['reviewer', 'manager', 'super_admin'],
   auditlog: ['reviewer', 'manager', 'super_admin'],
@@ -215,6 +216,7 @@ function applyRoleVisibility() {
   toggleEl('btnNewArtist', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewComposer', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewCopyrightOwner', hasRole(...CAN_MANAGE_REFERENCE_DATA));
+  toggleEl('btnNewSupporter', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewArticle', hasRole(...CAN_CREATE_ARTICLE));
   toggleEl('btnNewAdminUser', hasRole(...CAN_MANAGE_ADMIN_USERS));
   wireQuickAdd();
@@ -267,6 +269,7 @@ let deleteTargetId = null;
 let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report' | 'admin-user' | 'contact'
 let allReports = [];
 let allCopyrightOwners = [];
+let allSupporters = [];
 let allArticles = [];
 let allAdminUsers = [];
 let allRevisions = [];
@@ -642,6 +645,7 @@ function switchTab(tab) {
   if (tab === 'reports') loadReports();
   if (tab === 'copyright-owners') loadCopyrightOwners();
   if (tab === 'articles') loadArticles();
+  if (tab === 'supporters') loadSupporters();
   if (tab === 'admins') loadAdminUsers();
   if (tab === 'revisions') loadRevisions();
   if (tab === 'auditlog') loadAuditLog();
@@ -1386,11 +1390,11 @@ function loadSocialLinks(socialLinksStr) {
 // cropped data:image URL.
 const ENTITY_PHOTO_SIZE = 400;
 
-function entityAvatarHtml(imageUrl, size = 'sm') {
+function entityAvatarHtml(imageUrl, size = 'sm', shape = 'circle') {
   const inner = imageUrl
     ? `<img class="profile-avatar__img" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />`
     : DEFAULT_AVATAR_SVG;
-  return `<span class="profile-avatar profile-avatar--${size}${imageUrl ? '' : ' profile-avatar--empty'}" title="${imageUrl ? 'Has a photo' : 'No photo'}">${inner}</span>`;
+  return `<span class="profile-avatar profile-avatar--${size}${shape === 'square' ? ' profile-avatar--square' : ''}${imageUrl ? '' : ' profile-avatar--empty'}" title="${imageUrl ? 'Has a photo' : 'No photo'}">${inner}</span>`;
 }
 
 function setImageField(targetId, url) {
@@ -1399,7 +1403,7 @@ function setImageField(targetId, url) {
   hidden.value = url || '';
   const field = document.querySelector(`.image-field[data-target="${targetId}"]`);
   if (!field) return;
-  field.querySelector('.image-field__preview').innerHTML = entityAvatarHtml(url, 'lg');
+  field.querySelector('.image-field__preview').innerHTML = entityAvatarHtml(url, 'lg', field.dataset.shape);
   field.querySelector('.image-field__remove').style.display = url ? '' : 'none';
   const urlInput = field.querySelector('.image-field__url');
   urlInput.value = '';
@@ -1417,6 +1421,7 @@ function initImageFields() {
       openPhotoCrop(file, {
         size: ENTITY_PHOTO_SIZE,
         title: 'Crop Photo',
+        shape: field.dataset.shape || 'circle',
         onError: (msg) => alert(msg),
         onSave: (dataUrl) => setImageField(target, dataUrl),
       });
@@ -1577,6 +1582,7 @@ const DELETE_NAME_LOOKUP = {
   composer: (id) => allComposers.find(c => c.id === id)?.name,
   'copyright-owner': (id) => allCopyrightOwners.find(c => c.id === id)?.name,
   article: (id) => allArticles.find(a => a.id === id)?.title,
+  supporter: (id) => allSupporters.find(x => x.id === id)?.name,
   'admin-user': (id) => allAdminUsers.find(u => u.id === id)?.username,
   report: (id) => `Report #${id}`,
   contact: (id) => `Message #${id}`,
@@ -1614,6 +1620,7 @@ async function deleteItem() {
   else if (type === 'composer') allComposers = allComposers.filter(c => c.id !== id);
   else if (type === 'copyright-owner') allCopyrightOwners = allCopyrightOwners.filter(co => co.id !== id);
   else if (type === 'article') allArticles = allArticles.filter(a => a.id !== id);
+  else if (type === 'supporter') allSupporters = allSupporters.filter(x => x.id !== id);
   else if (type === 'report') allReports = allReports.filter(r => r.id !== id);
   else if (type === 'admin-user') allAdminUsers = allAdminUsers.filter(u => u.id !== id);
   else if (type === 'contact') allContacts = allContacts.filter(c => c.id !== id);
@@ -1627,6 +1634,7 @@ async function deleteItem() {
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
     else if (type === 'article') loadArticles(currentArticlePage);
+    else if (type === 'supporter') loadSupporters();
     else if (type === 'admin-user') loadAdminUsers();
     else if (type === 'contact') loadContacts();
   } catch (err) {
@@ -1642,8 +1650,127 @@ async function deleteItem() {
     else if (type === 'report') loadReports();
     else if (type === 'copyright-owner') loadCopyrightOwners();
     else if (type === 'article') loadArticles(currentArticlePage);
+    else if (type === 'supporter') loadSupporters();
     else if (type === 'admin-user') loadAdminUsers();
     else if (type === 'contact') loadContacts();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ SPONSORS & PARTNERS (manager + super admin) ══
+// ═══════════════════════════════════════════════════
+
+const SUPPORTER_KIND_LABEL = { sponsor: 'Sponsor', partner: 'Partner' };
+
+async function loadSupporters() {
+  const tbody = document.getElementById('supportersTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  try {
+    const data = await apiGet(`${ADMIN_API}/supporters`);
+    allSupporters = data.supporters || [];
+    renderSupportersTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderSupportersTable() {
+  const tbody = document.getElementById('supportersTableBody');
+  if (!allSupporters.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">None yet. The Sponsors and Partners sections stay hidden on the Project page until you add one.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allSupporters.map(item => `
+    <tr data-id="${item.id}">
+      <td><div class="admin-table__person">${entityAvatarHtml(item.logo_url, 'sm', 'square')}<div class="admin-table__title">${escapeHtml(item.name)}</div></div></td>
+      <td>${escapeHtml(SUPPORTER_KIND_LABEL[item.kind] || item.kind)}</td>
+      <td>${item.website_url ? `<a href="${escapeHtml(item.website_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">${escapeHtml(item.website_url.replace(/^https?:\/\//i, ''))}</a>` : '—'}</td>
+      <td>${item.sort_order}</td>
+      <td>
+        <div class="admin-table__actions">
+          <button class="btn btn--sm btn--ghost" onclick="editSupporter(${item.id})" title="Edit">✏️</button>
+          <button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, 'supporter')" title="Delete">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openSupporterModal() {
+  document.getElementById('supporterModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeSupporterModal() {
+  const modal = document.getElementById('supporterModal');
+  if (!modal || modal.style.display === 'none') return;
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  clearSupporterForm();
+}
+function clearSupporterForm() {
+  document.getElementById('supporterForm').reset();
+  document.getElementById('supFormId').value = '';
+  document.getElementById('supFormMessage').style.display = 'none';
+  setImageField('supFormLogo', '');
+}
+function showSupporterMessage(text, isError = false) {
+  const el = document.getElementById('supFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = 'block';
+}
+
+function openNewSupporter() {
+  if (!hasRole(...CAN_MANAGE_REFERENCE_DATA)) return;
+  clearSupporterForm();
+  document.getElementById('supModalTitle').textContent = 'New Sponsor / Partner';
+  document.getElementById('supBtnSubmit').textContent = 'Create';
+  openSupporterModal();
+  document.getElementById('supFormName').focus();
+}
+
+function editSupporter(id) {
+  const item = allSupporters.find(x => x.id === id);
+  if (!item) return;
+  clearSupporterForm();
+  document.getElementById('supModalTitle').textContent = 'Edit Sponsor / Partner';
+  document.getElementById('supBtnSubmit').textContent = 'Update';
+  document.getElementById('supFormId').value = item.id;
+  document.getElementById('supFormKind').value = item.kind;
+  document.getElementById('supFormOrder').value = item.sort_order;
+  document.getElementById('supFormName').value = item.name || '';
+  document.getElementById('supFormDescription').value = item.description || '';
+  document.getElementById('supFormWebsite').value = item.website_url || '';
+  setImageField('supFormLogo', item.logo_url || '');
+  openSupporterModal();
+}
+
+async function saveSupporter(e) {
+  e.preventDefault();
+  const id = document.getElementById('supFormId').value;
+  const name = document.getElementById('supFormName').value.trim();
+  if (!name) { showSupporterMessage('Name is required.', true); return; }
+
+  const body = {
+    kind: document.getElementById('supFormKind').value,
+    name,
+    description: document.getElementById('supFormDescription').value.trim(),
+    website_url: document.getElementById('supFormWebsite').value.trim(),
+    logo_url: document.getElementById('supFormLogo').value.trim(),
+    sort_order: document.getElementById('supFormOrder').value,
+  };
+
+  const btn = document.getElementById('supBtnSubmit');
+  btn.disabled = true;
+  try {
+    if (id) await apiPut(`${ADMIN_API}/supporters/${id}`, body);
+    else await apiPost(`${ADMIN_API}/supporters`, body);
+    closeSupporterModal();
+    loadSupporters();
+  } catch (err) {
+    showSupporterMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -1930,6 +2057,9 @@ function initDashboard() {
   document.getElementById('personBtnCancel').addEventListener('click', closePersonModal);
 
   // Copyright Owner buttons
+  document.getElementById('btnNewSupporter').addEventListener('click', openNewSupporter);
+  document.getElementById('supporterForm').addEventListener('submit', saveSupporter);
+  ['supModalClose', 'supBackdrop', 'supBtnCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeSupporterModal));
   document.getElementById('btnNewCopyrightOwner').addEventListener('click', openNewCopyrightOwner);
   document.getElementById('copyrightOwnerForm').addEventListener('submit', saveCopyrightOwner);
   document.getElementById('coModalClose').addEventListener('click', closeCopyrightOwnerModal);
@@ -2073,6 +2203,7 @@ function initDashboard() {
       closeSongModal();
       closePersonModal();
       closeCopyrightOwnerModal();
+      closeSupporterModal();
       closeDeleteModal();
       closeFeedbackModal();
       closeRevisionModal();
@@ -3143,7 +3274,7 @@ function renderProfileDirectory() {
 // ─── Profile photo upload + square crop ─────────
 // Drag to position, slider/wheel to zoom; the visible 300px square is exported as a 256px JPEG
 // (small enough to store in the row) and saved straight away via PUT /profile.
-const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, dragging: null, outSize: 256, onSave: null, onError: null };
+const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, dragging: null, outSize: 256, onSave: null, onError: null, shape: 'circle' };
 const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
 
 function photoCropClamp() {
@@ -3161,17 +3292,24 @@ function photoCropDraw() {
   const s = photoCrop.minScale * photoCrop.zoom;
   ctx.clearRect(0, 0, size, size);
   ctx.drawImage(photoCrop.img, photoCrop.x, photoCrop.y, photoCrop.img.width * s, photoCrop.img.height * s);
-  // Dim everything outside the circle the avatar will actually show.
+  // Dim everything outside the shape the result will actually be shown in.
+  const square = photoCrop.shape === 'square';
+  const inset = 2, r = size / 2 - inset, rad = size * 0.12;
+  const guide = () => {
+    ctx.beginPath();
+    if (square) ctx.roundRect(inset, inset, size - inset * 2, size - inset * 2, rad);
+    else ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+  };
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.beginPath();
   ctx.rect(0, 0, size, size);
-  ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2, true);
+  if (square) ctx.roundRect(inset, inset, size - inset * 2, size - inset * 2, rad);
+  else ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2, true);
   ctx.fill('evenodd');
   ctx.strokeStyle = 'rgba(255,255,255,0.8)';
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2 - 2, 0, Math.PI * 2);
+  guide();
   ctx.stroke();
   ctx.restore();
 }
@@ -3204,6 +3342,7 @@ function openPhotoCrop(file, opts = {}) {
   if (!/^image\//.test(file.type)) { fail('Please choose an image file.'); return; }
   if (file.size > MAX_PHOTO_FILE_BYTES) { fail('That image is too large (max 15 MB).'); return; }
   photoCrop.outSize = opts.size || 256;
+  photoCrop.shape = opts.shape || 'circle';
   photoCrop.onSave = opts.onSave;
   document.getElementById('photoCropTitle').textContent = opts.title || 'Crop Profile Photo';
   const url = URL.createObjectURL(file);

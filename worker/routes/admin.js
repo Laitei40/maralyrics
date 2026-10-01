@@ -547,6 +547,86 @@ coApp.delete('/:id', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {
 
 app.route('/copyright-owners', coApp);
 
+// ── Sponsors & partners (shown on the public Project page) ──
+const supApp = new Hono();
+supApp.use('*', requireRole(...CAN_MANAGE_REFERENCE_DATA));
+
+const SUPPORTER_KINDS = ['sponsor', 'partner'];
+
+// Returns { ok: true, values: [...] } in column order (kind, name, description, logo_url,
+// website_url, sort_order) or { ok: false, error }.
+function readSupporter(data) {
+  const kind = data.kind;
+  const name = typeof data.name === 'string' ? data.name.trim() : '';
+  const description = typeof data.description === 'string' ? data.description.trim() : '';
+  const logo = typeof data.logo_url === 'string' ? data.logo_url.trim() : '';
+  const website = typeof data.website_url === 'string' ? data.website_url.trim() : '';
+  const sort = data.sort_order === undefined || data.sort_order === '' || data.sort_order === null ? 0 : Number(data.sort_order);
+  if (!SUPPORTER_KINDS.includes(kind)) return { ok: false, error: 'kind must be "sponsor" or "partner"' };
+  if (!name) return { ok: false, error: 'name is required' };
+  if (name.length > 200) return { ok: false, error: 'name is too long (max 200 characters)' };
+  if (description.length > 500) return { ok: false, error: 'description is too long (max 500 characters)' };
+  if (website && !/^https?:\/\//i.test(website)) return { ok: false, error: 'website must be an http(s) URL' };
+  if (logo && !isSafeImageUrl(logo)) return { ok: false, error: 'logo must be an http(s) or data:image URL' };
+  if (!Number.isInteger(sort)) return { ok: false, error: 'sort_order must be a whole number' };
+  return { ok: true, values: [kind, name, description || null, logo || null, website || null, sort] };
+}
+
+supApp.get('/', async (c) => {
+  const rows = await c.env.DB.prepare('SELECT * FROM supporters ORDER BY kind, sort_order, name COLLATE NOCASE').all();
+  return c.json({ supporters: rows.results });
+});
+
+supApp.get('/:id', async (c) => {
+  const row = await c.env.DB.prepare('SELECT * FROM supporters WHERE id = ?').bind(c.req.param('id')).first();
+  if (!row) return c.json({ error: 'Not found' }, 404);
+  return c.json(row);
+});
+
+supApp.post('/', async (c) => {
+  const parsed = readSupporter(await c.req.json().catch(() => ({})));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  try {
+    const result = await c.env.DB
+      .prepare('INSERT INTO supporters (kind, name, description, logo_url, website_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(...parsed.values)
+      .run();
+    const row = await c.env.DB.prepare('SELECT * FROM supporters WHERE id = ?').bind(result.meta.last_row_id).first();
+    await logAudit(c.env.DB, c.get('admin'), 'supporter.create', 'supporter', result.meta.last_row_id, `${row.kind}: ${row.name}`);
+    return c.json(row, 201);
+  } catch (err) {
+    return fail(c, err);
+  }
+});
+
+supApp.put('/:id', async (c) => {
+  const id = c.req.param('id');
+  const parsed = readSupporter(await c.req.json().catch(() => ({})));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  try {
+    const result = await c.env.DB
+      .prepare('UPDATE supporters SET kind = ?, name = ?, description = ?, logo_url = ?, website_url = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(...parsed.values, id)
+      .run();
+    if (result.meta.changes === 0) return c.json({ error: 'Not found' }, 404);
+    const row = await c.env.DB.prepare('SELECT * FROM supporters WHERE id = ?').bind(id).first();
+    await logAudit(c.env.DB, c.get('admin'), 'supporter.edit', 'supporter', Number(id), `${row.kind}: ${row.name}`);
+    return c.json(row);
+  } catch (err) {
+    return fail(c, err);
+  }
+});
+
+supApp.delete('/:id', async (c) => {
+  const id = c.req.param('id');
+  const result = await c.env.DB.prepare('DELETE FROM supporters WHERE id = ?').bind(id).run();
+  if (result.meta.changes === 0) return c.json({ error: 'Not found' }, 404);
+  await logAudit(c.env.DB, c.get('admin'), 'supporter.delete', 'supporter', Number(id), null);
+  return c.json({ success: true });
+});
+
+app.route('/supporters', supApp);
+
 // ── Songs ──
 const MAX_CREDITED_PEOPLE = 20;
 

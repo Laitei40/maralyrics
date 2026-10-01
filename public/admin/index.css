@@ -1417,3 +1417,4 @@
 .image-field { display: flex; align-items: center; gap: var(--space-md); }
 .image-field__body { display: flex; flex-direction: column; gap: var(--space-xs); flex: 1; min-width: 0; }
 .image-field__actions { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+.profile-avatar--square { border-radius: var(--radius-md); }
