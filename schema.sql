@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
     password_hash TEXT NOT NULL,
     role          TEXT NOT NULL CHECK (role IN ('viewer', 'translator', 'reviewer', 'editor', 'manager', 'super_admin')),
     avatar        TEXT, -- a built-in emoji identifier from worker/lib/avatars.js, or NULL (falls back to initial)
+    photo         TEXT, -- uploaded, cropped profile photo as a data:image URL, or NULL (falls back to avatar)
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );

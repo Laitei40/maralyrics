@@ -86,12 +86,14 @@ app.post('/auth/login', async (c) => {
   await db.prepare('DELETE FROM login_attempts WHERE username = ?').bind(username).run();
 
   const token = await signJWT({ sub: user.id, username: user.username, role: user.role }, c.env.JWT_SECRET);
-  return c.json({ token, id: user.id, username: user.username, role: user.role, avatar: user.avatar });
+  return c.json({ token, id: user.id, username: user.username, role: user.role, avatar: user.avatar, photo: user.photo });
 });
 
-app.get('/auth/me', (c) => {
+app.get('/auth/me', async (c) => {
   const admin = c.get('admin');
-  return c.json({ id: admin.sub, username: admin.username, role: admin.role, avatar: admin.avatar });
+  // Not part of requireAuth's per-request lookup — the photo is a few KB and only /me needs it.
+  const row = await c.env.DB.prepare('SELECT photo FROM admin_users WHERE id = ?').bind(admin.sub).first();
+  return c.json({ id: admin.sub, username: admin.username, role: admin.role, avatar: admin.avatar, photo: row?.photo ?? null });
 });
 
 app.post('/auth/change-password', async (c) => {
@@ -226,7 +228,7 @@ app.delete('/admin-users/:id', requireRole(...CAN_MANAGE_ADMIN_USERS), async (c)
 // restricted to Manager+Admin for account management.
 app.get('/admin-users/directory', async (c) => {
   const rows = await c.env.DB
-    .prepare('SELECT id, username, role, avatar FROM admin_users ORDER BY username')
+    .prepare('SELECT id, username, role, avatar, photo FROM admin_users ORDER BY username')
     .all();
   return c.json({ admin_users: rows.results, total: rows.results.length });
 });
@@ -236,7 +238,7 @@ app.get('/admin-users/:id/profile', async (c) => {
   const admin = c.get('admin');
 
   const user = await c.env.DB
-    .prepare('SELECT id, username, role, avatar, created_at FROM admin_users WHERE id = ?')
+    .prepare('SELECT id, username, role, avatar, photo, created_at FROM admin_users WHERE id = ?')
     .bind(id)
     .first();
   if (!user) return c.json({ error: 'Not found' }, 404);
@@ -283,10 +285,15 @@ app.delete('/admin-users/:id/follow', async (c) => {
 // Password change is already handled by /auth/change-password above. ──
 const profileApp = new Hono();
 
+const MAX_PHOTO_CHARS = 200_000;
+function isValidPhoto(v) {
+  return typeof v === 'string' && v.length <= MAX_PHOTO_CHARS && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(v);
+}
+
 profileApp.put('/', async (c) => {
   const admin = c.get('admin');
   const data = await c.req.json().catch(() => ({}));
-  const { username, avatar } = data;
+  const { username, avatar, photo } = data;
 
   if (username !== undefined && (typeof username !== 'string' || !username.trim())) {
     return c.json({ error: 'Username cannot be empty' }, 400);
@@ -295,17 +302,24 @@ profileApp.put('/', async (c) => {
     return c.json({ error: 'Invalid avatar selection' }, 400);
   }
 
-  const current = await c.env.DB.prepare('SELECT username, avatar FROM admin_users WHERE id = ?').bind(admin.sub).first();
+  // The client crops/resizes to a small JPEG before upload; the size cap keeps a hand-crafted
+  // request from stuffing arbitrary blobs into the row.
+  if (photo !== undefined && photo !== null && !isValidPhoto(photo)) {
+    return c.json({ error: 'Photo must be a PNG, JPEG or WebP image under 200 KB' }, 400);
+  }
+
+  const current = await c.env.DB.prepare('SELECT username, avatar, photo FROM admin_users WHERE id = ?').bind(admin.sub).first();
   const newUsername = username !== undefined ? username.trim() : current.username;
   const newAvatar = avatar !== undefined ? avatar : current.avatar;
+  const newPhoto = photo !== undefined ? photo : current.photo;
 
   try {
     await c.env.DB
-      .prepare('UPDATE admin_users SET username = ?, avatar = ? WHERE id = ?')
-      .bind(newUsername, newAvatar, admin.sub)
+      .prepare('UPDATE admin_users SET username = ?, avatar = ?, photo = ? WHERE id = ?')
+      .bind(newUsername, newAvatar, newPhoto, admin.sub)
       .run();
     const row = await c.env.DB
-      .prepare('SELECT id, username, role, avatar, created_at, updated_at FROM admin_users WHERE id = ?')
+      .prepare('SELECT id, username, role, avatar, photo, created_at, updated_at FROM admin_users WHERE id = ?')
       .bind(admin.sub)
       .first();
     await logAudit(c.env.DB, admin, 'admin_user.self_edit', 'admin_user', admin.sub, `username=${newUsername}`);

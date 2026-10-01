@@ -121,6 +121,19 @@ app.get('/contributors', async (c) => {
   return response;
 });
 
+// Site team shown under Project > Contributors: the accounts that edit content (Editor and
+// above). Only public-safe fields — never password hashes or anything account-related.
+app.get('/team', async (c) => {
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT username, role, avatar, photo FROM admin_users
+       WHERE role IN ('editor', 'manager', 'super_admin')
+       ORDER BY CASE role WHEN 'super_admin' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, username COLLATE NOCASE`
+    )
+    .all();
+  return c.json({ team: rows.results }, 200, { 'Cache-Control': 'public, max-age=300' });
+});
+
 app.get('/bootstrap', async (c) => {
   const db = c.env.DB;
   // `since` is a datetime string in the same format as the `updated_at` fields this

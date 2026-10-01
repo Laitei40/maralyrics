@@ -2630,6 +2630,59 @@ body::before {
   color: var(--text-muted);
 }
 
+/* Editors: site team with photo, role mark and role label (marks mirror the admin dashboard). */
+.static-page__subheading {
+  margin: var(--space-lg) 0 var(--space-xs);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.contributors-grid--team { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.contributor-card--team { cursor: default; }
+.team-avatar-wrap { position: relative; display: inline-flex; }
+.team-avatar {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-muted);
+  font-size: 30px;
+}
+.team-avatar__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.team-avatar__default { width: 62%; height: 62%; display: block; }
+.role-mark {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #6366f1;
+  box-shadow: 0 0 0 2px var(--bg-primary, #0b0b14);
+}
+.role-mark svg { width: 62%; height: 62%; fill: currentColor; display: block; }
+.role-mark--manager { background: #f59e0b; }
+.role-mark--super_admin { background: linear-gradient(135deg, #1d9bf0, #0a6fd6); }
+.team-role {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #6366f1;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+}
+.team-role--manager { background: #f59e0b; color: #3a2405; }
+.team-role--super_admin { background: linear-gradient(135deg, #1d9bf0, #0a6fd6); }
+
 .contribute-cta {
   margin-top: var(--space-lg);
   text-align: center;
