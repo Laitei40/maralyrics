@@ -380,6 +380,7 @@ function buildCheckboxList(containerEl, items) {
   const itemRows = items.map(item => `
     <label class="checkbox-list__item" data-name="${escapeHtml(normalizeForSearch(item.name))}">
       <input type="checkbox" value="${item.id}" />
+      ${entityAvatarHtml(item.image_url, 'xs')}
       <span>${escapeHtml(item.name)}</span>
     </label>
   `).join('') || '<div class="checkbox-list__empty">None yet.</div>';
@@ -1303,7 +1304,7 @@ function renderPersonTable(type, items, tbody, isFiltered = false) {
   const canManage = hasRole(...CAN_MANAGE_REFERENCE_DATA);
   tbody.innerHTML = items.map(item => `
     <tr data-id="${item.id}">
-      <td><div class="admin-table__title">${escapeHtml(item.name)}</div></td>
+      <td><div class="admin-table__person">${entityAvatarHtml(item.image_url)}<div class="admin-table__title">${escapeHtml(item.name)}</div></div></td>
       <td><div class="admin-table__slug">/${type}/${escapeHtml(item.slug)}</div></td>
       <td>${escapeHtml((item.bio || '').substring(0, 60))}${item.bio && item.bio.length > 60 ? '...' : ''}</td>
       <td>
@@ -1379,285 +1380,62 @@ function loadSocialLinks(socialLinksStr) {
   } catch { /* ignore bad JSON */ }
 }
 
-// ─── Image Upload / Crop ────────────────────────
-let cropState = {
-  image: null,
-  canvas: null,
-  ctx: null,
-  isDragging: false,
-  startX: 0, startY: 0,
-  cropX: 0, cropY: 0, cropW: 0, cropH: 0,
-  imgW: 0, imgH: 0,
-  scale: 1,
-};
+// ─── Photo field (Artist / Composer / Copyright Owner) ────────
+// Same drag-to-position + zoom circular crop as the admin's own profile photo. The hidden
+// input (`data-target`) holds the value that gets saved: '' (no photo), an http(s) URL, or a
+// cropped data:image URL.
+const ENTITY_PHOTO_SIZE = 400;
 
-function initImageUpload() {
-  const dropzone = document.getElementById('imageDropzone');
-  const fileInput = document.getElementById('personFormImageFile');
-  const btnUrl = document.getElementById('btnImageUrl');
-  const urlInput = document.getElementById('personFormImageUrl');
-  const btnRemove = document.getElementById('btnRemoveImage');
-  const btnCropReset = document.getElementById('btnCropReset');
-  const btnCropApply = document.getElementById('btnCropApply');
+function entityAvatarHtml(imageUrl, size = 'sm') {
+  const inner = imageUrl
+    ? `<img class="profile-avatar__img" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />`
+    : DEFAULT_AVATAR_SVG;
+  return `<span class="profile-avatar profile-avatar--${size}${imageUrl ? '' : ' profile-avatar--empty'}" title="${imageUrl ? 'Has a photo' : 'No photo'}">${inner}</span>`;
+}
 
-  // Drag & drop
-  ['dragenter', 'dragover'].forEach(ev => {
-    dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
-  });
-  ['dragleave', 'drop'].forEach(ev => {
-    dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
-  });
-  dropzone.addEventListener('drop', (e) => {
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) loadImageFile(file);
-  });
+function setImageField(targetId, url) {
+  const hidden = document.getElementById(targetId);
+  if (!hidden) return;
+  hidden.value = url || '';
+  const field = document.querySelector(`.image-field[data-target="${targetId}"]`);
+  if (!field) return;
+  field.querySelector('.image-field__preview').innerHTML = entityAvatarHtml(url, 'lg');
+  field.querySelector('.image-field__remove').style.display = url ? '' : 'none';
+  const urlInput = field.querySelector('.image-field__url');
+  urlInput.value = '';
+  urlInput.style.display = 'none';
+}
 
-  // File select
-  fileInput.addEventListener('change', () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file.');
+function initImageFields() {
+  document.querySelectorAll('.image-field').forEach((field) => {
+    const target = field.dataset.target;
+    const fileInput = field.querySelector('.image-field__file');
+    const urlInput = field.querySelector('.image-field__url');
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
       fileInput.value = '';
-      return;
-    }
-    loadImageFile(file);
-  });
-
-  // URL toggle/load
-  btnUrl.addEventListener('click', () => {
-    urlInput.style.display = urlInput.style.display === 'none' ? 'block' : 'none';
-    if (urlInput.style.display === 'block') urlInput.focus();
-  });
-  urlInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
+      openPhotoCrop(file, {
+        size: ENTITY_PHOTO_SIZE,
+        title: 'Crop Photo',
+        onError: (msg) => alert(msg),
+        onSave: (dataUrl) => setImageField(target, dataUrl),
+      });
+    });
+    field.querySelector('.image-field__url-btn').addEventListener('click', () => {
+      urlInput.style.display = urlInput.style.display === 'none' ? 'block' : 'none';
+      if (urlInput.style.display === 'block') urlInput.focus();
+    });
+    const applyUrl = () => {
       const url = urlInput.value.trim();
-      if (url) loadImageFromUrl(url);
-    }
-  });
-  urlInput.addEventListener('blur', () => {
-    const url = urlInput.value.trim();
-    if (url) loadImageFromUrl(url);
-  });
-
-  // Remove image
-  btnRemove.addEventListener('click', clearImageUpload);
-
-  // Crop controls
-  btnCropReset.addEventListener('click', resetCrop);
-  btnCropApply.addEventListener('click', applyCrop);
-
-  // Canvas mouse events for crop selection
-  const canvas = document.getElementById('imageCropCanvas');
-  canvas.addEventListener('mousedown', cropMouseDown);
-  canvas.addEventListener('mousemove', cropMouseMove);
-  canvas.addEventListener('mouseup', cropMouseUp);
-  canvas.addEventListener('mouseleave', cropMouseUp);
-  // Touch
-  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); cropMouseDown(e.touches[0]); });
-  canvas.addEventListener('touchmove', (e) => { e.preventDefault(); cropMouseMove(e.touches[0]); });
-  canvas.addEventListener('touchend', cropMouseUp);
-}
-
-function loadImageFile(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => showImagePreview(e.target.result);
-  reader.readAsDataURL(file);
-}
-
-// `preserveValue` skips re-baking the canvas into personFormImage — used when
-// displaying an already-saved image_url on edit-open, so simply opening an
-// Edit modal and saving without touching the image doesn't replace a
-// lightweight URL with a freshly re-compressed base64 blob every time.
-function loadImageFromUrl(url, preserveValue = false) {
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => showImagePreview(url, preserveValue);
-  img.onerror = () => {
-    // If cross-origin fails, just use the URL directly
-    document.getElementById('personFormImage').value = url;
-    showImagePreviewFallback(url);
-  };
-  img.src = url;
-}
-
-function showImagePreviewFallback(url) {
-  const previewWrap = document.getElementById('imagePreviewWrap');
-  const dropzone = document.getElementById('imageDropzone');
-  previewWrap.style.display = 'block';
-  dropzone.style.display = 'none';
-  const canvas = document.getElementById('imageCropCanvas');
-  canvas.style.display = 'none';
-  previewWrap.querySelector('.image-upload__crop-controls').style.display = 'none';
-  // Show a simple img tag instead
-  let fallbackImg = previewWrap.querySelector('.image-upload__fallback-img');
-  if (!fallbackImg) {
-    fallbackImg = document.createElement('img');
-    fallbackImg.className = 'image-upload__fallback-img';
-    fallbackImg.style.cssText = 'max-width:100%;max-height:300px;border-radius:8px;';
-    previewWrap.insertBefore(fallbackImg, previewWrap.firstChild);
-  }
-  fallbackImg.src = url;
-  fallbackImg.style.display = 'block';
-}
-
-function showImagePreview(src, preserveValue = false) {
-  const previewWrap = document.getElementById('imagePreviewWrap');
-  const dropzone = document.getElementById('imageDropzone');
-  const canvas = document.getElementById('imageCropCanvas');
-  const ctx = canvas.getContext('2d');
-
-  // Remove fallback img if present
-  const fallbackImg = previewWrap.querySelector('.image-upload__fallback-img');
-  if (fallbackImg) fallbackImg.style.display = 'none';
-  canvas.style.display = 'block';
-  previewWrap.querySelector('.image-upload__crop-controls').style.display = 'flex';
-
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    // Scale to fit canvas (max 500px wide)
-    const maxW = 500;
-    const scale = img.width > maxW ? maxW / img.width : 1;
-    const w = Math.round(img.width * scale);
-    const h = Math.round(img.height * scale);
-
-    canvas.width = w;
-    canvas.height = h;
-    ctx.drawImage(img, 0, 0, w, h);
-
-    cropState = {
-      image: img,
-      canvas, ctx,
-      isDragging: false,
-      startX: 0, startY: 0,
-      cropX: 0, cropY: 0, cropW: w, cropH: h,
-      imgW: w, imgH: h, scale,
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) { alert('Enter an http(s) image URL.'); return; }
+      setImageField(target, url);
     };
-
-    previewWrap.style.display = 'block';
-    dropzone.style.display = 'none';
-
-    // Store as data URL — unless we're just re-displaying an already-saved
-    // image_url on edit-open, in which case the field already holds the
-    // correct value and re-encoding it here would be lossy for no reason.
-    if (!preserveValue) {
-      document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
-    }
-  };
-  img.src = src;
-}
-
-function cropMouseDown(e) {
-  if (!cropState.canvas) return;
-  const rect = cropState.canvas.getBoundingClientRect();
-  cropState.isDragging = true;
-  cropState.startX = e.clientX - rect.left;
-  cropState.startY = e.clientY - rect.top;
-}
-
-function cropMouseMove(e) {
-  if (!cropState.isDragging || !cropState.canvas) return;
-  const rect = cropState.canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
-  cropState.cropX = Math.min(cropState.startX, x);
-  cropState.cropY = Math.min(cropState.startY, y);
-  cropState.cropW = Math.abs(x - cropState.startX);
-  cropState.cropH = Math.abs(y - cropState.startY);
-
-  // Redraw with selection overlay
-  const { ctx, image, imgW, imgH, cropX, cropY, cropW, cropH } = cropState;
-  ctx.clearRect(0, 0, imgW, imgH);
-  ctx.drawImage(image, 0, 0, imgW, imgH);
-
-  // Dim outside selection
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(0, 0, imgW, imgH);
-  ctx.clearRect(cropX, cropY, cropW, cropH);
-  ctx.drawImage(image, cropX, cropY, cropW, cropH, cropX, cropY, cropW, cropH);
-
-  // Selection border
-  ctx.strokeStyle = '#8b5cf6';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([5, 3]);
-  ctx.strokeRect(cropX, cropY, cropW, cropH);
-  ctx.setLineDash([]);
-}
-
-function cropMouseUp() {
-  cropState.isDragging = false;
-}
-
-function resetCrop() {
-  if (!cropState.image || cropState.pending) return;
-  const { ctx, image, imgW, imgH } = cropState;
-  cropState.cropX = 0;
-  cropState.cropY = 0;
-  cropState.cropW = imgW;
-  cropState.cropH = imgH;
-  ctx.clearRect(0, 0, imgW, imgH);
-  ctx.drawImage(image, 0, 0, imgW, imgH);
-  document.getElementById('personFormImage').value = cropState.canvas.toDataURL('image/jpeg', 0.85);
-}
-
-function applyCrop() {
-  if (!cropState.image || cropState.cropW < 10 || cropState.cropH < 10) return;
-
-  const { image, scale, cropX, cropY, cropW, cropH, canvas, ctx } = cropState;
-  // The canvas element is resized synchronously below, but cropState.image/imgW/imgH only
-  // update once croppedImg decodes (async) — block Reset in that gap so it can't redraw the
-  // old, pre-crop image at the old dimensions onto the now differently-sized canvas.
-  cropState.pending = true;
-
-  // Source coordinates in original image
-  const sx = cropX / scale;
-  const sy = cropY / scale;
-  const sw = cropW / scale;
-  const sh = cropH / scale;
-
-  // Output canvas at cropped size (max 500px)
-  const outScale = cropW > 500 ? 500 / cropW : 1;
-  const ow = Math.round(cropW * outScale);
-  const oh = Math.round(cropH * outScale);
-
-  canvas.width = ow;
-  canvas.height = oh;
-  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, ow, oh);
-
-  // Update state
-  const croppedImg = new Image();
-  croppedImg.src = canvas.toDataURL('image/jpeg', 0.85);
-  croppedImg.onload = () => {
-    cropState.image = croppedImg;
-    cropState.imgW = ow;
-    cropState.imgH = oh;
-    cropState.cropX = 0;
-    cropState.cropY = 0;
-    cropState.cropW = ow;
-    cropState.cropH = oh;
-    cropState.scale = 1;
-    cropState.pending = false;
-  };
-
-  document.getElementById('personFormImage').value = canvas.toDataURL('image/jpeg', 0.85);
-}
-
-function clearImageUpload() {
-  document.getElementById('imagePreviewWrap').style.display = 'none';
-  document.getElementById('imageDropzone').style.display = 'block';
-  document.getElementById('personFormImage').value = '';
-  document.getElementById('personFormImageFile').value = '';
-  document.getElementById('personFormImageUrl').value = '';
-  document.getElementById('personFormImageUrl').style.display = 'none';
-  const fallbackImg = document.getElementById('imagePreviewWrap').querySelector('.image-upload__fallback-img');
-  if (fallbackImg) fallbackImg.style.display = 'none';
-  const canvas = document.getElementById('imageCropCanvas');
-  canvas.style.display = 'block';
-  document.getElementById('imagePreviewWrap').querySelector('.image-upload__crop-controls').style.display = 'flex';
-  cropState = { image: null, canvas: null, ctx: null, isDragging: false, startX: 0, startY: 0, cropX: 0, cropY: 0, cropW: 0, cropH: 0, imgW: 0, imgH: 0, scale: 1 };
+    urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyUrl(); } });
+    urlInput.addEventListener('blur', applyUrl);
+    field.querySelector('.image-field__remove').addEventListener('click', () => setImageField(target, ''));
+    setImageField(target, '');
+  });
 }
 
 // Person Modal (shared for Artist / Composer)
@@ -1678,7 +1456,7 @@ function clearPersonForm() {
   // must be cleared explicitly or it leaks into the next new/edit session.
   document.getElementById('personFormSlug').dataset.manual = '';
   hideDraftBanner('personDraftBanner', 'personDraftIndicator');
-  clearImageUpload();
+  setImageField('personFormImage', '');
   loadSocialLinks(null);
 }
 function showPersonMessage(text, isError = false) {
@@ -1718,11 +1496,7 @@ async function editPerson(type, id) {
     document.getElementById('personFormName').value = item.name || '';
     document.getElementById('personFormSlug').value = item.slug || '';
     document.getElementById('personFormBio').value = item.bio || '';
-    document.getElementById('personFormImage').value = item.image_url || '';
-    // Load image preview without re-baking the existing URL into a base64 blob
-    if (item.image_url) {
-      loadImageFromUrl(item.image_url, true);
-    }
+    setImageField('personFormImage', item.image_url || '');
     // Load social links
     loadSocialLinks(item.social_links || null);
     // Check for unsaved draft for this person
@@ -2144,7 +1918,7 @@ function initDashboard() {
   wireCheckboxListFilter(document.getElementById('formComposerFilter'), document.getElementById('formComposer'));
 
   // Image upload & social links
-  initImageUpload();
+  initImageFields();
   document.getElementById('btnAddSocial').addEventListener('click', () => addSocialLinkRow());
 
   // Artist / Composer buttons
@@ -2353,7 +2127,7 @@ function renderCopyrightOwnersTable() {
   const canManage = hasRole(...CAN_MANAGE_REFERENCE_DATA);
   tbody.innerHTML = items.map(item => `
     <tr data-id="${item.id}">
-      <td><div class="admin-table__title">${escapeHtml(item.name)}</div></td>
+      <td><div class="admin-table__person">${entityAvatarHtml(item.image_url)}<div class="admin-table__title">${escapeHtml(item.name)}</div></div></td>
       <td><div class="admin-table__slug">/copyright-owner/${escapeHtml(item.slug)}</div></td>
       <td>${escapeHtml(item.organization || '—')}</td>
       <td>${escapeHtml(item.territory || '—')}</td>
@@ -2386,6 +2160,7 @@ function clearCopyrightOwnerForm() {
   // must be cleared explicitly or it leaks into the next new/edit session.
   document.getElementById('coFormSlug').dataset.manual = '';
   hideDraftBanner('coDraftBanner', 'coDraftIndicator');
+  setImageField('coFormImage', '');
 }
 function showCOMessage(text, isError = false) {
   const el = document.getElementById('coFormMessage');
@@ -2429,6 +2204,7 @@ async function editCopyrightOwner(id) {
     document.getElementById('coFormISRC').value = item.isrc_prefix || '';
     document.getElementById('coFormPRO').value = item.pro_affiliation || '';
     document.getElementById('coFormNotes').value = item.notes || '';
+    setImageField('coFormImage', item.image_url || '');
     // Check for unsaved draft for this copyright owner
     const coDraft = loadDraft('copyright-owner', item.id);
     if (coDraft && coDraft.name) {
@@ -2455,6 +2231,7 @@ async function saveCopyrightOwner(e) {
   const isrc_prefix = document.getElementById('coFormISRC').value.trim();
   const pro_affiliation = document.getElementById('coFormPRO').value.trim();
   const notes = document.getElementById('coFormNotes').value.trim();
+  const image_url = document.getElementById('coFormImage').value.trim();
 
   if (!name) { showCOMessage('Name is required.', true); return; }
 
@@ -2463,7 +2240,7 @@ async function saveCopyrightOwner(e) {
   btn.textContent = 'Saving...';
 
   try {
-    const body = { name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes };
+    const body = { name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes, image_url };
 
     if (id) {
       await apiPut(`${ADMIN_API}/copyright-owners/${id}`, body);
@@ -3366,8 +3143,7 @@ function renderProfileDirectory() {
 // ─── Profile photo upload + square crop ─────────
 // Drag to position, slider/wheel to zoom; the visible 300px square is exported as a 256px JPEG
 // (small enough to store in the row) and saved straight away via PUT /profile.
-const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, dragging: null };
-const PHOTO_OUT_SIZE = 256;
+const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, dragging: null, outSize: 256, onSave: null, onError: null };
 const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
 
 function photoCropClamp() {
@@ -3420,10 +3196,16 @@ function showPhotoCropMessage(text) {
   el.style.display = text ? 'block' : 'none';
 }
 
-function openPhotoCrop(file) {
+// Shared by the admin profile photo and the Artist / Composer / Copyright Owner photos.
+// opts: { size (output px), title, onSave(dataUrl) (may throw/reject to show an error), onError(msg) }
+function openPhotoCrop(file, opts = {}) {
   if (!file) return;
-  if (!/^image\//.test(file.type)) { showProfileMessage('Please choose an image file.', true); return; }
-  if (file.size > MAX_PHOTO_FILE_BYTES) { showProfileMessage('That image is too large (max 15 MB).', true); return; }
+  const fail = (msg) => (opts.onError || ((m) => showProfileMessage(m, true)))(msg);
+  if (!/^image\//.test(file.type)) { fail('Please choose an image file.'); return; }
+  if (file.size > MAX_PHOTO_FILE_BYTES) { fail('That image is too large (max 15 MB).'); return; }
+  photoCrop.outSize = opts.size || 256;
+  photoCrop.onSave = opts.onSave;
+  document.getElementById('photoCropTitle').textContent = opts.title || 'Crop Profile Photo';
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -3438,7 +3220,7 @@ function openPhotoCrop(file) {
     document.getElementById('photoCropModal').style.display = 'flex';
     photoCropDraw();
   };
-  img.onerror = () => { URL.revokeObjectURL(url); showProfileMessage('Could not read that image.', true); };
+  img.onerror = () => { URL.revokeObjectURL(url); fail('Could not read that image.'); };
   img.src = url;
 }
 
@@ -3458,20 +3240,20 @@ async function savePhoto(photo) {
 
 async function applyPhotoCrop() {
   if (!photoCrop.img) return;
+  const outSize = photoCrop.outSize;
   const out = document.createElement('canvas');
-  out.width = out.height = PHOTO_OUT_SIZE;
-  const ratio = PHOTO_OUT_SIZE / photoCrop.size;
+  out.width = out.height = outSize;
+  const ratio = outSize / photoCrop.size;
   const s = photoCrop.minScale * photoCrop.zoom * ratio;
   const ctx = out.getContext('2d');
   ctx.fillStyle = '#fff'; // JPEG has no alpha — transparent PNGs would turn black otherwise
-  ctx.fillRect(0, 0, PHOTO_OUT_SIZE, PHOTO_OUT_SIZE);
+  ctx.fillRect(0, 0, outSize, outSize);
   ctx.drawImage(photoCrop.img, photoCrop.x * ratio, photoCrop.y * ratio, photoCrop.img.width * s, photoCrop.img.height * s);
   const btn = document.getElementById('photoCropSave');
   btn.disabled = true;
   try {
-    await savePhoto(out.toDataURL('image/jpeg', 0.88));
+    await photoCrop.onSave(out.toDataURL('image/jpeg', 0.88));
     closePhotoCrop();
-    showProfileMessage('Photo updated!');
   } catch (err) {
     showPhotoCropMessage(err.message);
   } finally {
@@ -3513,7 +3295,11 @@ function wirePhotoCrop() {
   document.getElementById('photoCropSave').addEventListener('click', applyPhotoCrop);
   ['photoCropCancel', 'photoCropClose', 'photoCropBackdrop'].forEach(id => document.getElementById(id).addEventListener('click', closePhotoCrop));
   const fileInput = document.getElementById('profilePhotoFile');
-  fileInput.addEventListener('change', () => { openPhotoCrop(fileInput.files[0]); fileInput.value = ''; });
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    fileInput.value = '';
+    openPhotoCrop(file, { size: 256, title: 'Crop Profile Photo', onSave: async (dataUrl) => { await savePhoto(dataUrl); showProfileMessage('Photo updated!'); } });
+  });
   document.getElementById('profileBtnRemovePhoto').addEventListener('click', removePhoto);
 }
 
