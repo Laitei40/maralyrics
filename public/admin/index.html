@@ -64,7 +64,7 @@
         <button type="button" id="btnSyncNow" class="btn btn--sm btn--ghost" style="display:none;" title="Sync queued offline changes now">🔄 Sync Now</button>
         <button type="button" id="btnViewConflicts" class="btn btn--sm btn--danger-text" style="display:none;" title="Resolve sync conflicts">⚠️ Conflicts</button>
         <button type="button" id="btnInstallApp" class="btn btn--sm btn--ghost" style="display:none;" title="Install this dashboard as an app">⬇️ Install App</button>
-        <a href="https://maralyrics.com" class="header__nav-link">View Site</a>
+        <a href="https://maralyrics.com" target="_blank" rel="noopener noreferrer" class="header__nav-link">View Site</a>
         <button type="button" class="header__user" id="headerUser" title="View my profile">
           <span id="headerUserAvatar"></span>
           <span class="header__user-name" id="headerUserName">Admin</span>
@@ -904,30 +904,20 @@
           <textarea id="personFormBio" class="form-input form-textarea" rows="4" placeholder="Brief biography..."></textarea>
         </div>
 
-        <!-- Profile Image Upload -->
         <div class="form-group">
-          <label class="form-label">Profile Image</label>
-          <div class="image-upload" id="imageUploadZone">
-            <div class="image-upload__preview" id="imagePreviewWrap" style="display:none;">
-              <canvas id="imageCropCanvas"></canvas>
-              <div class="image-upload__crop-controls">
-                <button type="button" class="btn btn--sm btn--ghost" id="btnCropReset" title="Reset crop">↺ Reset</button>
-                <button type="button" class="btn btn--sm btn--primary" id="btnCropApply" title="Apply crop">✓ Crop</button>
-              </div>
-              <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-upload__remove" id="btnRemoveImage" title="Remove">&times;</button>
-            </div>
-            <div class="image-upload__dropzone" id="imageDropzone">
-              <div class="image-upload__icon">📷</div>
-              <p class="image-upload__text">Drag & drop an image, or</p>
-              <div class="image-upload__actions">
-                <label class="btn btn--sm btn--primary image-upload__file-btn">
-                  Select File
-                  <input type="file" id="personFormImageFile" accept="image/*" hidden />
+          <label class="form-label">Photo</label>
+          <div class="image-field" data-target="personFormImage">
+            <span class="image-field__preview"></span>
+            <div class="image-field__body">
+              <div class="image-field__actions">
+                <label class="btn btn--sm btn--primary">
+                  Upload &amp; Crop
+                  <input type="file" class="image-field__file" accept="image/*" hidden />
                 </label>
-                <span class="image-upload__or">or</span>
-                <button type="button" class="btn btn--sm btn--ghost" id="btnImageUrl">Paste URL</button>
+                <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
+                <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
               </div>
-              <input type="url" id="personFormImageUrl" class="form-input image-upload__url-input" placeholder="https://example.com/photo.jpg" style="display:none;margin-top:var(--space-sm);" />
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/photo.jpg" style="display:none;" />
             </div>
           </div>
           <input type="hidden" id="personFormImage" />
@@ -983,6 +973,25 @@
           <label class="form-label" for="coFormSlug">Slug</label>
           <input type="text" id="coFormSlug" class="form-input" placeholder="auto-generated-from-name" />
           <span class="form-hint">Leave blank to auto-generate from name</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          <div class="image-field" data-target="coFormImage">
+            <span class="image-field__preview"></span>
+            <div class="image-field__body">
+              <div class="image-field__actions">
+                <label class="btn btn--sm btn--primary">
+                  Upload &amp; Crop
+                  <input type="file" class="image-field__file" accept="image/*" hidden />
+                </label>
+                <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
+                <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
+              </div>
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/photo.jpg" style="display:none;" />
+            </div>
+          </div>
+          <input type="hidden" id="coFormImage" />
         </div>
 
         <div class="form-group">

@@ -1407,3 +1407,13 @@
 .photo-crop canvas:active { cursor: grabbing; }
 .photo-crop__zoom { display: flex; align-items: center; gap: var(--space-sm); width: 100%; max-width: 300px; }
 .photo-crop__zoom input { flex: 1; }
+
+/* ─── Entity photos (Artist / Composer / Copyright Owner) ─────── */
+.profile-avatar--xs { width: 20px; height: 20px; font-size: 11px; }
+.profile-avatar--empty { border-style: dashed; opacity: 0.7; }
+.admin-table__person { display: flex; align-items: center; gap: var(--space-sm); min-width: 0; }
+.checkbox-list__item .profile-avatar { margin: 0 2px; }
+
+.image-field { display: flex; align-items: center; gap: var(--space-md); }
+.image-field__body { display: flex; flex-direction: column; gap: var(--space-xs); flex: 1; min-width: 0; }
+.image-field__actions { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }

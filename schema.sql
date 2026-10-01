@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS copyright_owners (
     isrc_prefix     TEXT,
     pro_affiliation TEXT,
     notes           TEXT,
+    image_url       TEXT,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );

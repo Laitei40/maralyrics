@@ -472,7 +472,7 @@ app.route('/composers', personCrud('composers'));
 // ── Copyright owners (read: any admin; write: Manager + Admin) ──
 const CO_FIELDS = [
   'full_legal_name', 'organization', 'territory', 'email', 'website',
-  'address', 'ipi_number', 'isrc_prefix', 'pro_affiliation', 'notes',
+  'address', 'ipi_number', 'isrc_prefix', 'pro_affiliation', 'notes', 'image_url',
 ];
 
 const coApp = new Hono();
@@ -492,6 +492,7 @@ coApp.post('/', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {
   const data = await c.req.json().catch(() => ({}));
   if (!data.name) return c.json({ error: 'name is required' }, 400);
   if (data.website && !isSafeLinkUrl(data.website)) return c.json({ error: 'website must be an http(s) or mailto URL' }, 400);
+  if (data.image_url && !isSafeImageUrl(data.image_url)) return c.json({ error: 'image_url must be an http(s) or data:image URL' }, 400);
   const slug = data.slug?.trim() || slugify(data.name);
   const values = CO_FIELDS.map((f) => data[f] || null);
 
@@ -516,6 +517,7 @@ coApp.put('/:id', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {
   const data = await c.req.json().catch(() => ({}));
   if (!data.name) return c.json({ error: 'name is required' }, 400);
   if (data.website && !isSafeLinkUrl(data.website)) return c.json({ error: 'website must be an http(s) or mailto URL' }, 400);
+  if (data.image_url && !isSafeImageUrl(data.image_url)) return c.json({ error: 'image_url must be an http(s) or data:image URL' }, 400);
   const slug = data.slug?.trim() || slugify(data.name);
   const values = CO_FIELDS.map((f) => data[f] || null);
 
