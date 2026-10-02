@@ -211,6 +211,8 @@
     "favorite_btn": "Favorite",
     "add_to_favorites": "Add to favorites",
     "remove_from_favorites": "Remove from favorites",
+    "saved_offline": "Offline",
+    "saved_offline_title": "Saved on this device — opens without internet",
     "pin": "Pin to top",
     "unpin": "Unpin",
     "pin_btn": "Pin",

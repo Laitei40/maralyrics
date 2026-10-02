@@ -637,13 +637,14 @@ const UI = {
     // The favorite <button> is a sibling of the <a>, not nested inside it — <a> may not
     // contain interactive content, and nesting would make click targets unpredictable.
     return `
-      <div class="song-card stagger-enter" style="animation-delay:${delay}ms" data-slug="${slug}">
+      <div class="song-card stagger-enter${isPinned ? ' song-card--pinned' : ''}" style="animation-delay:${delay}ms" data-slug="${slug}">
         <a href="/song/${slug}" class="song-card__link">
           <h3 class="song-card__title">${Utils.escapeHtml(song.title)}</h3>
           <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
           <div class="song-card__meta">
             ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
-            <span class="song-card__views">${isCached ? '⬇️ ' : ''}👁 ${Utils.formatViews(song.views)}</span>
+            ${isCached ? `<span class="song-card__offline" title="${Utils.escapeHtml(I18n.t('common.saved_offline_title'))}">${Utils.escapeHtml(I18n.t('common.saved_offline'))}</span>` : ''}
+            <span class="song-card__views">👁 ${Utils.formatViews(song.views)}</span>
           </div>
         </a>
         <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
@@ -842,7 +843,6 @@ const HomePage = {
     await this.loadCategories();
     if (this.currentCategory) this.updateCategoryButtons();
     await Promise.all([
-      this.loadPinned(),
       this.loadFeaturedSpot(),
       this.loadPopular(),
       this.favoritesOnly ? this.loadFavorites() : this.loadSongs(),
@@ -863,8 +863,6 @@ const HomePage = {
     this.songOfTheDaySectionIcon = document.getElementById('songOfTheDaySectionIcon');
     this.songOfTheDaySectionLabel = document.getElementById('songOfTheDaySectionLabel');
     this.popularSection = document.getElementById('popularSection');
-    this.pinnedSection = document.getElementById('pinnedSection');
-    this.pinnedGrid = document.getElementById('pinnedGrid');
     this.allSongsSection = document.getElementById('allSongsSection');
     this.paginationEl = document.getElementById('pagination');
     this.sortSelect = document.getElementById('sortSelect');
@@ -1140,29 +1138,45 @@ const HomePage = {
   },
 
   // ─── Pinned songs (up to Pins.MAX favorites, kept in a cookie) ────────
-  async loadPinned() {
-    if (!this.pinnedSection || !this.pinnedGrid) return;
+  // Pinned songs lead the All Songs list (first page) and the Favorites view, in the order
+  // they were pinned. On a category filter only the pinned songs of that category lead.
+  async getPinnedSongs() {
     const slugs = Pins.getAll();
-    if (!slugs.length) {
-      this.pinnedSection.style.display = 'none';
-      this.pinnedGrid.innerHTML = '';
-      return;
-    }
+    if (!slugs.length) return [];
     const songs = (await Promise.all(slugs.map((slug) => (
       Utils.isOnline()
         ? API.getSong(slug).catch(() => Cache.getCachedSong(slug))
         : Promise.resolve(Cache.getCachedSong(slug))
     )))).filter(Boolean);
-    if (!songs.length) {
-      this.pinnedSection.style.display = 'none';
-      return;
-    }
-    this.pinnedGrid.innerHTML = songs.map((song, i) => UI.createSongCard(song, i)).join('');
-    this.pinnedSection.style.display = this.searchResults && this.searchResults.style.display === 'block' ? 'none' : 'block';
+    return this.currentCategory ? songs.filter((song) => song.category === this.currentCategory) : songs;
+  },
+
+  /** One page of songs with the pinned ones moved to the top (page 1) — and removed from later
+   *  pages so a pinned song never shows twice. */
+  async withPinnedFirst(songs) {
+    const pinned = Pins.getAll();
+    if (!pinned.length) return songs;
+    const rest = songs.filter((song) => !pinned.includes(song.slug));
+    if (this.currentPage !== 1) return rest;
+    return [...(await this.getPinnedSongs()), ...rest];
+  },
+
+  /** Favorites view: pinned songs first (in pin order), then the rest in the chosen sort. */
+  pinnedFirst(songs) {
+    const pinned = Pins.getAll();
+    if (!pinned.length) return songs;
+    const lead = pinned.map((slug) => songs.find((song) => song.slug === slug)).filter(Boolean);
+    return [...lead, ...songs.filter((song) => !pinned.includes(song.slug))];
+  },
+
+  /** Re-render the current list after a pin/unpin (no skeleton flash). */
+  refreshList() {
+    if (!this.songGrid) return;
+    return this.favoritesOnly ? this.loadFavorites(true) : this.loadSongs(true);
   },
 
   // ─── Load All Songs (Paginated) ──────────────────────
-  async loadSongs() {
+  async loadSongs(quiet = false) {
     if (!this.songGrid) return;
     // Save current state so refresh restores page + category + favorites-filter
     try {
@@ -1172,8 +1186,10 @@ const HomePage = {
         favoritesOnly: this.favoritesOnly,
       }));
     } catch {}
-    this.songGrid.innerHTML = UI.createSkeletons(6);
-    this.paginationEl.innerHTML = '';
+    if (!quiet) {
+      this.songGrid.innerHTML = UI.createSkeletons(6);
+      this.paginationEl.innerHTML = '';
+    }
 
     try {
       let data;
@@ -1198,7 +1214,8 @@ const HomePage = {
         return;
       }
 
-      this.songGrid.innerHTML = data.songs
+      const ordered = await this.withPinnedFirst(data.songs);
+      this.songGrid.innerHTML = ordered
         .map((s, i) => UI.createSongCard(s, i))
         .join('');
 
@@ -1219,7 +1236,7 @@ const HomePage = {
   },
 
   // ─── Load Favorites (client-side, bypasses server pagination) ────────
-  async loadFavorites() {
+  async loadFavorites(quiet = false) {
     if (!this.songGrid) return;
     try {
       sessionStorage.setItem('ml_home_state', JSON.stringify({
@@ -1238,11 +1255,11 @@ const HomePage = {
       return;
     }
 
-    this.songGrid.innerHTML = UI.createSkeletons(Math.min(slugs.length, 6));
+    if (!quiet) this.songGrid.innerHTML = UI.createSkeletons(Math.min(slugs.length, 6));
 
     if (!Utils.isOnline()) {
       const cached = slugs.map((s) => Cache.getCachedSong(s)).filter(Boolean);
-      const sorted = Utils.sortSongs(cached, this.currentSort);
+      const sorted = this.pinnedFirst(Utils.sortSongs(cached, this.currentSort));
       UI.setOfflineMode(true);
       if (!sorted.length) {
         this.songGrid.innerHTML = '';
@@ -1256,7 +1273,7 @@ const HomePage = {
 
     try {
       const songs = (await Promise.all(slugs.map((s) => API.getSong(s).catch(() => null)))).filter(Boolean);
-      const sorted = Utils.sortSongs(songs, this.currentSort);
+      const sorted = this.pinnedFirst(Utils.sortSongs(songs, this.currentSort));
 
       if (!sorted.length) {
         this.songGrid.innerHTML = '';
@@ -1285,7 +1302,6 @@ const HomePage = {
     // Show search section, hide others
     this.searchResults.style.display = 'block';
     this.popularSection.style.display = 'none';
-    if (this.pinnedSection) this.pinnedSection.style.display = 'none';
     this.allSongsSection.style.display = 'none';
     UI.showEmptyState(false);
     SearchHistory.hide();
@@ -1390,7 +1406,6 @@ const HomePage = {
   clearSearch() {
     if (this.searchResults) this.searchResults.style.display = 'none';
     if (this.popularSection) this.popularSection.style.display = 'block';
-    if (this.pinnedSection) this.pinnedSection.style.display = Pins.getAll().length ? 'block' : 'none';
     if (this.allSongsSection) this.allSongsSection.style.display = 'block';
     const sugBox = document.getElementById('searchSuggestions');
     if (sugBox) sugBox.style.display = 'none';
@@ -3447,7 +3462,8 @@ function syncPinButtons(slug) {
   const pinned = Pins.has(slug);
   document.querySelectorAll(`.song-card__pin[data-slug="${CSS.escape(slug)}"], .song-page__pin[data-slug="${CSS.escape(slug)}"]`)
     .forEach((el) => { el.hidden = !favorited; updatePinButton(el, pinned); });
-  if (typeof HomePage !== 'undefined' && HomePage.pinnedSection) HomePage.loadPinned();
+  document.querySelectorAll(`.song-card[data-slug="${CSS.escape(slug)}"]`).forEach((el) => el.classList.toggle('song-card--pinned', pinned));
+  if (typeof HomePage !== 'undefined' && HomePage.songGrid) HomePage.refreshList();
 }
 
 document.addEventListener('click', (e) => {

@@ -1227,6 +1227,12 @@ body::before {
   transition: all var(--transition-fast);
 }
 .song-card__pin[hidden], .song-page__pin[hidden] { display: none; }
+/* A pinned song leads the list — give it a subtle accent so it reads as pinned. */
+.song-card--pinned {
+  border-color: rgba(139, 92, 246, 0.5);
+  background-image: linear-gradient(135deg, rgba(139, 92, 246, 0.12), transparent 55%);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2) inset;
+}
 .song-card__pin:hover,
 .song-card__pin.active {
   color: var(--accent-light, #a78bfa);
@@ -1295,6 +1301,22 @@ body::before {
 .song-grid.list .song-card__favorite {
   top: 50%;
   transform: translateY(-50%);
+}
+
+/* Room for the pin button (it sits left of the heart) so it never covers the view count.
+   List rows reserve it for every row so the columns stay aligned; grid cards only when pinnable. */
+.song-grid.list .song-card__link { padding-right: 70px; }
+.song-card:has(.song-card__pin:not([hidden])) .song-card__link { padding-right: 70px; }
+
+/* "Offline" tag on songs saved on this device. */
+.song-card__offline {
+  padding: 1px 8px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ─── Song of the Day (featured card) ──────────────────────────
