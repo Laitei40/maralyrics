@@ -203,6 +203,19 @@
         </div>
       </section>
 
+      <!-- Sponsors / Partners: hidden until the API returns at least one entry for that section. -->
+      <section class="static-page__section" id="sponsorsSection" hidden>
+        <h2 class="static-page__heading" data-i18n="project.sponsors_heading">Sponsors</h2>
+        <p data-i18n="project.sponsors_intro">With thanks to the people and teams who support MaraLyrics.</p>
+        <div class="supporters-grid" id="sponsorsGrid"></div>
+      </section>
+
+      <section class="static-page__section" id="partnersSection" hidden>
+        <h2 class="static-page__heading" data-i18n="project.partners_heading">Partners</h2>
+        <p data-i18n="project.partners_intro">The people and teams we work together with.</p>
+        <div class="supporters-grid" id="partnersGrid"></div>
+      </section>
+
       <section class="static-page__section">
         <h2 class="static-page__heading" data-i18n="project.contribute_heading">Contribute</h2>
         <p data-i18n="project.contribute_intro">Found a bug, want to add a song, fix a translation, or improve the code? Contributions are welcome.</p>
@@ -293,6 +306,39 @@
         .catch(() => {
           document.querySelectorAll('.stat-tile__value').forEach((el) => { el.textContent = '—'; });
         });
+    })();
+
+    // ─── Sponsors & Partners (a section is shown only when it has entries) ──
+    (function () {
+      const esc = (v) => String(v).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+      const safeLogo = (u) => typeof u === 'string' && /^(https?:\/\/|data:image\/(png|jpeg|webp|gif);base64,)/i.test(u);
+      const safeLink = (u) => typeof u === 'string' && /^https?:\/\//i.test(u);
+      const DEFAULT_ICON = '<svg class="team-avatar__default" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8l-6.2 3.4 1.4-7L2 9.4l7-.9z"/></svg>';
+
+      function render(sectionId, gridId, items) {
+        if (!Array.isArray(items) || items.length === 0) return;
+        document.getElementById(gridId).innerHTML = items.map((it) => {
+          const logo = safeLogo(it.logo_url)
+            ? `<img src="${esc(it.logo_url)}" alt="" class="team-avatar__img" loading="lazy" />`
+            : DEFAULT_ICON;
+          const inner = `
+              <span class="supporter-card__logo">${logo}</span>
+              <span class="contributor-card__name">${esc(it.name)}</span>
+              ${it.description ? `<span class="supporter-card__desc">${esc(it.description)}</span>` : ''}`;
+          return safeLink(it.website_url)
+            ? `<a href="${esc(it.website_url)}" target="_blank" rel="noopener noreferrer" class="contributor-card supporter-card">${inner}</a>`
+            : `<div class="contributor-card supporter-card">${inner}</div>`;
+        }).join('');
+        document.getElementById(sectionId).hidden = false;
+      }
+
+      fetch(API_BASE + '/supporters')
+        .then((res) => { if (!res.ok) throw new Error('supporters request failed'); return res.json(); })
+        .then((data) => {
+          render('sponsorsSection', 'sponsorsGrid', data.sponsors);
+          render('partnersSection', 'partnersGrid', data.partners);
+        })
+        .catch(() => { /* optional sections — stay hidden if the request fails */ });
     })();
 
     // ─── Editors (site team: name, photo, role) ─────────────

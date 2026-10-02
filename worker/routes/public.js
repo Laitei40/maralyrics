@@ -134,6 +134,17 @@ app.get('/team', async (c) => {
   return c.json({ team: rows.results }, 200, { 'Cache-Control': 'public, max-age=300' });
 });
 
+// Sponsors and partners for the Project page. Either list may be empty — the page hides a
+// section until it has at least one entry.
+app.get('/supporters', async (c) => {
+  const rows = await c.env.DB
+    .prepare('SELECT kind, name, description, logo_url, website_url FROM supporters ORDER BY sort_order, name COLLATE NOCASE')
+    .all();
+  const sponsors = rows.results.filter((r) => r.kind === 'sponsor');
+  const partners = rows.results.filter((r) => r.kind === 'partner');
+  return c.json({ sponsors, partners }, 200, { 'Cache-Control': 'public, max-age=300' });
+});
+
 app.get('/bootstrap', async (c) => {
   const db = c.env.DB;
   // `since` is a datetime string in the same format as the `updated_at` fields this

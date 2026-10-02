@@ -349,6 +349,61 @@ const Favorites = {
   },
 };
 
+// ─── Pins Module (cookie-backed) ────────────────────────────────
+// Up to MAX favorited songs can be pinned to the top of the home page. Pins live in a cookie
+// (same consent gate and lifetime as favorites) and only favorited songs can be pinned —
+// un-favoriting a song un-pins it.
+const Pins = {
+  COOKIE_NAME: 'pinned',
+  MAX: 7,
+  MAX_AGE_HOURS: 24 * 365 * 5,
+
+  getAll() {
+    try {
+      const raw = Cache.getCookie(this.COOKIE_NAME);
+      const slugs = raw ? JSON.parse(raw) : [];
+      return Array.isArray(slugs) ? slugs.filter((x) => typeof x === 'string').slice(0, this.MAX) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  has(slug) {
+    return this.getAll().includes(slug);
+  },
+
+  _save(slugs) {
+    try {
+      Cache.setCookie(this.COOKIE_NAME, JSON.stringify(slugs), this.MAX_AGE_HOURS);
+    } catch { /* ignore */ }
+  },
+
+  /** Pin/unpin a song. Returns 'pinned' | 'unpinned' | 'full' | 'not_favorite' | 'no_consent'. */
+  toggle(slug) {
+    if (typeof CookieConsent !== 'undefined' && !CookieConsent.hasConsent()) return 'no_consent';
+    const slugs = this.getAll();
+    const idx = slugs.indexOf(slug);
+    if (idx !== -1) {
+      slugs.splice(idx, 1);
+      this._save(slugs);
+      return 'unpinned';
+    }
+    if (!Favorites.has(slug)) return 'not_favorite';
+    if (slugs.length >= this.MAX) return 'full';
+    slugs.push(slug);
+    this._save(slugs);
+    return 'pinned';
+  },
+
+  remove(slug) {
+    const slugs = this.getAll();
+    const idx = slugs.indexOf(slug);
+    if (idx === -1) return;
+    slugs.splice(idx, 1);
+    this._save(slugs);
+  },
+};
+
 // ─── Display Mode Module (Card / List, shared across all song grids) ───
 const DisplayMode = {
   STORAGE_KEY: 'ml_display_mode',
@@ -577,6 +632,7 @@ const UI = {
     const delay = Math.min(index * 60, 600);
     const isCached = Cache.getCachedSong(song.slug) !== null;
     const isFavorited = Favorites.has(song.slug);
+    const isPinned = Pins.has(song.slug);
     const slug = Utils.escapeHtml(song.slug);
     // The favorite <button> is a sibling of the <a>, not nested inside it — <a> may not
     // contain interactive content, and nesting would make click targets unpredictable.
@@ -587,11 +643,14 @@ const UI = {
           <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
           <div class="song-card__meta">
             ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
-            <span class="song-card__views">${isCached ? '📌 ' : ''}👁 ${Utils.formatViews(song.views)}</span>
+            <span class="song-card__views">${isCached ? '⬇️ ' : ''}👁 ${Utils.formatViews(song.views)}</span>
           </div>
         </a>
         <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </button>
+        <button type="button" class="song-card__pin${isPinned ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isPinned}" aria-label="${I18n.t(isPinned ? 'common.unpin' : 'common.pin')}" title="${I18n.t(isPinned ? 'common.unpin' : 'common.pin')}"${isFavorited ? '' : ' hidden'}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3z"/></svg>
         </button>
       </div>`;
   },
@@ -780,6 +839,7 @@ const HomePage = {
     await this.loadCategories();
     if (this.currentCategory) this.updateCategoryButtons();
     await Promise.all([
+      this.loadPinned(),
       this.loadFeaturedSpot(),
       this.loadPopular(),
       this.favoritesOnly ? this.loadFavorites() : this.loadSongs(),
@@ -800,6 +860,8 @@ const HomePage = {
     this.songOfTheDaySectionIcon = document.getElementById('songOfTheDaySectionIcon');
     this.songOfTheDaySectionLabel = document.getElementById('songOfTheDaySectionLabel');
     this.popularSection = document.getElementById('popularSection');
+    this.pinnedSection = document.getElementById('pinnedSection');
+    this.pinnedGrid = document.getElementById('pinnedGrid');
     this.allSongsSection = document.getElementById('allSongsSection');
     this.paginationEl = document.getElementById('pagination');
     this.sortSelect = document.getElementById('sortSelect');
@@ -1073,6 +1135,28 @@ const HomePage = {
     }
   },
 
+  // ─── Pinned songs (up to Pins.MAX favorites, kept in a cookie) ────────
+  async loadPinned() {
+    if (!this.pinnedSection || !this.pinnedGrid) return;
+    const slugs = Pins.getAll();
+    if (!slugs.length) {
+      this.pinnedSection.style.display = 'none';
+      this.pinnedGrid.innerHTML = '';
+      return;
+    }
+    const songs = (await Promise.all(slugs.map((slug) => (
+      Utils.isOnline()
+        ? API.getSong(slug).catch(() => Cache.getCachedSong(slug))
+        : Promise.resolve(Cache.getCachedSong(slug))
+    )))).filter(Boolean);
+    if (!songs.length) {
+      this.pinnedSection.style.display = 'none';
+      return;
+    }
+    this.pinnedGrid.innerHTML = songs.map((song, i) => UI.createSongCard(song, i)).join('');
+    this.pinnedSection.style.display = this.searchResults && this.searchResults.style.display === 'block' ? 'none' : 'block';
+  },
+
   // ─── Load All Songs (Paginated) ──────────────────────
   async loadSongs() {
     if (!this.songGrid) return;
@@ -1197,6 +1281,7 @@ const HomePage = {
     // Show search section, hide others
     this.searchResults.style.display = 'block';
     this.popularSection.style.display = 'none';
+    if (this.pinnedSection) this.pinnedSection.style.display = 'none';
     this.allSongsSection.style.display = 'none';
     UI.showEmptyState(false);
     SearchHistory.hide();
@@ -1301,6 +1386,7 @@ const HomePage = {
   clearSearch() {
     if (this.searchResults) this.searchResults.style.display = 'none';
     if (this.popularSection) this.popularSection.style.display = 'block';
+    if (this.pinnedSection) this.pinnedSection.style.display = Pins.getAll().length ? 'block' : 'none';
     if (this.allSongsSection) this.allSongsSection.style.display = 'block';
     const sugBox = document.getElementById('searchSuggestions');
     if (sugBox) sugBox.style.display = 'none';
@@ -1425,6 +1511,12 @@ const SongPage = {
     if (favoriteBtn && song.slug) {
       favoriteBtn.dataset.slug = song.slug;
       updateFavoriteButton(favoriteBtn, Favorites.has(song.slug));
+    }
+    const pinBtn = document.getElementById('btnPinSong');
+    if (pinBtn && song.slug) {
+      pinBtn.dataset.slug = song.slug;
+      updatePinButton(pinBtn, Pins.has(song.slug));
+      pinBtn.hidden = !Favorites.has(song.slug);
     }
 
     this._currentSong = song;
@@ -2218,6 +2310,16 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── Favorite Toggle (delegated — covers every song-grid, plus the song detail page) ────
+function updatePinButton(btn, isPinned) {
+  btn.classList.toggle('active', isPinned);
+  btn.setAttribute('aria-pressed', String(isPinned));
+  const label = I18n.t(isPinned ? 'common.unpin' : 'common.pin');
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+  const text = btn.querySelector('[data-pin-label]');
+  if (text) text.textContent = label;
+}
+
 function updateFavoriteButton(btn, isFavorited) {
   btn.classList.toggle('active', isFavorited);
   btn.setAttribute('aria-pressed', String(isFavorited));
@@ -3095,6 +3197,9 @@ document.addEventListener('click', (e) => {
   if (!slug) return;
   const nowFavorited = Favorites.toggle(slug);
 
+  if (nowFavorited === false && Pins.has(slug)) Pins.remove(slug); // un-favoriting also un-pins
+  if (nowFavorited !== null) syncPinButtons(slug);
+
   if (nowFavorited === null) {
     if (typeof Toast !== 'undefined') Toast.show(I18n.t('toast.favorites_consent_required'), { type: 'warning' });
     return;
@@ -3107,6 +3212,37 @@ document.addEventListener('click', (e) => {
   if (typeof Toast !== 'undefined') {
     Toast.show(I18n.t(nowFavorited ? 'toast.added_to_favorites' : 'toast.removed_from_favorites'), { type: 'success', duration: 2000 });
   }
+});
+
+// Pin buttons only show for favorited songs; keep every copy of a song's pin button in step
+// with its favorite/pin state, and refresh the home page's Pinned section.
+function syncPinButtons(slug) {
+  const favorited = Favorites.has(slug);
+  const pinned = Pins.has(slug);
+  document.querySelectorAll(`.song-card__pin[data-slug="${CSS.escape(slug)}"], .song-page__pin[data-slug="${CSS.escape(slug)}"]`)
+    .forEach((el) => { el.hidden = !favorited; updatePinButton(el, pinned); });
+  if (typeof HomePage !== 'undefined' && HomePage.pinnedSection) HomePage.loadPinned();
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.song-card__pin, .song-page__pin');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const slug = btn.dataset.slug;
+  if (!slug) return;
+
+  const result = Pins.toggle(slug);
+  const messages = {
+    pinned: ['toast.pinned', 'success'],
+    unpinned: ['toast.unpinned', 'success'],
+    full: ['toast.pin_limit', 'warning'],
+    not_favorite: ['toast.pin_requires_favorite', 'warning'],
+    no_consent: ['toast.favorites_consent_required', 'warning'],
+  };
+  if (result === 'pinned' || result === 'unpinned') syncPinButtons(slug);
+  const [key, type] = messages[result];
+  if (typeof Toast !== 'undefined') Toast.show(I18n.t(key, { max: Pins.MAX }), { type, duration: 2200 });
 });
 
 // ─── App Initialization ────────────────────────────────────────
