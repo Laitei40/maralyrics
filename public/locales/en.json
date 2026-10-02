@@ -3,6 +3,23 @@
     "popular": "Popular",
     "articles": "Articles"
   },
+  "event_detail": {
+    "view_details": "View details",
+    "when": "When",
+    "where": "Where",
+    "about": "About",
+    "all_day": "All day",
+    "days": "{count} days",
+    "open_map": "Open in Maps",
+    "no_description": "No description provided.",
+    "add_to_calendar": "Add to my calendar",
+    "view_calendar": "View full calendar",
+    "status_now": "Happening now",
+    "status_today": "Happening today",
+    "status_tomorrow": "Tomorrow",
+    "status_soon": "In {count} days",
+    "status_ended": "Ended"
+  },
   "calendar": {
     "toggle_aria": "Community Calendar",
     "title": "Community Calendar",

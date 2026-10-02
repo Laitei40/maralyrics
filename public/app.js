@@ -693,14 +693,17 @@ const UI = {
     }
 
     return `
-      <div class="song-of-the-day song-of-the-day--event fade-in">
+      <div class="song-of-the-day song-of-the-day--event fade-in" data-event-open>
         <span class="song-of-the-day__badge song-of-the-day__badge--event">${I18n.t('home.event_of_the_day_badge')}</span>
         <div class="song-of-the-day__event-body">
           <h3 class="song-of-the-day__title">${Utils.escapeHtml(ev.title)}</h3>
           <p class="song-of-the-day__artist">🗓️ ${Utils.escapeHtml(when)}${ev.location ? ` · 📍 ${Utils.escapeHtml(ev.location)}` : ''}</p>
           ${ev.description ? `<p class="song-of-the-day__event-desc">${Utils.escapeHtml(ev.description)}</p>` : ''}
         </div>
-        <button type="button" class="song-of-the-day__event-link" data-calendar-open>${I18n.t('home.event_of_the_day_link')}</button>
+        <div class="song-of-the-day__event-actions">
+          <button type="button" class="song-of-the-day__event-details" data-event-open>${I18n.t('event_detail.view_details')}</button>
+          <button type="button" class="song-of-the-day__event-link" data-calendar-open>${I18n.t('home.event_of_the_day_link')}</button>
+        </div>
       </div>`;
   },
 
@@ -1014,6 +1017,7 @@ const HomePage = {
       this.songOfTheDaySectionIcon.textContent = '📅';
       this.songOfTheDaySectionLabel.setAttribute('data-i18n', 'home.event_of_the_day');
       I18n.applyToDOM();
+      this.featuredEvent = event;
       this.songOfTheDayCard.innerHTML = UI.createEventOfTheDayCard(event);
       this.songOfTheDaySection.style.display = 'block';
       return;
@@ -2599,6 +2603,211 @@ const CalendarPrefs = (() => {
   return { get, set, loadCalendars, initSelect, promptIfNeeded };
 })();
 
+// ─── Event Detail (modal opened from the Today's Event card and event notifications) ────
+// Shows one calendar event in full: date block, live status, when / where / about, plus
+// "Add to calendar" (.ics download) and a jump to the full community calendar.
+const EventDetail = (() => {
+  let el = null;
+  let lastFocus = null;
+
+  const isAllDay = (str) => /^\d{4}-\d{2}-\d{2}$/.test(str || '');
+  const parse = (str) => new Date(isAllDay(str) ? str + 'T00:00:00' : str);
+  const DAY = 24 * 60 * 60 * 1000;
+
+  function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+
+  function describeWhen(ev) {
+    const start = parse(ev.start);
+    const long = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const short = { month: 'short', day: 'numeric', year: 'numeric' };
+    if (isAllDay(ev.start)) {
+      if (!ev.end || ev.end === ev.start) {
+        return { primary: start.toLocaleDateString(undefined, long), secondary: I18n.t('event_detail.all_day') };
+      }
+      const end = parse(ev.end);
+      const days = Math.round((end - start) / DAY) + 1;
+      return {
+        primary: `${start.toLocaleDateString(undefined, short)} – ${end.toLocaleDateString(undefined, short)}`,
+        secondary: `${I18n.t('event_detail.all_day')} · ${I18n.t('event_detail.days', { count: days })}`,
+      };
+    }
+    const time = { hour: '2-digit', minute: '2-digit' };
+    const end = ev.end ? parse(ev.end) : null;
+    let secondary = start.toLocaleTimeString(undefined, time);
+    if (end && !isNaN(end)) {
+      secondary += ' – ' + (startOfDay(end).getTime() === startOfDay(start).getTime()
+        ? end.toLocaleTimeString(undefined, time)
+        : end.toLocaleString(undefined, { month: 'short', day: 'numeric', ...time }));
+    }
+    return { primary: start.toLocaleDateString(undefined, long), secondary };
+  }
+
+  /** { live: true/false, text } — "Happening today/now", "Tomorrow", "In N days", "Ended". */
+  function status(ev) {
+    const now = new Date();
+    const today = startOfDay(now);
+    const startDay = startOfDay(parse(ev.start));
+    const endDay = isAllDay(ev.start) && ev.end ? startOfDay(parse(ev.end)) : startDay;
+    if (today >= startDay && today <= endDay) {
+      if (!isAllDay(ev.start)) {
+        const startAt = parse(ev.start);
+        const endAt = ev.end ? parse(ev.end) : new Date(startAt.getTime() + 60 * 60 * 1000);
+        if (now >= startAt && now <= endAt) return { live: true, text: I18n.t('event_detail.status_now') };
+        if (now > endAt) return { live: false, text: I18n.t('event_detail.status_ended') };
+      }
+      return { live: true, text: I18n.t('event_detail.status_today') };
+    }
+    if (today > endDay) return { live: false, text: I18n.t('event_detail.status_ended') };
+    const diff = Math.round((startDay - today) / DAY);
+    return { live: false, text: diff === 1 ? I18n.t('event_detail.status_tomorrow') : I18n.t('event_detail.status_soon', { count: diff }) };
+  }
+
+  // ── .ics (works with Google / Apple / Outlook calendars) ──
+  function icsEscape(text) {
+    return String(text || '').replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n').replace(/([,;])/g, '\\$1');
+  }
+  function icsDate(d) {
+    return d.toISOString().replace(/[-:]|\.\d{3}/g, '');
+  }
+  function icsDay(str) {
+    return str.replace(/-/g, '');
+  }
+  function buildIcs(ev) {
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MaraLyrics//Event//EN', 'BEGIN:VEVENT',
+      `UID:${icsEscape(ev.id || ev.title)}-${icsDay(ev.start.slice(0, 10))}@maralyrics.com`,
+      `DTSTAMP:${icsDate(new Date())}`];
+    if (isAllDay(ev.start)) {
+      const endExclusive = new Date(parse(ev.end || ev.start).getTime() + DAY); // DTEND is exclusive for all-day
+      const e = `${endExclusive.getFullYear()}${String(endExclusive.getMonth() + 1).padStart(2, '0')}${String(endExclusive.getDate()).padStart(2, '0')}`;
+      lines.push(`DTSTART;VALUE=DATE:${icsDay(ev.start)}`, `DTEND;VALUE=DATE:${e}`);
+    } else {
+      const startAt = parse(ev.start);
+      const endAt = ev.end ? parse(ev.end) : new Date(startAt.getTime() + 60 * 60 * 1000);
+      lines.push(`DTSTART:${icsDate(startAt)}`, `DTEND:${icsDate(endAt)}`);
+    }
+    lines.push(`SUMMARY:${icsEscape(ev.title)}`);
+    if (ev.description) lines.push(`DESCRIPTION:${icsEscape(ev.description)}`);
+    if (ev.location) lines.push(`LOCATION:${icsEscape(ev.location)}`);
+    lines.push('END:VEVENT', 'END:VCALENDAR');
+    return lines.join('\r\n');
+  }
+  function downloadIcs(ev) {
+    const blob = new Blob([buildIcs(ev)], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (String(ev.title || 'event').replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '') || 'event') + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  const ICONS = {
+    clock: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    pin: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    text: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>',
+  };
+
+  function row(icon, label, bodyHtml) {
+    return `<div class="event-modal__row">
+      <span class="event-modal__row-icon">${icon}</span>
+      <div class="event-modal__row-body"><span class="event-modal__row-label">${Utils.escapeHtml(label)}</span>${bodyHtml}</div>
+    </div>`;
+  }
+
+  function render(ev) {
+    const start = parse(ev.start);
+    const st = status(ev);
+    const when = describeWhen(ev);
+    const month = start.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+    const weekday = start.toLocaleDateString(undefined, { weekday: 'short' });
+    const mapUrl = ev.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}` : '';
+
+    el.querySelector('.event-modal__panel').classList.toggle('event-modal__panel--live', st.live);
+    el.querySelector('.event-modal__content').innerHTML = `
+      <div class="event-modal__hero">
+        <div class="event-modal__date" aria-hidden="true">
+          <span class="event-modal__date-month">${Utils.escapeHtml(month)}</span>
+          <span class="event-modal__date-day">${String(start.getDate()).padStart(2, '0')}</span>
+          <span class="event-modal__date-weekday">${Utils.escapeHtml(weekday)}</span>
+        </div>
+        <div class="event-modal__hero-text">
+          <span class="event-modal__status${st.live ? ' event-modal__status--live' : ''}"><span class="event-modal__status-dot"></span>${Utils.escapeHtml(st.text)}</span>
+          <h2 class="event-modal__title" id="eventModalTitle">${Utils.escapeHtml(ev.title)}</h2>
+        </div>
+      </div>
+      <div class="event-modal__body">
+        ${row(ICONS.clock, I18n.t('event_detail.when'), `<span class="event-modal__row-main">${Utils.escapeHtml(when.primary)}</span><span class="event-modal__row-sub">${Utils.escapeHtml(when.secondary)}</span>`)}
+        ${ev.location ? row(ICONS.pin, I18n.t('event_detail.where'), `<span class="event-modal__row-main">${Utils.escapeHtml(ev.location)}</span><a class="event-modal__map" href="${Utils.escapeHtml(mapUrl)}" target="_blank" rel="noopener noreferrer">${Utils.escapeHtml(I18n.t('event_detail.open_map'))} →</a>`) : ''}
+        ${row(ICONS.text, I18n.t('event_detail.about'), ev.description
+          ? `<p class="event-modal__desc">${Utils.escapeHtml(ev.description).replace(/\n/g, '<br>')}</p>`
+          : `<p class="event-modal__desc event-modal__desc--empty">${Utils.escapeHtml(I18n.t('event_detail.no_description'))}</p>`)}
+      </div>
+      <div class="event-modal__actions">
+        <button type="button" class="event-modal__btn event-modal__btn--primary" data-event-ics>${Utils.escapeHtml(I18n.t('event_detail.add_to_calendar'))}</button>
+        <button type="button" class="event-modal__btn" data-event-calendar>${Utils.escapeHtml(I18n.t('event_detail.view_calendar'))}</button>
+      </div>`;
+
+    el.querySelector('[data-event-ics]').addEventListener('click', () => downloadIcs(ev));
+    el.querySelector('[data-event-calendar]').addEventListener('click', () => {
+      close();
+      document.dispatchEvent(new CustomEvent('open-community-calendar'));
+    });
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape' && el && el.classList.contains('visible')) close();
+  }
+
+  function build() {
+    if (el) return;
+    el = document.createElement('div');
+    el.className = 'event-modal';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-labelledby', 'eventModalTitle');
+    el.innerHTML = `
+      <div class="event-modal__backdrop" data-event-close></div>
+      <section class="event-modal__panel">
+        <button type="button" class="event-modal__close" data-event-close aria-label="${Utils.escapeHtml(I18n.t('calendar.close_aria'))}">&times;</button>
+        <div class="event-modal__content"></div>
+      </section>`;
+    document.body.appendChild(el);
+    el.querySelectorAll('[data-event-close]').forEach((n) => n.addEventListener('click', close));
+    document.addEventListener('keydown', onKeydown);
+  }
+
+  function open(ev) {
+    if (!ev || !ev.start || !ev.title) return;
+    build();
+    lastFocus = document.activeElement;
+    render(ev);
+    el.classList.add('visible');
+    document.body.classList.add('calendar-dialog-open'); // reuses the scroll lock
+    el.querySelector('.event-modal__close').focus();
+  }
+
+  function close() {
+    if (!el) return;
+    el.classList.remove('visible');
+    document.body.classList.remove('calendar-dialog-open');
+    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+  }
+
+  function init() {
+    // The Today's Event card (whole card, or its "View details" button).
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-calendar-open]')) return; // that link opens the full calendar
+      if (!e.target.closest('[data-event-open]')) return;
+      const ev = typeof HomePage !== 'undefined' ? HomePage.featuredEvent : null;
+      if (ev) open(ev);
+    });
+  }
+
+  return { init, open, close };
+})();
+
 // ─── Community Calendar (events pulled live from calendar-api.marareih.org) ────
 // Read-only, unauthenticated, CORS-open JSON feed — see marareih.org's
 // calendar-worker/API.md. We fetch one year at a time and let the visitor
@@ -2911,6 +3120,8 @@ const CalendarFeature = (() => {
     document.addEventListener('click', (e) => {
       if (e.target.closest('[data-calendar-open]')) open();
     });
+    // Lets other widgets (the event detail modal) jump to the full calendar.
+    document.addEventListener('open-community-calendar', open);
   }
 
   return { init };
@@ -3109,6 +3320,8 @@ const NotificationsFeature = (() => {
           title: I18n.t('notifications.event_today_title'),
           body: ev.title + (ev.location ? ' — ' + ev.location : ''),
           url: '/',
+          // Kept on the item so clicking the notification can open the full event detail.
+          event: { id: ev.id, title: ev.title, description: ev.description, location: ev.location, start: ev.start, end: ev.end },
           read: false,
           ts: Date.now(),
         });
@@ -3177,7 +3390,20 @@ const NotificationsFeature = (() => {
 
     document.addEventListener('click', (e) => {
       const item = e.target.closest('.notif-item');
-      if (item) markRead(item.dataset.notifId);
+      if (!item) return;
+      markRead(item.dataset.notifId);
+      // Event notifications open the event itself instead of just landing on the homepage.
+      // (Items saved before events were stored on them have no `event` and keep the old link.)
+      const saved = items.find((i) => i.id === item.dataset.notifId);
+      if (saved && saved.type === 'event' && saved.event) {
+        e.preventDefault();
+        const toggle = document.querySelector('.notif-toggle');
+        if (toggle) {
+          toggle.classList.remove('open');
+          toggle.querySelector('.notif-toggle__btn')?.setAttribute('aria-expanded', 'false');
+        }
+        EventDetail.open(saved.event);
+      }
     });
 
     runChecks();
@@ -3259,6 +3485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initAppPromotion();
   CalendarFeature.init();
+  EventDetail.init();
   CalendarPrefs.initSelect();
   NotificationsFeature.init();
   // The calendar prompt (first visit only) goes first — once it's dismissed
