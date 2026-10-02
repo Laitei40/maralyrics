@@ -99,6 +99,7 @@ const Utils = {
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
     if (path.startsWith('/article/')) return 'article';
     if (path === '/articles' || path === '/articles.html') return 'articles';
+    if (path === '/downloads' || path === '/downloads.html') return 'downloads';
     return 'home';
   },
 
@@ -233,26 +234,6 @@ const Cache = {
     return match ? decodeURIComponent(match[1]) : null;
   },
 
-  /** Save a song to the offline cache. */
-  cacheSong(song) {
-    if (!song?.slug) return;
-    // Full data in localStorage
-    this.set('song_' + song.slug, song);
-    // Minimal reference in cookies
-    const visited = JSON.parse(this.getCookie('visited') || '[]');
-    if (!visited.includes(song.slug)) {
-      visited.push(song.slug);
-      // Keep last 50
-      if (visited.length > 50) visited.shift();
-      this.setCookie('visited', JSON.stringify(visited));
-    }
-  },
-
-  /** Get a cached song. */
-  getCachedSong(slug) {
-    return this.get('song_' + slug);
-  },
-
   /** Cache song list. */
   cacheSongList(page, category, sort, data) {
     const key = `list_${page}_${category || 'all'}_${sort || 'default'}`;
@@ -299,6 +280,138 @@ const Cache = {
     toRemove.forEach((k) => localStorage.removeItem(k.key));
   },
 };
+
+// ─── Downloads Module (songs the visitor chose to keep offline) ──
+// "Downloading" a song stores a full copy of it in the browser's IndexedDB — nothing is
+// saved to the computer as a file. Songs are only ever stored when the visitor asks (there is
+// no automatic caching of songs they merely opened), they never expire, and the browser is
+// asked to treat this storage as persistent so it isn't cleared under storage pressure.
+const Downloads = {
+  DB_NAME: 'maralyrics-downloads',
+  STORE: 'songs',
+  // A small mirror of the downloaded slugs so cards can render their state synchronously.
+  // (Deliberately not prefixed `ml_` — Cache._cleanup() prunes those when storage is full.)
+  MIRROR_KEY: 'maralyrics.downloads',
+  slugs: new Set(),
+  supported: typeof indexedDB !== 'undefined',
+  _db: null,
+  _ready: null,
+
+  _loadMirror() {
+    try {
+      const list = JSON.parse(localStorage.getItem(this.MIRROR_KEY) || '[]');
+      if (Array.isArray(list)) list.forEach((slug) => this.slugs.add(slug));
+    } catch { /* ignore */ }
+  },
+
+  _saveMirror() {
+    try { localStorage.setItem(this.MIRROR_KEY, JSON.stringify([...this.slugs])); } catch { /* ignore */ }
+  },
+
+  _open() {
+    if (this._db) return Promise.resolve(this._db);
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(this.DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(this.STORE, { keyPath: 'slug' });
+      req.onsuccess = () => { this._db = req.result; resolve(this._db); };
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async _tx(mode, fn) {
+    const db = await this._open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.STORE, mode);
+      const result = fn(tx.objectStore(this.STORE));
+      tx.oncomplete = () => resolve(result && 'result' in result ? result.result : undefined);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  },
+
+  /** Idempotent. Loads the stored list (the source of truth) and tidies up the old auto-cache. */
+  init() {
+    if (this._ready) return this._ready;
+    this._loadMirror();
+    // One-time cleanup of songs the site used to cache automatically as they were opened.
+    try {
+      if (!localStorage.getItem('maralyrics.autocache_purged')) {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(CONFIG.CACHE_PREFIX + 'song_')) localStorage.removeItem(key);
+        }
+        localStorage.setItem('maralyrics.autocache_purged', '1');
+      }
+    } catch { /* ignore */ }
+    this._ready = (async () => {
+      if (!this.supported) return;
+      try {
+        const all = await this.getAll();
+        this.slugs = new Set(all.map((entry) => entry.slug));
+        this._saveMirror();
+        document.dispatchEvent(new CustomEvent('downloads-changed'));
+      } catch (err) {
+        console.warn('[downloads] storage unavailable:', err);
+        this.supported = false;
+      }
+    })();
+    return this._ready;
+  },
+
+  has(slug) { return this.slugs.has(slug); },
+  get count() { return this.slugs.size; },
+
+  /** Every downloaded song (the song object plus `savedAt`), newest download first. */
+  async getAll() {
+    if (!this.supported) return [];
+    const rows = await this._tx('readonly', (store) => store.getAll());
+    return (rows || []).map((row) => ({ ...row.song, slug: row.slug, savedAt: row.savedAt }))
+      .sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  },
+
+  async get(slug) {
+    if (!this.supported || !slug) return null;
+    try {
+      const row = await this._tx('readonly', (store) => store.get(slug));
+      return row ? { ...row.song, slug: row.slug, savedAt: row.savedAt } : null;
+    } catch {
+      return null;
+    }
+  },
+
+  async add(song) {
+    if (!this.supported || !song?.slug) throw new Error('Downloads are not supported in this browser.');
+    const existing = await this.get(song.slug);
+    await this._tx('readwrite', (store) => store.put({ slug: song.slug, song, savedAt: existing?.savedAt || Date.now() }));
+    this.slugs.add(song.slug);
+    this._saveMirror();
+    // Ask the browser not to evict this data when it is short on space.
+    try { navigator.storage?.persist?.(); } catch { /* ignore */ }
+    document.dispatchEvent(new CustomEvent('downloads-changed', { detail: { slug: song.slug } }));
+  },
+
+  async remove(slug) {
+    await this._tx('readwrite', (store) => store.delete(slug));
+    this.slugs.delete(slug);
+    this._saveMirror();
+    document.dispatchEvent(new CustomEvent('downloads-changed', { detail: { slug } }));
+  },
+
+  async clear() {
+    await this._tx('readwrite', (store) => store.clear());
+    this.slugs.clear();
+    this._saveMirror();
+    document.dispatchEvent(new CustomEvent('downloads-changed'));
+  },
+
+  /** Asks the service worker to keep the song page and My Downloads page available offline. */
+  prepareOffline() {
+    try {
+      navigator.serviceWorker?.ready.then((reg) => reg.active?.postMessage({ type: 'CACHE_OFFLINE_SHELLS' }));
+    } catch { /* ignore */ }
+  },
+};
+Downloads._loadMirror();
 
 // ─── Favorites Module (cookie-backed) ───────────────────────────
 const Favorites = {
@@ -625,12 +738,16 @@ const API = {
   },
 };
 
+// The blue "downloaded" mark shown beside a song's view count, and the download button icon.
+const DOWNLOADED_MARK_HTML = '<span class="song-card__dlmark" data-slug="__SLUG__"__HIDDEN__ role="img" aria-label="Downloaded" title="Downloaded — available offline"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#2f80ed"/><path d="M12 5v9m0 0l-4-4m4 4l4-4M6.5 18.5h11" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+const DOWNLOAD_ICON_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14"/></svg>';
+
 // ─── UI Rendering Module ───────────────────────────────────────
 const UI = {
   /** Create a song card HTML string. */
   createSongCard(song, index = 0) {
     const delay = Math.min(index * 60, 600);
-    const isCached = Cache.getCachedSong(song.slug) !== null;
+    const isDownloaded = Downloads.has(song.slug);
     const isFavorited = Favorites.has(song.slug);
     const isPinned = Pins.has(song.slug);
     const slug = Utils.escapeHtml(song.slug);
@@ -643,12 +760,14 @@ const UI = {
           <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
           <div class="song-card__meta">
             ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
-            ${isCached ? `<span class="song-card__offline" title="${Utils.escapeHtml(I18n.t('common.saved_offline_title'))}">${Utils.escapeHtml(I18n.t('common.saved_offline'))}</span>` : ''}
-            <span class="song-card__views">👁 ${Utils.formatViews(song.views)}</span>
+            <span class="song-card__views">${DOWNLOADED_MARK_HTML.replace('__SLUG__', slug).replace('__HIDDEN__', isDownloaded ? '' : ' hidden')}👁 ${Utils.formatViews(song.views)}</span>
           </div>
         </a>
         <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </button>
+        <button type="button" class="song-card__download${isDownloaded ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isDownloaded}" aria-label="${I18n.t(isDownloaded ? 'common.downloaded_remove' : 'common.download')}" title="${I18n.t(isDownloaded ? 'common.downloaded_remove' : 'common.download')}">
+          ${DOWNLOAD_ICON_SVG}
         </button>
         <button type="button" class="song-card__pin${isPinned ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isPinned}" aria-label="${I18n.t(isPinned ? 'common.unpin' : 'common.pin')}" title="${I18n.t(isPinned ? 'common.unpin' : 'common.pin')}"${isFavorited ? '' : ' hidden'}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3z"/></svg>
@@ -1145,8 +1264,8 @@ const HomePage = {
     if (!slugs.length) return [];
     const songs = (await Promise.all(slugs.map((slug) => (
       Utils.isOnline()
-        ? API.getSong(slug).catch(() => Cache.getCachedSong(slug))
-        : Promise.resolve(Cache.getCachedSong(slug))
+        ? API.getSong(slug).catch(() => Downloads.get(slug))
+        : Downloads.get(slug)
     )))).filter(Boolean);
     return this.currentCategory ? songs.filter((song) => song.category === this.currentCategory) : songs;
   },
@@ -1258,7 +1377,7 @@ const HomePage = {
     if (!quiet) this.songGrid.innerHTML = UI.createSkeletons(Math.min(slugs.length, 6));
 
     if (!Utils.isOnline()) {
-      const cached = slugs.map((s) => Cache.getCachedSong(s)).filter(Boolean);
+      const cached = (await Promise.all(slugs.map((s) => Downloads.get(s)))).filter(Boolean);
       const sorted = this.pinnedFirst(Utils.sortSongs(cached, this.currentSort));
       UI.setOfflineMode(true);
       if (!sorted.length) {
@@ -1317,7 +1436,7 @@ const HomePage = {
         Cache.set('search_' + q.toLowerCase(), results);
       } else {
         // Offline: search from cached data
-        results = this._offlineSearch(q);
+        results = await this._offlineSearch(q);
         UI.setOfflineMode(true);
       }
 
@@ -1367,7 +1486,7 @@ const HomePage = {
         this.searchCount.textContent = I18n.t('common.cached', { count: cached.length });
         UI.setOfflineMode(true);
       } else {
-        const offline = this._offlineSearch(q);
+        const offline = await this._offlineSearch(q);
         if (offline.length) {
           this.searchGrid.innerHTML = offline.map((s, i) => UI.createSongCard(s, i)).join('');
           this.searchCount.textContent = I18n.t('common.cached', { count: offline.length });
@@ -1379,27 +1498,16 @@ const HomePage = {
     }
   },
 
-  /** Search through locally cached songs. */
-  _offlineSearch(query) {
+  /** Search the songs the visitor has downloaded (the only songs available offline). */
+  async _offlineSearch(query) {
     const q = query.toLowerCase();
-    const results = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key.startsWith(CONFIG.CACHE_PREFIX + 'song_')) continue;
-      try {
-        const entry = JSON.parse(localStorage.getItem(key));
-        const song = entry.data;
-        if (
-          song.title?.toLowerCase().includes(q) ||
-          song.artist_name?.toLowerCase().includes(q) ||
-          song.artist?.toLowerCase().includes(q) ||
-          song.artists?.some((a) => a.name?.toLowerCase().includes(q))
-        ) {
-          results.push(song);
-        }
-      } catch { /* skip */ }
-    }
-    return results;
+    const songs = await Downloads.getAll();
+    return songs.filter((song) => (
+      song.title?.toLowerCase().includes(q) ||
+      song.artist_name?.toLowerCase().includes(q) ||
+      song.artist?.toLowerCase().includes(q) ||
+      song.artists?.some((a) => a.name?.toLowerCase().includes(q))
+    ));
   },
 
   /** Clear search results and restore normal view. */
@@ -1431,11 +1539,17 @@ const SongPage = {
       let song;
 
       if (Utils.isOnline()) {
-        song = await API.getSong(slug);
-        // Cache for offline
-        Cache.cacheSong(song);
+        try {
+          song = await API.getSong(slug);
+        } catch (err) {
+          song = await Downloads.get(slug); // network hiccup — fall back to the downloaded copy
+          if (!song) throw err;
+          UI.setOfflineMode(true);
+        }
+        // Keep a downloaded song's stored copy up to date (songs are never stored unless downloaded).
+        if (Downloads.has(slug) && song?.slug && Utils.isOnline()) Downloads.add(song).catch(() => {});
       } else {
-        song = Cache.getCachedSong(slug);
+        song = await Downloads.get(slug);
         if (!song) {
           this.showError();
           return;
@@ -1448,15 +1562,7 @@ const SongPage = {
       this.countView(slug);
     } catch (err) {
       console.warn('Failed to load song:', err);
-      // Try cached version
-      const cached = Cache.getCachedSong(slug);
-      if (cached) {
-        this.renderSong(cached);
-        this.updateMeta(cached);
-        UI.setOfflineMode(true);
-      } else {
-        this.showError();
-      }
+      this.showError();
     }
   },
 
@@ -1530,6 +1636,11 @@ const SongPage = {
     if (favoriteBtn && song.slug) {
       favoriteBtn.dataset.slug = song.slug;
       updateFavoriteButton(favoriteBtn, Favorites.has(song.slug));
+    }
+    const downloadBtn = document.getElementById('btnDownloadSong');
+    if (downloadBtn && song.slug) {
+      downloadBtn.dataset.slug = song.slug;
+      updateDownloadButton(downloadBtn, Downloads.has(song.slug));
     }
     const pinBtn = document.getElementById('btnPinSong');
     if (pinBtn && song.slug) {
@@ -2062,6 +2173,52 @@ const CopyrightOwnerPage = {
     if (skeleton) skeleton.style.display = 'none';
     if (detail) detail.style.display = 'none';
     if (error) error.style.display = 'block';
+  },
+};
+
+// ─── My Downloads Page ─────────────────────────────────────────
+const DownloadsPage = {
+  async init() {
+    this.grid = document.getElementById('downloadsGrid');
+    this.empty = document.getElementById('downloadsEmpty');
+    this.summary = document.getElementById('downloadsSummary');
+    this.clearBtn = document.getElementById('downloadsClearBtn');
+    this.sortSelect = document.getElementById('downloadsSort');
+    if (!this.grid) return;
+    this.sort = (() => { try { return localStorage.getItem('maralyrics.downloads_sort') || 'recent'; } catch { return 'recent'; } })();
+    if (this.sortSelect) {
+      this.sortSelect.value = this.sort;
+      this.sortSelect.addEventListener('change', () => {
+        this.sort = this.sortSelect.value;
+        try { localStorage.setItem('maralyrics.downloads_sort', this.sort); } catch { /* ignore */ }
+        this.render();
+      });
+    }
+    if (this.clearBtn) {
+      this.clearBtn.addEventListener('click', async () => {
+        if (!Downloads.count || !window.confirm(I18n.t('downloads.confirm_clear'))) return;
+        try { await Downloads.clear(); } catch { /* ignore */ }
+      });
+    }
+    document.addEventListener('downloads-changed', () => this.render());
+    await Downloads.init();
+    await this.render();
+  },
+
+  async render() {
+    let songs = [];
+    try { songs = await Downloads.getAll(); } catch { /* ignore */ }
+    if (this.sort === 'name') songs.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
+    else if (this.sort === 'views') songs.sort((a, b) => (b.views || 0) - (a.views || 0));
+    // 'recent' is already newest download first
+
+    const has = songs.length > 0;
+    this.grid.style.display = has ? '' : 'none';
+    if (this.empty) this.empty.style.display = has ? 'none' : 'block';
+    if (this.clearBtn) this.clearBtn.style.display = has ? '' : 'none';
+    if (this.sortSelect) this.sortSelect.style.display = has ? '' : 'none';
+    if (this.summary) this.summary.textContent = has ? I18n.t('downloads.summary', { count: songs.length }) : '';
+    this.grid.innerHTML = songs.map((song, i) => UI.createSongCard(song, i)).join('');
   },
 };
 
@@ -3455,6 +3612,83 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ─── Download buttons (cards, song page) ───────────────────────
+function updateDownloadButton(btn, isDownloaded) {
+  btn.classList.toggle('active', isDownloaded);
+  btn.setAttribute('aria-pressed', String(isDownloaded));
+  const label = I18n.t(isDownloaded ? 'common.downloaded_remove' : 'common.download');
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+  const text = btn.querySelector('[data-download-label]');
+  if (text) text.textContent = I18n.t(isDownloaded ? 'common.downloaded_btn' : 'common.download_btn');
+}
+
+/** Keeps every download button / mark for a song, and the nav badge, in step with its state. */
+function syncDownloadUI(slug) {
+  if (slug) {
+    const downloaded = Downloads.has(slug);
+    const sel = CSS.escape(slug);
+    document.querySelectorAll(`.song-card__download[data-slug="${sel}"], .song-page__download[data-slug="${sel}"]`)
+      .forEach((el) => { el.classList.remove('busy'); updateDownloadButton(el, downloaded); });
+    document.querySelectorAll(`.song-card__dlmark[data-slug="${sel}"]`).forEach((el) => { el.hidden = !downloaded; });
+  }
+  updateDownloadsBadge();
+}
+
+function updateDownloadsBadge() {
+  const count = Downloads.count;
+  document.querySelectorAll('.downloads-toggle__badge').forEach((badge) => {
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.hidden = count === 0;
+  });
+}
+
+document.addEventListener('downloads-changed', (e) => {
+  if (e.detail?.slug) syncDownloadUI(e.detail.slug); else {
+    document.querySelectorAll('.song-card__download, .song-page__download').forEach((el) => updateDownloadButton(el, Downloads.has(el.dataset.slug)));
+    document.querySelectorAll('.song-card__dlmark').forEach((el) => { el.hidden = !Downloads.has(el.dataset.slug); });
+    updateDownloadsBadge();
+  }
+});
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.song-card__download, .song-page__download');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const slug = btn.dataset.slug;
+  if (!slug || btn.classList.contains('busy')) return;
+  const toast = (key, type = 'success') => { if (typeof Toast !== 'undefined') Toast.show(I18n.t(key), { type, duration: 2400 }); };
+
+  if (!Downloads.supported) { toast('downloads.unsupported', 'warning'); return; }
+
+  // Removing a download is a deliberate act — downloaded songs are kept until the visitor says so.
+  if (Downloads.has(slug)) {
+    if (!window.confirm(I18n.t('downloads.confirm_remove'))) return;
+    try {
+      await Downloads.remove(slug);
+      toast('downloads.removed');
+    } catch (err) {
+      console.warn('[downloads] remove failed:', err);
+      toast('downloads.error', 'error');
+    }
+    return;
+  }
+
+  if (!Utils.isOnline()) { toast('downloads.need_internet', 'warning'); return; }
+  btn.classList.add('busy');
+  try {
+    const song = await API.getSong(slug);
+    await Downloads.add(song);
+    Downloads.prepareOffline();
+    toast('downloads.saved');
+  } catch (err) {
+    console.warn('[downloads] save failed:', err);
+    btn.classList.remove('busy');
+    toast('downloads.error', 'error');
+  }
+});
+
 // Pin buttons only show for favorited songs; keep every copy of a song's pin button in step
 // with its favorite/pin state, and refresh the home page's Pinned section.
 function syncPinButtons(slug) {
@@ -3512,6 +3746,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       setTimeout(initAppPromotionDialog, 400);
     });
   }, 900);
+
+  // Downloaded songs: load the saved list so cards and the nav badge reflect it from the start.
+  await Downloads.init();
+  updateDownloadsBadge();
 
   // Initialize theme
   Theme.init();
@@ -3647,6 +3885,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       break;
     case 'articles':
       ArticlesPage.init();
+      break;
+    case 'downloads':
+      DownloadsPage.init();
       break;
     default:
       HomePage.init();
