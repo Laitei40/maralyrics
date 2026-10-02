@@ -1303,6 +1303,22 @@ body::before {
   transform: translateY(-50%);
 }
 
+/* Room for the pin button (it sits left of the heart) so it never covers the view count.
+   List rows reserve it for every row so the columns stay aligned; grid cards only when pinnable. */
+.song-grid.list .song-card__link { padding-right: 70px; }
+.song-card:has(.song-card__pin:not([hidden])) .song-card__link { padding-right: 70px; }
+
+/* "Offline" tag on songs saved on this device. */
+.song-card__offline {
+  padding: 1px 8px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* ─── Song of the Day (featured card) ──────────────────────────
    Same visual language as .song-card but larger and with a glowing gradient
    border, so it reads as "today's pick" rather than just another grid tile. */

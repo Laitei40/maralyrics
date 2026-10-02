@@ -643,7 +643,8 @@ const UI = {
           <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
           <div class="song-card__meta">
             ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
-            <span class="song-card__views">${isCached ? '⬇️ ' : ''}👁 ${Utils.formatViews(song.views)}</span>
+            ${isCached ? `<span class="song-card__offline" title="${Utils.escapeHtml(I18n.t('common.saved_offline_title'))}">${Utils.escapeHtml(I18n.t('common.saved_offline'))}</span>` : ''}
+            <span class="song-card__views">👁 ${Utils.formatViews(song.views)}</span>
           </div>
         </a>
         <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
