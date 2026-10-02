@@ -1421,6 +1421,198 @@ body::before {
   text-decoration: none;
 }
 
+/* Today's Event card: clickable, with a primary "View details" next to the calendar link */
+.song-of-the-day--event { cursor: pointer; }
+.song-of-the-day__event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-lg);
+}
+.song-of-the-day__event-details {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--accent), var(--neon-pink));
+  color: #fff;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px var(--accent-glow);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.song-of-the-day__event-details:hover { transform: translateY(-1px); box-shadow: 0 8px 22px var(--accent-glow); }
+
+/* ─── Event detail modal ──────────────────────────────────────
+   Opened from the Today's Event card and from event notifications. */
+.event-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+.event-modal.visible { opacity: 1; pointer-events: auto; }
+.event-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 5, 14, 0.74);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.event-modal__panel {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  background: var(--bg-secondary, #0f1424);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(139, 92, 246, 0.12) inset;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.event-modal.visible .event-modal__panel { transform: translateY(0) scale(1); }
+.event-modal__panel--live { box-shadow: var(--shadow-lg), 0 0 40px rgba(236, 72, 153, 0.18), 0 0 0 1px rgba(236, 72, 153, 0.25) inset; }
+
+.event-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.event-modal__close:hover { background: rgba(255, 255, 255, 0.18); }
+
+.event-modal__hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-xl) var(--space-lg);
+  padding-right: 56px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(139, 92, 246, 0.4), transparent 60%),
+    radial-gradient(100% 120% at 100% 100%, rgba(236, 72, 153, 0.28), transparent 60%);
+  border-bottom: 1px solid var(--border-glass);
+}
+.event-modal__date {
+  flex: 0 0 auto;
+  width: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 10px;
+  border-radius: var(--radius-lg, 1rem);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  line-height: 1;
+}
+.event-modal__date-month { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--accent-light); }
+.event-modal__date-day { margin: 4px 0 2px; font-size: 34px; font-weight: 800; color: var(--text-primary); }
+.event-modal__date-weekday { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.event-modal__hero-text { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.event-modal__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 4.5vw, 1.6rem);
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.event-modal__status {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.event-modal__status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+.event-modal__status--live { color: #fff; background: rgba(236, 72, 153, 0.22); border-color: rgba(236, 72, 153, 0.5); }
+.event-modal__status--live .event-modal__status-dot { background: var(--neon-pink); animation: eventPulse 1.6s ease-out infinite; }
+@keyframes eventPulse {
+  0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7); }
+  100% { box-shadow: 0 0 0 9px rgba(236, 72, 153, 0); }
+}
+
+.event-modal__body { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-lg) var(--space-xl); }
+.event-modal__row { display: flex; gap: var(--space-md); align-items: flex-start; }
+.event-modal__row-icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--accent-light);
+}
+.event-modal__row-body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.event-modal__row-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.event-modal__row-main { font-size: var(--text-base); font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+.event-modal__row-sub { font-size: var(--text-sm); color: var(--text-secondary); }
+.event-modal__map { font-size: var(--text-sm); font-weight: 600; color: var(--accent-light); text-decoration: none; }
+.event-modal__map:hover { color: var(--accent); }
+.event-modal__desc { margin: 0; font-size: var(--text-sm); line-height: 1.7; color: var(--text-secondary); overflow-wrap: anywhere; }
+.event-modal__desc--empty { font-style: italic; color: var(--text-muted); }
+
+.event-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl) var(--space-xl);
+}
+.event-modal__btn {
+  flex: 1 1 160px;
+  padding: 11px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+.event-modal__btn:hover { transform: translateY(-1px); border-color: var(--accent); }
+.event-modal__btn--primary {
+  border: 0;
+  background: linear-gradient(135deg, var(--accent), var(--neon-pink));
+  color: #fff;
+  box-shadow: 0 6px 18px var(--accent-glow);
+}
+@media (max-width: 480px) {
+  .event-modal__hero { gap: var(--space-md); padding: var(--space-lg); padding-right: 52px; }
+  .event-modal__date { width: 66px; }
+  .event-modal__body, .event-modal__actions { padding-left: var(--space-lg); padding-right: var(--space-lg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .event-modal, .event-modal__panel { transition: none; }
+  .event-modal__status--live .event-modal__status-dot { animation: none; }
+}
+
 /* ─── Song Detail Page ──────────────────────────────────────── */
 .song-page {
   max-width: 800px;
