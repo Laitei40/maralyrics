@@ -1,7 +1,25 @@
 {
   "nav": {
     "popular": "Popular",
-    "articles": "Articles"
+    "articles": "Articles",
+    "my_downloads": "My Downloads"
+  },
+  "downloads": {
+    "title": "My Downloads",
+    "subtitle": "Songs you saved on this device — they open even without internet, and stay until you remove them.",
+    "summary": "{count} downloaded",
+    "empty_title": "No downloads yet",
+    "empty_text": "Tap the download icon on any song to keep it on this device and read it offline.",
+    "remove_all": "Remove all",
+    "sort_aria": "Sort downloads",
+    "sort_recent": "Recently downloaded",
+    "confirm_remove": "Remove this song from your downloads? It will no longer open offline.",
+    "confirm_clear": "Remove ALL downloaded songs from this device?",
+    "saved": "Downloaded — available offline",
+    "removed": "Removed from downloads",
+    "need_internet": "Connect to the internet to download this song.",
+    "unsupported": "Downloads aren't supported in this browser.",
+    "error": "Couldn't download this song. Please try again."
   },
   "event_detail": {
     "view_details": "View details",
@@ -211,8 +229,10 @@
     "favorite_btn": "Favorite",
     "add_to_favorites": "Add to favorites",
     "remove_from_favorites": "Remove from favorites",
-    "saved_offline": "Offline",
-    "saved_offline_title": "Saved on this device — opens without internet",
+    "download": "Download for offline",
+    "download_btn": "Download",
+    "downloaded_btn": "Downloaded",
+    "downloaded_remove": "Downloaded — tap to remove",
     "pin": "Pin to top",
     "unpin": "Unpin",
     "pin_btn": "Pin",

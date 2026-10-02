@@ -7,7 +7,7 @@
 // i18n.js, theme.js, consent.js, toast.js, or the locale JSON files) — those are served
 // cache-first below, so a returning visitor's browser keeps the exact bytes it first
 // cached forever otherwise, immune even to a hard refresh, until this version changes.
-const CACHE_VERSION = 'ml-v19';
+const CACHE_VERSION = 'ml-v20';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -43,7 +43,12 @@ const PAGE_SHELLS = [
   '/project.html',
   '/terms.html',
   '/report.html',
+  '/downloads',
 ];
+
+// A single song's API response is never cached here: songs are only available offline when the
+// visitor downloads them (stored by the app itself), not just because they opened one once.
+const SONG_DETAIL_API = /^\/api\/v1\/songs\/(?!popular$|of-the-day$)[^/]+$/;
 
 // ─── Install: Precache core assets ────────────────────────────
 self.addEventListener('install', (event) => {
@@ -88,6 +93,7 @@ self.addEventListener('fetch', (event) => {
 
   // ── API requests: Network-first with cache fallback ──
   if (url.pathname.startsWith('/api/')) {
+    if (SONG_DETAIL_API.test(url.pathname)) return; // straight to the network, never cached
     event.respondWith(networkFirstWithCache(request, API_CACHE, 5 * 60 * 1000));
     return;
   }
@@ -234,6 +240,22 @@ self.addEventListener('message', (event) => {
         });
       });
     });
+  }
+
+  if (event.data?.type === 'CACHE_OFFLINE_SHELLS') {
+    // Sent when a song is downloaded: make sure the song page and the My Downloads page open
+    // offline. Stored under the exact keys the fetch handler looks up, as clean (non-redirected)
+    // responses — a redirected response can't be used to answer a navigation.
+    event.waitUntil(caches.open(PAGE_CACHE).then((cache) => Promise.all(
+      ['/songview.html', '/downloads'].map(async (page) => {
+        try {
+          const res = await fetch(page, { cache: 'reload' });
+          if (!res.ok) return;
+          const clean = res.redirected ? new Response(await res.blob(), { status: 200, headers: res.headers }) : res;
+          await cache.put(page, clean);
+        } catch { /* offline or blocked — try again on the next download */ }
+      })
+    )));
   }
 
   if (event.data?.type === 'PRECACHE_API') {

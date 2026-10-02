@@ -373,6 +373,45 @@ body::before {
   border-color: var(--accent);
 }
 
+/* ─── My Downloads nav button (icon + count badge) ───────────── */
+.downloads-toggle__btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.downloads-toggle__btn:hover,
+.downloads-toggle__btn.active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #2f80ed;
+}
+.downloads-toggle__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #2f80ed;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+.downloads-toggle__badge[hidden] { display: none; }
+.downloads-toggle__badge--inline { position: static; margin-left: auto; }
+
 /* ─── Notifications Toggle & Panel ──────────────────────────── */
 .notif-toggle {
   position: relative;
@@ -1129,7 +1168,7 @@ body::before {
   color: inherit;
   text-decoration: none;
   cursor: pointer;
-  padding-right: 36px; /* keep title/meta clear of the favorite button */
+  padding-right: 70px; /* keep title/meta clear of the favorite + download buttons */
 }
 
 .song-card__title {
@@ -1211,7 +1250,7 @@ body::before {
 .song-card__pin {
   position: absolute;
   top: var(--space-sm);
-  right: calc(var(--space-sm) + 34px);
+  right: calc(var(--space-sm) + 68px);
   z-index: 1;
   display: flex;
   align-items: center;
@@ -1305,19 +1344,47 @@ body::before {
 
 /* Room for the pin button (it sits left of the heart) so it never covers the view count.
    List rows reserve it for every row so the columns stay aligned; grid cards only when pinnable. */
-.song-grid.list .song-card__link { padding-right: 70px; }
-.song-card:has(.song-card__pin:not([hidden])) .song-card__link { padding-right: 70px; }
+.song-grid.list .song-card__link { padding-right: 104px; }
+.song-card:has(.song-card__pin:not([hidden])) .song-card__link { padding-right: 104px; }
 
-/* "Offline" tag on songs saved on this device. */
-.song-card__offline {
-  padding: 1px 8px;
+/* Download button (left of the heart) and the blue "downloaded" mark beside the view count. */
+.song-card__download {
+  position: absolute;
+  top: var(--space-sm);
+  right: calc(var(--space-sm) + 34px);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-muted);
+  background: var(--bg-glass);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
+.song-card__download:hover { color: #60a5fa; border-color: rgba(47, 128, 237, 0.55); background: rgba(47, 128, 237, 0.14); }
+.song-card__download.active { color: #fff; background: #2f80ed; border-color: #2f80ed; }
+.song-card__download.busy { pointer-events: none; color: transparent; }
+.song-card__download.busy::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-top-color: #60a5fa;
+  border-radius: 50%;
+  animation: dlSpin 0.7s linear infinite;
+}
+@keyframes dlSpin { to { transform: rotate(360deg); } }
+.song-grid.list .song-card__download { top: 50%; transform: translateY(-50%); }
+.song-card__dlmark { display: inline-flex; margin-right: 6px; vertical-align: -3px; line-height: 0; }
+.song-card__dlmark[hidden] { display: none; }
+.song-page__download.active { color: #fff; background: #2f80ed; border-color: #2f80ed; }
+.song-page__download.active svg { stroke: #fff; }
 
 /* ─── Song of the Day (featured card) ──────────────────────────
    Same visual language as .song-card but larger and with a glowing gradient
@@ -4187,6 +4254,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 
   .settings-toggle__btn,
   .notif-toggle__btn,
+  .downloads-toggle__btn,
   .calendar-toggle__btn {
     width: 32px;
     height: 32px;
