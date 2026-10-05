@@ -2313,13 +2313,13 @@ const People = {
           existing.image_url = existing.image_url || p.image_url;
           // A song can credit the same person as artist and composer, so the two
           // counts overlap; the larger one is the best lower bound we have.
-          existing.song_count = Math.max(existing.song_count, p.song_count || 0);
+          existing.song_count = existing.song_count == null ? p.song_count ?? null : Math.max(existing.song_count, p.song_count ?? 0);
           return;
         }
         map.set(key, {
           name: p.name.trim(), slug: p.slug, roles: [role], role_slug: role,
           image_url: p.image_url || '', bio: p.bio || '',
-          song_count: p.song_count || 0, created_at: p.created_at || '',
+          song_count: p.song_count ?? null, created_at: p.created_at || '',
         });
       };
       (a.artists || []).forEach((p) => add(p, 'artist'));
@@ -2339,6 +2339,7 @@ const People = {
   },
 
   songsLabel(n) {
+    if (n == null) return ''; // API without song_count (older worker) — show nothing rather than a false 0
     return I18n.t(n === 1 ? 'people.songs_one' : 'people.songs_other', { count: n });
   },
 
@@ -2449,8 +2450,8 @@ const PeoplePage = {
   SORTS: {
     name_asc: (a, b) => a.name.localeCompare(b.name),
     name_desc: (a, b) => b.name.localeCompare(a.name),
-    songs_desc: (a, b) => b.song_count - a.song_count || a.name.localeCompare(b.name),
-    songs_asc: (a, b) => a.song_count - b.song_count || a.name.localeCompare(b.name),
+    songs_desc: (a, b) => (b.song_count ?? 0) - (a.song_count ?? 0) || a.name.localeCompare(b.name),
+    songs_asc: (a, b) => (a.song_count ?? 0) - (b.song_count ?? 0) || a.name.localeCompare(b.name),
     added_desc: (a, b) => (b.created_at || '').localeCompare(a.created_at || '') || a.name.localeCompare(b.name),
     added_asc: (a, b) => (a.created_at || '').localeCompare(b.created_at || '') || a.name.localeCompare(b.name),
   },
