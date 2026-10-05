@@ -99,6 +99,7 @@ const Utils = {
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
     if (path.startsWith('/article/')) return 'article';
     if (path === '/articles' || path === '/articles.html') return 'articles';
+    if (path === '/artists-composers' || path === '/artists-composers.html') return 'people';
     if (path === '/downloads' || path === '/downloads.html') return 'downloads';
     return 'home';
   },
@@ -942,6 +943,8 @@ const HomePage = {
   favoritesOnly: false,
 
   async init() {
+    FeaturedPeople.init(); // independent of the song list — never blocks it
+
     this.bindElements();
     this.bindEvents();
     // Restore previous page/category/sort so refresh keeps the user's position
@@ -2286,6 +2289,335 @@ const ArticlesPage = {
         }
       });
     });
+  },
+};
+
+
+// ─── People (Artists & Composers) ──────────────────────────────
+// Shared by the home-page spotlight and the /artists-composers directory.
+const People = {
+  /** Fetch artists + composers and merge into one list. Someone credited as both
+   *  (same name) becomes one entry linking to their artist page. */
+  async loadAll() {
+    const cacheKey = 'people_all';
+    let list = null;
+    try {
+      const [a, c] = await Promise.all([API.fetchJSON('/artists'), API.fetchJSON('/composers')]);
+      await this.fillSongCounts(a.artists || [], c.composers || []);
+      const map = new Map();
+      const add = (p, role) => {
+        const key = (p.name || '').trim().toLowerCase();
+        if (!key) return;
+        const existing = map.get(key);
+        if (existing) {
+          existing.roles.push(role);
+          existing.image_url = existing.image_url || p.image_url;
+          // A song can credit the same person as artist and composer, so the two
+          // counts overlap; the larger one is the best lower bound we have.
+          existing.song_count = existing.song_count == null ? p.song_count ?? null : Math.max(existing.song_count, p.song_count ?? 0);
+          return;
+        }
+        map.set(key, {
+          name: p.name.trim(), slug: p.slug, roles: [role], role_slug: role,
+          image_url: p.image_url || '', bio: p.bio || '',
+          song_count: p.song_count ?? null, created_at: p.created_at || '',
+        });
+      };
+      (a.artists || []).forEach((p) => add(p, 'artist'));
+      (c.composers || []).forEach((p) => add(p, 'composer'));
+      list = [...map.values()].map((p) => ({ ...p, href: `/${p.role_slug}/${encodeURIComponent(p.slug)}` }));
+      Cache.set(cacheKey, list);
+    } catch (err) {
+      list = Cache.get(cacheKey);
+      if (!list) throw err;
+    }
+    return list;
+  },
+
+  /** Older API deployments don't send song_count on /artists and /composers. In that
+   *  case tally it from the published songs list (each song carries its credited
+   *  artists/composers), so counts show up either way. */
+  async fillSongCounts(artists, composers) {
+    const missing = [...artists, ...composers].some((p) => p.song_count == null);
+    if (!missing) return;
+    const tally = { artists: new Map(), composers: new Map() };
+    try {
+      for (let page = 1, pages = 1; page <= pages && page <= 50; page++) {
+        const data = await API.fetchJSON(`/songs?page=${page}&limit=100`);
+        pages = data.totalPages || 1;
+        for (const song of data.songs || []) {
+          for (const kind of ['artists', 'composers']) {
+            for (const p of song[kind] || []) {
+              if (p && p.slug) tally[kind].set(p.slug, (tally[kind].get(p.slug) || 0) + 1);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not tally song counts:', err);
+      return; // leave song_count unset — the UI then shows no count rather than a wrong one
+    }
+    artists.forEach((p) => { if (p.song_count == null) p.song_count = tally.artists.get(p.slug) || 0; });
+    composers.forEach((p) => { if (p.song_count == null) p.song_count = tally.composers.get(p.slug) || 0; });
+  },
+
+  roleLabel(p) {
+    if (p.roles.length > 1) return I18n.t('people.role_both');
+    return I18n.t(p.roles[0] === 'artist' ? 'people.role_artist' : 'people.role_composer');
+  },
+
+  songsLabel(n) {
+    if (n == null) return ''; // API without song_count (older worker) — show nothing rather than a false 0
+    return I18n.t(n === 1 ? 'people.songs_one' : 'people.songs_other', { count: n });
+  },
+
+  avatar(p, cls = '') {
+    const initial = Utils.escapeHtml((p.name || '?').charAt(0));
+    const img = p.image_url
+      ? `<img src="${Utils.escapeHtml(p.image_url)}" alt="" loading="lazy" onerror="this.remove()" />`
+      : '';
+    return `<span class="person-avatar ${cls}"><span class="person-avatar__initial">${initial}</span>${img}</span>`;
+  },
+
+  card(p) {
+    return `
+      <a href="${Utils.escapeHtml(p.href)}" class="person-card">
+        ${this.avatar(p)}
+        <span class="person-card__body">
+          <span class="person-card__name">${Utils.escapeHtml(p.name)}</span>
+          <span class="person-card__role">${Utils.escapeHtml(this.roleLabel(p))}</span>
+          <span class="person-card__songs">${Utils.escapeHtml(this.songsLabel(p.song_count))}</span>
+        </span>
+      </a>`;
+  },
+};
+
+// ─── Featured People spotlight (home page) ─────────────────────
+// Shows 7 random artists/composers; re-rolls every 5 minutes. The pick is kept in
+// localStorage so a page refresh inside the window doesn't reshuffle.
+const FeaturedPeople = {
+  COUNT: 7,
+  INTERVAL: 5 * 60 * 1000,
+  STORE_KEY: 'maralyrics_featured_people',
+  all: [],
+
+  async init() {
+    const section = document.getElementById('featuredPeopleSection');
+    const row = document.getElementById('featuredPeopleRow');
+    if (!section || !row) return;
+    try {
+      this.all = await People.loadAll();
+    } catch (err) {
+      console.warn('Failed to load featured people:', err);
+      return;
+    }
+    if (!this.all.length) return;
+    this.row = row;
+    this.section = section;
+    const saved = this.readSaved();
+    const fresh = saved && Date.now() - saved.ts < this.INTERVAL;
+    this.render(fresh ? saved.hrefs : this.pick(), false);
+    section.style.display = 'block';
+    // Wait out the rest of the current window, then roll every 5 minutes.
+    const wait = fresh ? this.INTERVAL - (Date.now() - saved.ts) : this.INTERVAL;
+    setTimeout(() => {
+      this.rotate();
+      setInterval(() => this.rotate(), this.INTERVAL);
+    }, wait);
+  },
+
+  readSaved() {
+    try {
+      const v = JSON.parse(localStorage.getItem(this.STORE_KEY));
+      return v && Array.isArray(v.hrefs) ? v : null;
+    } catch { return null; }
+  },
+
+  pick() {
+    // Prefer people with a photo; top up with the rest when there are too few.
+    const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const withPhoto = shuffle(this.all.filter((p) => p.image_url));
+    const rest = shuffle(this.all.filter((p) => !p.image_url));
+    const chosen = withPhoto.concat(rest).slice(0, this.COUNT);
+    const hrefs = shuffle(chosen).map((p) => p.href);
+    try { localStorage.setItem(this.STORE_KEY, JSON.stringify({ ts: Date.now(), hrefs })); } catch { /* storage unavailable */ }
+    return hrefs;
+  },
+
+  render(hrefs, animate) {
+    const byHref = new Map(this.all.map((p) => [p.href, p]));
+    const people = hrefs.map((h) => byHref.get(h)).filter(Boolean);
+    const html = people.map((p) => `
+      <a href="${Utils.escapeHtml(p.href)}" class="featured-person" title="${Utils.escapeHtml(p.name)}">
+        ${People.avatar(p, 'person-avatar--lg')}
+        <span class="featured-person__name">${Utils.escapeHtml(p.name)}</span>
+      </a>`).join('');
+    if (!animate) { this.row.innerHTML = html; return; }
+    this.row.classList.add('is-swapping');
+    setTimeout(() => { this.row.innerHTML = html; this.row.classList.remove('is-swapping'); }, 300);
+  },
+
+  rotate() {
+    if (!document.hidden) { this.render(this.pick(), true); return; }
+    // Tab in background: re-roll as soon as it's visible again instead of churning DOM.
+    const onVisible = () => {
+      if (document.hidden) return;
+      document.removeEventListener('visibilitychange', onVisible);
+      this.render(this.pick(), true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+  },
+};
+
+// ─── Artists & Composers directory (/artists-composers) ────────
+const PeoplePage = {
+  PAGE_SIZE: 48,
+  state: { q: '', sort: 'name_asc', role: 'all', view: 'card', shown: 48 },
+  all: [],
+
+  SORTS: {
+    name_asc: (a, b) => a.name.localeCompare(b.name),
+    name_desc: (a, b) => b.name.localeCompare(a.name),
+    songs_desc: (a, b) => (b.song_count ?? 0) - (a.song_count ?? 0) || a.name.localeCompare(b.name),
+    songs_asc: (a, b) => (a.song_count ?? 0) - (b.song_count ?? 0) || a.name.localeCompare(b.name),
+    added_desc: (a, b) => (b.created_at || '').localeCompare(a.created_at || '') || a.name.localeCompare(b.name),
+    added_asc: (a, b) => (a.created_at || '').localeCompare(b.created_at || '') || a.name.localeCompare(b.name),
+  },
+
+  $(id) { return document.getElementById(id); },
+
+  async init() {
+    const params = new URLSearchParams(location.search);
+    if (this.SORTS[params.get('sort')]) this.state.sort = params.get('sort');
+    if (['artist', 'composer'].includes(params.get('role'))) this.state.role = params.get('role');
+    this.state.q = (params.get('q') || '').slice(0, 100);
+    try { this.state.view = localStorage.getItem('maralyrics_people_view') === 'list' ? 'list' : 'card'; } catch { /* ignore */ }
+
+    this.$('peopleSkeleton').innerHTML = Array(8).fill('<div class="skeleton person-skeleton"></div>').join('');
+    this.bind();
+    this.syncControls();
+
+    try {
+      this.all = await People.loadAll();
+    } catch (err) {
+      console.warn('Failed to load people:', err);
+      this.$('peopleLoading').style.display = 'none';
+      this.showEmpty(I18n.t('people.error_title'), I18n.t('people.error_text'), false);
+      return;
+    }
+    this.$('peopleLoading').style.display = 'none';
+    this.renderStats();
+    this.render();
+  },
+
+  bind() {
+    const search = this.$('peopleSearch');
+    const onSearch = Utils.debounce(() => {
+      this.state.q = search.value.trim();
+      this.state.shown = this.PAGE_SIZE;
+      this.render();
+    }, 200);
+    search.addEventListener('input', () => { this.$('peopleSearchClear').style.display = search.value ? 'block' : 'none'; onSearch(); });
+    this.$('peopleSearchClear').addEventListener('click', () => { search.value = ''; this.$('peopleSearchClear').style.display = 'none'; this.state.q = ''; this.state.shown = this.PAGE_SIZE; this.render(); search.focus(); });
+    this.$('peopleSort').addEventListener('change', (e) => { this.state.sort = e.target.value; this.state.shown = this.PAGE_SIZE; this.render(); });
+    this.$('peopleRoleTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-role]');
+      if (!btn) return;
+      this.state.role = btn.dataset.role; this.state.shown = this.PAGE_SIZE; this.syncControls(); this.render();
+    });
+    document.querySelectorAll('.view-toggle__btn').forEach((btn) => btn.addEventListener('click', () => {
+      this.state.view = btn.dataset.view;
+      try { localStorage.setItem('maralyrics_people_view', this.state.view); } catch { /* ignore */ }
+      this.syncControls(); this.render();
+    }));
+    this.$('peopleMore').addEventListener('click', () => { this.state.shown += this.PAGE_SIZE; this.render(); });
+    this.$('peopleReset').addEventListener('click', () => {
+      this.state = { ...this.state, q: '', role: 'all', sort: 'name_asc', shown: this.PAGE_SIZE };
+      this.syncControls(); this.render();
+    });
+    this.$('peopleAlpha').addEventListener('click', (e) => {
+      const a = e.target.closest('[data-letter]');
+      if (!a) return;
+      e.preventDefault();
+      // Make sure the target letter is rendered before scrolling to it.
+      const idx = this.filtered.findIndex((p) => this.letterOf(p) === a.dataset.letter);
+      if (idx >= this.state.shown) { this.state.shown = idx + this.PAGE_SIZE; this.render(); }
+      const target = document.querySelector(`.person-card[data-letter="${CSS.escape(a.dataset.letter)}"]`);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  },
+
+  syncControls() {
+    this.$('peopleSearch').value = this.state.q;
+    this.$('peopleSearchClear').style.display = this.state.q ? 'block' : 'none';
+    this.$('peopleSort').value = this.state.sort;
+    document.querySelectorAll('#peopleRoleTabs [data-role]').forEach((b) => {
+      const on = b.dataset.role === this.state.role;
+      b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on));
+    });
+    document.querySelectorAll('.view-toggle__btn').forEach((b) => {
+      const on = b.dataset.view === this.state.view;
+      b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
+    });
+  },
+
+  letterOf(p) {
+    const c = (p.name || '#').charAt(0).toUpperCase();
+    return /\p{L}/u.test(c) ? c : '#';
+  },
+
+  renderStats() {
+    const el = this.$('peopleStats');
+    const total = this.all.length;
+    const artists = this.all.filter((p) => p.roles.includes('artist')).length;
+    const composers = this.all.filter((p) => p.roles.includes('composer')).length;
+    el.textContent = I18n.t('people.stats', { total, artists, composers });
+    el.hidden = !total;
+  },
+
+  showEmpty(title, text, canReset = true) {
+    this.$('peopleListSection').style.display = 'none';
+    this.$('peopleEmpty').style.display = 'block';
+    this.$('peopleEmptyTitle').textContent = title;
+    this.$('peopleEmptyText').textContent = text;
+    this.$('peopleReset').style.display = canReset ? '' : 'none';
+  },
+
+  render() {
+    const { q, sort, role, view, shown } = this.state;
+    const needle = q.toLowerCase();
+    this.filtered = this.all
+      .filter((p) => role === 'all' || p.roles.includes(role))
+      .filter((p) => !needle || p.name.toLowerCase().includes(needle) || p.bio.toLowerCase().includes(needle))
+      .sort(this.SORTS[sort]);
+
+    // Keep the URL shareable without adding history entries per keystroke.
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (sort !== 'name_asc') params.set('sort', sort);
+    if (role !== 'all') params.set('role', role);
+    history.replaceState(null, '', location.pathname + (params.toString() ? `?${params}` : ''));
+
+    this.$('peopleCount').textContent = I18n.t('people.count', { count: this.filtered.length });
+    if (!this.filtered.length) {
+      this.$('peopleAlpha').innerHTML = '';
+      this.showEmpty(I18n.t('people.empty_title'), I18n.t('people.empty_text'));
+      return;
+    }
+    this.$('peopleEmpty').style.display = 'none';
+    this.$('peopleListSection').style.display = 'block';
+
+    const grid = this.$('peopleGrid');
+    grid.classList.toggle('people-grid--list', view === 'list');
+    grid.innerHTML = this.filtered.slice(0, shown)
+      .map((p) => People.card(p).replace('class="person-card"', `class="person-card" data-letter="${Utils.escapeHtml(this.letterOf(p))}"`))
+      .join('');
+    this.$('peopleMore').hidden = this.filtered.length <= shown;
+
+    // A–Z jump bar only makes sense when sorted by name.
+    const byName = sort === 'name_asc';
+    const letters = byName ? [...new Set(this.filtered.map((p) => this.letterOf(p)))] : [];
+    this.$('peopleAlpha').innerHTML = letters.map((l) => `<a href="#" data-letter="${Utils.escapeHtml(l)}">${Utils.escapeHtml(l)}</a>`).join('');
   },
 };
 
@@ -3885,6 +4217,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       break;
     case 'articles':
       ArticlesPage.init();
+      break;
+    case 'people':
+      PeoplePage.init();
       break;
     case 'downloads':
       DownloadsPage.init();
