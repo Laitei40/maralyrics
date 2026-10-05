@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MaraLyrics — Mara Song Lyrics Collection</title>
+  <title>Artists &amp; Composers — MaraLyrics</title>
 
   <!-- SEO Meta -->
-  <meta name="description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
-  <meta name="keywords" content="Mara, lyrics, songs, Mara songs, traditional, gospel, love, patriotic, Mara lyrics" />
+  <meta name="description" content="Browse every Mara artist and composer on MaraLyrics — search, sort and explore their songs." />
+  <meta name="keywords" content="MaraLyrics news, Mara music articles, MaraLyrics announcements" />
   <meta name="author" content="MaraLyrics" />
   <meta name="theme-color" content="#0a0e1a" />
   <meta name="google-adsense-account" content="ca-pub-8698846427938035">
@@ -16,28 +16,12 @@
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="MaraLyrics — Mara Song Lyrics Collection" />
-  <meta property="og:description" content="Explore and discover beautiful Mara song lyrics." />
-  <meta property="og:url" content="https://maralyrics.com" />
-
-  <!-- Structured Data (JSON-LD) -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "MaraLyrics",
-    "url": "https://maralyrics.com",
-    "description": "A collection of Mara song lyrics — traditional, love, gospel, and patriotic.",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://maralyrics.com/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  }
-  </script>
+  <meta property="og:title" content="Artists &amp; Composers — MaraLyrics" />
+  <meta property="og:description" content="Browse every Mara artist and composer on MaraLyrics." />
+  <meta property="og:url" content="https://maralyrics.com/artists-composers" />
 
   <!-- Favicon -->
-  <link rel="canonical" href="https://maralyrics.com/" />
+  <link rel="canonical" href="https://maralyrics.com/artists-composers" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
 
   <!-- Fonts -->
@@ -63,12 +47,12 @@
         <span></span>
       </button>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link active" data-i18n="common.home">Home</a>
+        <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
-        <a href="/articles" class="header__nav-link" data-i18n="nav.articles">Articles</a>
+        <a href="/articles" class="header__nav-link active" data-i18n="nav.articles">Articles</a>
 
         <!-- Community Calendar -->
-        <button type="button" class="calendar-toggle__btn" id="calendarToggleBtn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
+        <button type="button" class="calendar-toggle__btn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </button>
         <!-- My Downloads -->
@@ -78,7 +62,6 @@
         </a>
 
 
-        <!-- Settings Dropdown -->
         <!-- Notifications -->
         <div class="notif-toggle">
           <button type="button" class="notif-toggle__btn" aria-label="Notifications" title="Notifications" aria-expanded="false" data-i18n-aria="notifications.toggle_aria" data-i18n-title="notifications.toggle_aria">
@@ -152,9 +135,7 @@
         </div>
       </nav>
     </div>
-
   </header>
-
   <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
        header does not create a containing block that clips position:fixed. -->
   <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
@@ -168,7 +149,7 @@
         <button class="mobile-drawer__close" aria-label="Close navigation menu" data-i18n-aria="mobile_drawer.close_aria">&times;</button>
       </div>
       <div class="mobile-drawer__content">
-        <a href="/" class="mobile-drawer__link active">
+        <a href="/" class="mobile-drawer__link">
           <span class="mobile-drawer__icon">🏠</span>
           <span data-i18n="common.home">Home</span>
         </a>
@@ -176,7 +157,7 @@
           <span class="mobile-drawer__icon">🔥</span>
           <span data-i18n="nav.popular">Popular</span>
         </a>
-        <a href="/articles" class="mobile-drawer__link">
+        <a href="/articles" class="mobile-drawer__link active">
           <span class="mobile-drawer__icon">📰</span>
           <span data-i18n="nav.articles">Articles</span>
         </a>
@@ -196,123 +177,63 @@
   <!-- ═══ Hero ═══ -->
   <section class="hero">
     <div class="container">
-      <h1 class="hero__title" data-i18n="home.hero_title">Mara Song Lyrics</h1>
-      <p class="hero__subtitle" data-i18n="home.hero_subtitle">Discover and explore beautiful lyrics from the Mara community</p>
+      <h1 class="hero__title" data-i18n="people.hero_title">Artists &amp; Composers</h1>
+      <p class="hero__subtitle" data-i18n="people.hero_subtitle">Meet the voices and the minds behind Mara music — search, sort and explore their songs</p>
+      <div class="people-stats" id="peopleStats" hidden></div>
 
-      <!-- Search -->
       <div class="search" role="search">
         <span class="search__icon" aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </span>
-        <input
-          type="text"
-          id="searchInput"
-          class="search__input"
-          placeholder="Search by title, artist, or lyrics..."
-          data-i18n-placeholder="home.search_placeholder"
-          autocomplete="off"
-          aria-label="Search songs"
-          data-i18n-aria="home.search_aria"
-        />
-        <button id="searchClear" class="search__clear" aria-label="Clear search" data-i18n-aria="home.search_clear_aria">&times;</button>
-      </div>
-
-      <!-- Categories -->
-      <div id="categories" class="categories" role="tablist" data-i18n-aria="home.categories_aria" aria-label="Filter by category">
-        <!-- Populated by JS -->
+        <input type="text" id="peopleSearch" class="search__input" placeholder="Search artists or composers..." data-i18n-placeholder="people.search_placeholder" autocomplete="off" aria-label="Search artists and composers" data-i18n-aria="people.search_aria" />
+        <button id="peopleSearchClear" class="search__clear" aria-label="Clear search" data-i18n-aria="home.search_clear_aria">&times;</button>
       </div>
     </div>
   </section>
 
   <!-- ═══ Main Content ═══ -->
   <main class="container">
-
-    <!-- Search Results (hidden by default) -->
-    <section id="searchResults" style="display:none;" class="fade-in">
-      <h2 class="section-title">
-        <span class="section-title__icon">🔎</span>
-        <span data-i18n="home.search_results">Search Results</span>
-        <span id="searchCount" style="font-weight:400;color:var(--text-muted);font-size:var(--text-sm);"></span>
-      </h2>
-      <div id="searchGrid" class="song-grid"></div>
-      <div id="searchSuggestions" class="search-suggestions" style="display:none;"></div>
-    </section>
-
-    <!-- Song of the Day (hidden until loaded — a new site with zero songs stays hidden) -->
-    <section id="songOfTheDaySection" class="fade-in" style="display:none;">
-      <h2 class="section-title">
-        <span class="section-title__icon" id="songOfTheDaySectionIcon">🌟</span>
-        <span id="songOfTheDaySectionLabel" data-i18n="home.song_of_the_day">Song of the Day</span>
-      </h2>
-      <div id="songOfTheDayCard"></div>
-    </section>
-
-    <!-- Featured Artists & Composers (7 random, re-rolled every 5 minutes) -->
-    <section id="featuredPeopleSection" class="fade-in" style="display:none;">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="section-title__icon">🎤</span>
-          <span data-i18n="people.section_title">Featured Artists &amp; Composers</span>
-        </h2>
-        <a href="/artists-composers" class="see-all-btn" aria-label="See all artists and composers" title="See all artists and composers" data-i18n-aria="people.see_all" data-i18n-title="people.see_all">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
+    <div class="section-header">
+      <div id="peopleRoleTabs" class="categories" role="tablist" aria-label="Filter by role" data-i18n-aria="people.role_aria">
+        <button type="button" class="category-btn active" data-role="all" role="tab" aria-selected="true" data-i18n="people.role_all">All</button>
+        <button type="button" class="category-btn" data-role="artist" role="tab" aria-selected="false" data-i18n="people.role_artists">Artists</button>
+        <button type="button" class="category-btn" data-role="composer" role="tab" aria-selected="false" data-i18n="people.role_composers">Composers</button>
       </div>
-      <div id="featuredPeopleRow" class="featured-people"></div>
-    </section>
-
-    <!-- Popular Songs -->
-    <section id="popularSection" class="fade-in">
-      <h2 class="section-title" id="popular">
-        <span class="section-title__icon">🔥</span>
-        <span data-i18n="home.popular_songs">Popular Songs</span>
-      </h2>
-      <div id="popularGrid" class="song-grid"></div>
-    </section>
-
-    <!-- All Songs -->
-    <section id="allSongsSection" class="fade-in">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="section-title__icon">🎵</span>
-          <span data-i18n="home.all_songs">All Songs</span>
-        </h2>
-        <div class="list-controls">
-          <button type="button" id="favoritesFilterBtn" class="list-controls__favorites" aria-pressed="false" data-i18n-aria="common.show_favorites" data-i18n-title="common.show_favorites" aria-label="Show favorites" title="Show favorites">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            <span data-i18n="common.favorites">Favorites</span>
+      <div class="list-controls">
+        <span id="peopleCount" class="people-count" aria-live="polite"></span>
+        <select id="peopleSort" class="sort-select" aria-label="Sort" data-i18n-aria="common.sort_by">
+          <option value="name_asc" data-i18n="people.sort_name_asc">Name (A–Z)</option>
+          <option value="name_desc" data-i18n="people.sort_name_desc">Name (Z–A)</option>
+          <option value="songs_desc" data-i18n="people.sort_songs_desc">Most songs</option>
+          <option value="songs_asc" data-i18n="people.sort_songs_asc">Fewest songs</option>
+          <option value="added_desc" data-i18n="people.sort_added_desc">Recently added</option>
+          <option value="added_asc" data-i18n="people.sort_added_asc">Oldest first</option>
+        </select>
+        <div class="view-toggle" role="group" aria-label="Display style" data-i18n-aria="common.display_style">
+          <button type="button" class="view-toggle__btn active" data-view="card" aria-pressed="true" aria-label="Card view" title="Card view" data-i18n-aria="common.view_card" data-i18n-title="common.view_card">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           </button>
-          <select id="sortSelect" class="sort-select" data-i18n-aria="common.sort_by" aria-label="Sort songs">
-            <option value="name_asc" data-i18n="common.sort_name_asc">Name (A–Z)</option>
-            <option value="name_desc" data-i18n="common.sort_name_desc">Name (Z–A)</option>
-            <option value="views_desc" data-i18n="common.sort_views_desc">Number (9–1)</option>
-            <option value="views_asc" data-i18n="common.sort_views_asc">Number (1–9)</option>
-            <option value="created_desc" data-i18n="common.sort_added_desc">Added (New–Old)</option>
-            <option value="created_asc" data-i18n="common.sort_added_asc">Added (Old–New)</option>
-          </select>
-          <div class="view-toggle" role="group" data-i18n-aria="common.display_style" aria-label="Display style">
-            <button type="button" class="view-toggle__btn active" data-view="card" aria-pressed="true" data-i18n-aria="common.view_card" data-i18n-title="common.view_card" aria-label="Card view" title="Card view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </button>
-            <button type="button" class="view-toggle__btn" data-view="list" aria-pressed="false" data-i18n-aria="common.view_list" data-i18n-title="common.view_list" aria-label="List view" title="List view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </button>
-          </div>
+          <button type="button" class="view-toggle__btn" data-view="list" aria-pressed="false" aria-label="List view" title="List view" data-i18n-aria="common.view_list" data-i18n-title="common.view_list">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </button>
         </div>
       </div>
-      <div id="songGrid" class="song-grid"></div>
-
-      <!-- Pagination -->
-      <div id="pagination" class="pagination"></div>
-    </section>
-
-    <!-- Empty State -->
-    <div id="emptyState" class="empty-state" style="display:none;">
-      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-      <h3 class="empty-state__title" data-i18n="home.no_songs_title">No songs found</h3>
-      <p class="empty-state__text" data-i18n="home.no_songs_text">Try a different search term or browse categories above.</p>
     </div>
 
+    <nav id="peopleAlpha" class="people-alpha" aria-label="Jump to letter" data-i18n-aria="people.alpha_aria"></nav>
+
+    <section id="peopleLoading" class="fade-in"><div id="peopleSkeleton" class="people-grid"></div></section>
+    <section id="peopleListSection" class="fade-in" style="display:none;">
+      <div id="peopleGrid" class="people-grid"></div>
+      <div class="people-more"><button type="button" id="peopleMore" class="people-more__btn" hidden data-i18n="people.show_more">Show more</button></div>
+    </section>
+
+    <div id="peopleEmpty" class="empty-state" style="display:none;">
+      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <h3 class="empty-state__title" id="peopleEmptyTitle" data-i18n="people.empty_title">No one found</h3>
+      <p class="empty-state__text" id="peopleEmptyText" data-i18n="people.empty_text">Try a different name or clear the filters.</p>
+      <button type="button" id="peopleReset" class="people-more__btn" data-i18n="people.reset">Reset filters</button>
+    </div>
   </main>
 
   <!-- ═══ Footer ═══ -->

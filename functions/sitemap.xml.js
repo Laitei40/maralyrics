@@ -29,6 +29,7 @@ const STATIC_PAGES = [
   { path: '/copyright', priority: '0.3' },
   { path: '/contact', priority: '0.4' },
   { path: '/articles', priority: '0.5' },
+  { path: '/artists-composers', priority: '0.6' },
 ];
 
 export async function onRequest(context) {

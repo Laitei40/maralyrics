@@ -363,8 +363,24 @@ app.get('/categories', async (c) => {
   return c.json({ categories: rows.results.map((r) => r.category) });
 });
 
+// Each person carries a song_count (published songs they are credited on) so the
+// directory pages can show and sort by it without N extra requests.
+const PEOPLE_JUNCTIONS = {
+  artists: ['song_artists', 'artist_id'],
+  composers: ['song_composers', 'composer_id'],
+};
+
 async function listPeople(c, table) {
-  const rows = await c.env.DB.prepare(`SELECT * FROM ${table} ORDER BY name`).all();
+  const [junction, fk] = PEOPLE_JUNCTIONS[table];
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT p.*,
+              (SELECT COUNT(*) FROM ${junction} j
+                 JOIN songs s ON s.id = j.song_id AND s.status = 'published'
+                WHERE j.${fk} = p.id) AS song_count
+       FROM ${table} p ORDER BY p.name`
+    )
+    .all();
   return c.json({ [table]: rows.results, total: rows.results.length });
 }
 
