@@ -2293,6 +2293,101 @@ const ArticlesPage = {
 };
 
 
+// ─── Dropdown ──────────────────────────────────────────────────
+// Styled, accessible replacement for a native <select> (whose option popup can't be
+// themed). The <select> stays the source of truth and keeps firing 'change', so
+// existing code keeps working; call .sync() after setting select.value in code.
+const Dropdown = {
+  enhance(select) {
+    if (!select || select.dataset.enhanced) return null;
+    select.dataset.enhanced = '1';
+    const id = `dd-${Math.random().toString(36).slice(2, 8)}`;
+    const wrap = document.createElement('div');
+    wrap.className = 'dropdown';
+    wrap.innerHTML = `
+      <button type="button" class="dropdown__btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="${id}">
+        <svg class="dropdown__lead" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+        <span class="dropdown__label"></span>
+        <svg class="dropdown__chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="dropdown__menu" id="${id}" role="listbox" tabindex="-1"></ul>`;
+    select.classList.add('dropdown__native');
+    select.setAttribute('tabindex', '-1');
+    select.setAttribute('aria-hidden', 'true');
+    select.after(wrap);
+    const btn = wrap.querySelector('.dropdown__btn');
+    const menu = wrap.querySelector('.dropdown__menu');
+    const label = wrap.querySelector('.dropdown__label');
+    const aria = select.getAttribute('aria-label');
+    if (aria) { btn.setAttribute('aria-label', aria); menu.setAttribute('aria-label', aria); }
+    let active = -1;
+
+    const items = () => [...menu.querySelectorAll('.dropdown__item')];
+    const build = () => {
+      menu.innerHTML = [...select.options].map((o, i) => `
+        <li class="dropdown__item" role="option" id="${id}-${i}" data-value="${Utils.escapeHtml(o.value)}" aria-selected="${o.selected}">
+          <span class="dropdown__text">${Utils.escapeHtml(o.textContent)}</span>
+          <svg class="dropdown__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        </li>`).join('');
+      label.textContent = select.selectedOptions[0]?.textContent || '';
+    };
+    const setActive = (i) => {
+      const list = items();
+      if (!list.length) return;
+      active = (i + list.length) % list.length;
+      list.forEach((el, n) => el.classList.toggle('is-active', n === active));
+      btn.setAttribute('aria-activedescendant', list[active].id);
+      list[active].scrollIntoView({ block: 'nearest' });
+    };
+    const open = () => {
+      wrap.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+      setActive(select.selectedIndex);
+    };
+    const close = (refocus) => {
+      wrap.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.removeAttribute('aria-activedescendant');
+      if (refocus) btn.focus();
+    };
+    const choose = (i) => {
+      if (select.selectedIndex !== i) {
+        select.selectedIndex = i;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      build();
+      close(true);
+    };
+
+    btn.addEventListener('click', () => (wrap.classList.contains('is-open') ? close() : open()));
+    menu.addEventListener('click', (e) => {
+      const li = e.target.closest('.dropdown__item');
+      if (li) choose(items().indexOf(li));
+    });
+    menu.addEventListener('mousemove', (e) => {
+      const li = e.target.closest('.dropdown__item');
+      if (li) setActive(items().indexOf(li));
+    });
+    btn.addEventListener('keydown', (e) => {
+      const isOpen = wrap.classList.contains('is-open');
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen) open(); else setActive(active + (e.key === 'ArrowDown' ? 1 : -1));
+      } else if (e.key === 'Home' || e.key === 'End') {
+        if (isOpen) { e.preventDefault(); setActive(e.key === 'Home' ? 0 : -1); }
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        if (isOpen) { e.preventDefault(); choose(active); }
+      } else if (e.key === 'Escape' || e.key === 'Tab') {
+        if (isOpen) close(e.key === 'Escape');
+      }
+    });
+    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) close(); });
+
+    build();
+    return { sync: build };
+  },
+};
+
 // ─── People (Artists & Composers) ──────────────────────────────
 // Shared by the home-page spotlight and the /artists-composers directory.
 const People = {
@@ -2494,6 +2589,7 @@ const PeoplePage = {
     try { this.state.view = localStorage.getItem('maralyrics_people_view') === 'list' ? 'list' : 'card'; } catch { /* ignore */ }
 
     this.$('peopleSkeleton').innerHTML = Array(8).fill('<div class="skeleton person-skeleton"></div>').join('');
+    this.sortDropdown = Dropdown.enhance(this.$('peopleSort'));
     this.bind();
     this.syncControls();
 
@@ -2551,6 +2647,7 @@ const PeoplePage = {
     this.$('peopleSearch').value = this.state.q;
     this.$('peopleSearchClear').style.display = this.state.q ? 'block' : 'none';
     this.$('peopleSort').value = this.state.sort;
+    if (this.sortDropdown) this.sortDropdown.sync();
     document.querySelectorAll('#peopleRoleTabs [data-role]').forEach((b) => {
       const on = b.dataset.role === this.state.role;
       b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on));
