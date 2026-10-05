@@ -2303,6 +2303,7 @@ const People = {
     let list = null;
     try {
       const [a, c] = await Promise.all([API.fetchJSON('/artists'), API.fetchJSON('/composers')]);
+      await this.fillSongCounts(a.artists || [], c.composers || []);
       const map = new Map();
       const add = (p, role) => {
         const key = (p.name || '').trim().toLowerCase();
@@ -2331,6 +2332,33 @@ const People = {
       if (!list) throw err;
     }
     return list;
+  },
+
+  /** Older API deployments don't send song_count on /artists and /composers. In that
+   *  case tally it from the published songs list (each song carries its credited
+   *  artists/composers), so counts show up either way. */
+  async fillSongCounts(artists, composers) {
+    const missing = [...artists, ...composers].some((p) => p.song_count == null);
+    if (!missing) return;
+    const tally = { artists: new Map(), composers: new Map() };
+    try {
+      for (let page = 1, pages = 1; page <= pages && page <= 50; page++) {
+        const data = await API.fetchJSON(`/songs?page=${page}&limit=100`);
+        pages = data.totalPages || 1;
+        for (const song of data.songs || []) {
+          for (const kind of ['artists', 'composers']) {
+            for (const p of song[kind] || []) {
+              if (p && p.slug) tally[kind].set(p.slug, (tally[kind].get(p.slug) || 0) + 1);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not tally song counts:', err);
+      return; // leave song_count unset — the UI then shows no count rather than a wrong one
+    }
+    artists.forEach((p) => { if (p.song_count == null) p.song_count = tally.artists.get(p.slug) || 0; });
+    composers.forEach((p) => { if (p.song_count == null) p.song_count = tally.composers.get(p.slug) || 0; });
   },
 
   roleLabel(p) {
