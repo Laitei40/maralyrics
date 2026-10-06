@@ -173,13 +173,13 @@ const OfflineSync = (() => {
         const cfg = ENTITY_CONFIG[item.entity];
         try {
           if (item.op === 'create') {
-            const saved = await window.apiPost(`${ADMIN_API}/${cfg.apiPath}`, item.payload);
+            const saved = await window.apiPost(`${ADMIN_API}/${cfg.apiPath}`, item.payload, { silent: true });
             await OfflineDB.delete(cfg.store, item.localId);
             await OfflineDB.put(cfg.store, saved);
             await OfflineDB.deletePendingChange(item.queueId);
           } else {
             const body = { ...item.payload, expected_updated_at: item.expectedUpdatedAt };
-            const saved = await window.apiPut(`${ADMIN_API}/${cfg.apiPath}/${item.remoteId}`, body);
+            const saved = await window.apiPut(`${ADMIN_API}/${cfg.apiPath}/${item.remoteId}`, body, { silent: true });
             await OfflineDB.put(cfg.store, saved);
             await OfflineDB.deletePendingChange(item.queueId);
           }
@@ -252,7 +252,7 @@ const OfflineSync = (() => {
       // Re-apply the local edit on top of the server's current state, accepting its timestamp.
       try {
         const body = { ...item.payload, expected_updated_at: item.conflictCurrent && item.conflictCurrent.updated_at };
-        const saved = await window.apiPut(`${ADMIN_API}/${cfg.apiPath}/${item.remoteId}`, body);
+        const saved = await window.apiPut(`${ADMIN_API}/${cfg.apiPath}/${item.remoteId}`, body, { silent: true });
         await OfflineDB.put(cfg.store, saved);
         await OfflineDB.deletePendingChange(item.queueId);
       } catch (err) {

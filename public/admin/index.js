@@ -60,6 +60,7 @@ async function handleLogin(e) {
   const password = document.getElementById('loginPassword').value;
   const btn = document.getElementById('loginSubmit');
   btn.disabled = true;
+  btn.classList.add('is-busy');
   btn.textContent = 'Signing in...';
 
   try {
@@ -75,19 +76,23 @@ async function handleLogin(e) {
     setAdminInfo({ id: data.id, username: data.username, role: data.role, avatar: data.avatar, photo: data.photo });
     hideLoginOverlay();
     document.getElementById('loginForm').reset();
+    AdminUI.success(`Welcome back, ${data.username}!`);
     initDashboard();
   } catch (err) {
     const errEl = document.getElementById('loginError');
     errEl.textContent = err.message;
     errEl.style.display = 'block';
+    AdminUI.error(err.message);
   } finally {
     btn.disabled = false;
+    btn.classList.remove('is-busy');
     btn.textContent = 'Sign In';
   }
 }
 
 function logout() {
   clearAdminSession();
+  AdminUI.flash('You have been signed out.', 'info');
   location.reload();
 }
 
@@ -109,9 +114,9 @@ async function changePassword() {
   try {
     await apiPost(`${ADMIN_API}/auth/change-password`, { current_password, new_password });
     if (typeof Toast !== 'undefined') Toast.show('Password updated.', { type: 'success' });
-    else alert('Password updated.');
+    else AdminUI.alertToast('Password updated.');
   } catch (err) {
-    alert('Failed to change password: ' + err.message);
+    AdminUI.alertToast('Failed to change password: ' + err.message);
   }
 }
 
@@ -395,7 +400,7 @@ function buildCheckboxList(containerEl, items) {
       if (getSelectedIds(containerEl).length > MAX_CREDITED_PEOPLE_CLIENT) {
         cb.checked = false;
         if (typeof Toast !== 'undefined') Toast.show(`You can select up to ${MAX_CREDITED_PEOPLE_CLIENT}.`, { type: 'error' });
-        else alert(`You can select up to ${MAX_CREDITED_PEOPLE_CLIENT}.`);
+        else AdminUI.alertToast(`You can select up to ${MAX_CREDITED_PEOPLE_CLIENT}.`);
       }
       updateCheckboxListState(containerEl);
     });
@@ -570,6 +575,7 @@ async function handleAuthFailure(res) {
   if (res.status === 401) {
     clearAdminSession();
     showLoginOverlay('Session expired. Please sign in again.');
+    AdminUI.notify('Your session expired. Please sign in again.', 'warning');
   }
 }
 
@@ -584,53 +590,40 @@ function apiError(status, data) {
   return err;
 }
 
-async function apiGet(url) {
-  const res = await fetch(url, { headers: authHeaders() });
-  if (!res.ok) {
-    await handleAuthFailure(res);
-    const data = await res.json().catch(() => ({}));
-    throw apiError(res.status, data);
+// Every helper feeds the top progress bar. Writes (POST/PUT/DELETE) also put a spinner on
+// the button the admin just pressed and, when `opts.success` is given, toast on success.
+// opts.silent skips the button spinner (used for background work like the offline sync).
+async function apiRequest(method, url, body, opts = {}) {
+  const isWrite = method !== 'GET';
+  const btn = isWrite && !opts.silent ? AdminUI.activeButton() : null;
+  const dialog = isWrite && !opts.silent;
+  if (dialog) AdminUI.showLoading(opts.loading || (method === 'DELETE' ? 'Deleting…' : 'Saving…'));
+  AdminUI.setBusy(btn, true);
+  try {
+    const res = await AdminUI.track(fetch(url, {
+      method,
+      headers: authHeaders(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }));
+    if (!res.ok) {
+      await handleAuthFailure(res);
+      throw apiError(res.status, await res.json().catch(() => ({})));
+    }
+    // Writes may legitimately return an empty body; reads must be valid JSON (as before).
+    const data = isWrite ? await res.json().catch(() => ({})) : await res.json();
+    if (opts.success) AdminUI.success(opts.success);
+    return data;
+  } finally {
+    AdminUI.setBusy(btn, false);
+    if (dialog) AdminUI.hideLoading();
   }
-  return res.json();
 }
 
-async function apiPost(url, body) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    await handleAuthFailure(res);
-    throw apiError(res.status, data);
-  }
-  return data;
-}
-
-async function apiPut(url, body) {
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    await handleAuthFailure(res);
-    throw apiError(res.status, data);
-  }
-  return data;
-}
-
-async function apiDelete(url) {
-  const res = await fetch(url, { method: 'DELETE', headers: authHeaders() });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    await handleAuthFailure(res);
-    throw apiError(res.status, data);
-  }
-  return data;
-}
+// Declared as functions (not const) so they stay reachable as window.apiPost etc. — offline-sync.js relies on that.
+function apiGet(url) { return apiRequest('GET', url); }
+function apiPost(url, body, opts) { return apiRequest('POST', url, body, opts); }
+function apiPut(url, body, opts) { return apiRequest('PUT', url, body, opts); }
+function apiDelete(url, opts) { return apiRequest('DELETE', url, undefined, opts); }
 
 // ─── Tab Switching ──────────────────────────────
 function switchTab(tab) {
@@ -739,7 +732,7 @@ function wireQuickAdd() {
         close();
       } catch (err) {
         if (typeof Toast !== 'undefined') Toast.show(err.message || `Could not create ${label}.`, { type: 'error' });
-        else alert(err.message || `Could not create ${label}.`);
+        else AdminUI.alertToast(err.message || `Could not create ${label}.`);
       } finally {
         save.disabled = false;
       }
@@ -774,7 +767,7 @@ let currentSearchQuery = '';
 
 async function loadSongs(page = 1, query = currentSearchQuery) {
   const tbody = document.getElementById('songsTableBody');
-  tbody.innerHTML = '<tr><td colspan="8" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(8);
   currentSearchQuery = query || '';
 
   try {
@@ -843,7 +836,7 @@ function songStatusActionsHtml(song) {
 
 async function changeSongStatus(id, status) {
   try {
-    const updated = await apiPut(`${ADMIN_API}/songs/${id}/status`, { status });
+    const updated = await apiPut(`${ADMIN_API}/songs/${id}/status`, { status }, { success: `Song marked ${status}.` });
     const song = allSongs.find(s => s.id === id);
     if (song) song.status = updated.status;
     renderSongsTable(allSongs);
@@ -852,7 +845,7 @@ async function changeSongStatus(id, status) {
     }
   } catch (err) {
     if (typeof Toast !== 'undefined') Toast.show('Failed to update status: ' + err.message, { type: 'error' });
-    else alert('Failed to update status: ' + err.message);
+    else AdminUI.alertToast('Failed to update status: ' + err.message);
   }
 }
 
@@ -1039,6 +1032,9 @@ function applySongModalPermissions(mode, role, song) {
 }
 
 async function openNewSong() {
+  return AdminUI.withLoading('Opening form…', () => _openNewSong());
+}
+async function _openNewSong() {
   if (!hasRole(...CAN_CREATE_SONG)) return;
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'New Song';
@@ -1071,6 +1067,9 @@ function populateSongForm(song) {
 }
 
 async function editSong(id) {
+  return AdminUI.withLoading('Loading song…', () => _editSong(id));
+}
+async function _editSong(id) {
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'Edit Song';
   await populateDropdowns();
@@ -1175,13 +1174,13 @@ async function saveSongDirect(e) {
 
   try {
     if (id) {
-      await apiPut(`${ADMIN_API}/songs/${id}`, { ...body, expected_updated_at: currentSongLoadedUpdatedAt });
+      await apiPut(`${ADMIN_API}/songs/${id}`, { ...body, expected_updated_at: currentSongLoadedUpdatedAt }, { success: 'Song updated.' });
       showFormMessage('Song updated successfully!');
       // A successful edit supersedes any conflict left over from an earlier, abandoned
       // attempt on this same song (see offline-sync.js recordDirectConflict).
       OfflineSync.clearConflict('song', Number(id)).catch(() => {});
     } else {
-      await apiPost(`${ADMIN_API}/songs`, body);
+      await apiPost(`${ADMIN_API}/songs`, body, { success: 'Song created.' });
       showFormMessage('Song created successfully!');
     }
     // Clear draft on successful save
@@ -1238,7 +1237,7 @@ async function submitSongRevision() {
   btn.textContent = 'Submitting...';
 
   try {
-    await apiPost(`${ADMIN_API}/songs/${id}/revisions`, body);
+    await apiPost(`${ADMIN_API}/songs/${id}/revisions`, body, { success: 'Revision submitted for review.' });
     showFormMessage('Revision submitted for review!');
     clearDraft('song', id);
     hideDraftBanner('songDraftBanner', 'songDraftIndicator');
@@ -1266,7 +1265,7 @@ function autoSongSlug() {
 
 async function loadArtists() {
   const tbody = document.getElementById('artistsTableBody');
-  tbody.innerHTML = '<tr><td colspan="4" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(4);
   try {
     const data = await apiGet(`${ADMIN_API}/artists`);
     allArtists = data.artists || [];
@@ -1278,7 +1277,7 @@ async function loadArtists() {
 
 async function loadComposers() {
   const tbody = document.getElementById('composersTableBody');
-  tbody.innerHTML = '<tr><td colspan="4" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(4);
   try {
     const data = await apiGet(`${ADMIN_API}/composers`);
     allComposers = data.composers || [];
@@ -1422,7 +1421,7 @@ function initImageFields() {
         size: ENTITY_PHOTO_SIZE,
         title: 'Crop Photo',
         shape: field.dataset.shape || 'circle',
-        onError: (msg) => alert(msg),
+        onError: (msg) => AdminUI.alertToast(msg),
         onSave: (dataUrl) => setImageField(target, dataUrl),
       });
     });
@@ -1433,7 +1432,7 @@ function initImageFields() {
     const applyUrl = () => {
       const url = urlInput.value.trim();
       if (!url) return;
-      if (!/^https?:\/\//i.test(url)) { alert('Enter an http(s) image URL.'); return; }
+      if (!/^https?:\/\//i.test(url)) { AdminUI.alertToast('Enter an http(s) image URL.'); return; }
       setImageField(target, url);
     };
     urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyUrl(); } });
@@ -1488,6 +1487,9 @@ function openNewPerson(type) {
 }
 
 async function editPerson(type, id) {
+  return AdminUI.withLoading('Loading…', () => _editPerson(type, id));
+}
+async function _editPerson(type, id) {
   clearPersonForm();
   const label = type === 'artist' ? 'Artist' : 'Composer';
   document.getElementById('personModalTitle').textContent = 'Edit ' + label;
@@ -1537,10 +1539,10 @@ async function savePerson(e) {
     const plural = type + 's';
 
     if (id) {
-      await apiPut(`${ADMIN_API}/${type}s/${id}`, body);
+      await apiPut(`${ADMIN_API}/${type}s/${id}`, body, { success: `${label} updated.` });
       showPersonMessage(label + ' updated successfully!');
     } else {
-      await apiPost(`${ADMIN_API}/${plural}`, body);
+      await apiPost(`${ADMIN_API}/${plural}`, body, { success: `${label} created.` });
       showPersonMessage(label + ' created successfully!');
     }
     // Clear draft on successful save
@@ -1626,7 +1628,7 @@ async function deleteItem() {
   else if (type === 'contact') allContacts = allContacts.filter(c => c.id !== id);
 
   try {
-    await apiDelete(`${ADMIN_API}/${type}s/${id}`);
+    await apiDelete(`${ADMIN_API}/${type}s/${id}`, { success: `${type.replace('-', ' ').replace(/^./, (c) => c.toUpperCase())} deleted.` });
     // Reload for accurate counts/pagination
     if (type === 'song') { loadSongs(currentPage); refreshStats(); }
     else if (type === 'artist') loadArtists();
@@ -1642,7 +1644,7 @@ async function deleteItem() {
     if (typeof Toast !== 'undefined') {
       Toast.show('Delete failed: ' + err.message, { type: 'error', duration: 4000 });
     } else {
-      alert('Delete failed: ' + err.message);
+      AdminUI.alertToast('Delete failed: ' + err.message);
     }
     if (type === 'song') loadSongs(currentPage);
     else if (type === 'artist') loadArtists();
@@ -1664,7 +1666,7 @@ const SUPPORTER_KIND_LABEL = { sponsor: 'Sponsor', partner: 'Partner' };
 
 async function loadSupporters() {
   const tbody = document.getElementById('supportersTableBody');
-  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(5);
   try {
     const data = await apiGet(`${ADMIN_API}/supporters`);
     allSupporters = data.supporters || [];
@@ -1763,8 +1765,8 @@ async function saveSupporter(e) {
   const btn = document.getElementById('supBtnSubmit');
   btn.disabled = true;
   try {
-    if (id) await apiPut(`${ADMIN_API}/supporters/${id}`, body);
-    else await apiPost(`${ADMIN_API}/supporters`, body);
+    if (id) await apiPut(`${ADMIN_API}/supporters/${id}`, body, { success: 'Supporter updated.' });
+    else await apiPost(`${ADMIN_API}/supporters`, body, { success: 'Supporter added.' });
     closeSupporterModal();
     loadSupporters();
   } catch (err) {
@@ -1780,7 +1782,7 @@ async function saveSupporter(e) {
 
 async function loadAdminUsers() {
   const tbody = document.getElementById('adminUsersTableBody');
-  tbody.innerHTML = '<tr><td colspan="4" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(4);
   try {
     const data = await apiGet(`${ADMIN_API}/admin-users`);
     allAdminUsers = data.admin_users || [];
@@ -1893,8 +1895,8 @@ async function saveAdminUser(e) {
     const body = { username, role };
     if (password) body.password = password;
 
-    if (id) await apiPut(`${ADMIN_API}/admin-users/${id}`, body);
-    else await apiPost(`${ADMIN_API}/admin-users`, body);
+    if (id) await apiPut(`${ADMIN_API}/admin-users/${id}`, body, { success: 'Admin updated.' });
+    else await apiPost(`${ADMIN_API}/admin-users`, body, { success: 'Admin created.' });
 
     closeAdminUserModal();
     loadAdminUsers();
@@ -1912,8 +1914,10 @@ async function saveAdminUser(e) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loginForm').addEventListener('submit', handleLogin);
+  AdminUI.showFlash();
 
   if (!getAdminToken()) {
+    AdminUI.hideSplash();
     showLoginOverlay();
     return;
   }
@@ -1928,14 +1932,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     setAdminInfo(me);
   } catch (err) {
     if (OfflineSync.isNetworkError(err) && getAdminInfo()) {
+      AdminUI.hideSplash();
+      AdminUI.notify('You are offline — showing cached data.', 'info');
       initDashboard();
       return;
     }
     clearAdminSession();
+    AdminUI.hideSplash();
     showLoginOverlay('Session expired. Please sign in again.');
     return;
   }
 
+  AdminUI.hideSplash();
   initDashboard();
 });
 
@@ -1947,8 +1955,11 @@ window.addEventListener('ml:sync-complete', () => {
   refreshStats();
 });
 window.addEventListener('ml:queue-changed', () => {
-  renderSongsTable(allSongs);
-  renderArticlesTable(allArticles);
+  // Skip a table that's still showing its loading skeleton — re-rendering the (still empty)
+  // list now would replace the skeleton with a misleading "No songs found".
+  const stillLoading = (id) => document.getElementById(id)?.querySelector('.skel-row');
+  if (!stillLoading('songsTableBody')) renderSongsTable(allSongs);
+  if (!stillLoading('articlesTableBody')) renderArticlesTable(allArticles);
 });
 
 let dashboardInitialized = false;
@@ -2237,7 +2248,7 @@ window.selectAvatar = selectAvatar;
 
 async function loadCopyrightOwners() {
   const tbody = document.getElementById('copyrightOwnersTableBody');
-  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(5);
   try {
     const data = await apiGet(`${ADMIN_API}/copyright-owners`);
     allCopyrightOwners = data.copyright_owners || [];
@@ -2315,6 +2326,9 @@ function openNewCopyrightOwner() {
 }
 
 async function editCopyrightOwner(id) {
+  return AdminUI.withLoading('Loading…', () => _editCopyrightOwner(id));
+}
+async function _editCopyrightOwner(id) {
   clearCopyrightOwnerForm();
   document.getElementById('coModalTitle').textContent = 'Edit Copyright Owner';
   document.getElementById('coBtnSubmit').textContent = 'Update Copyright Owner';
@@ -2374,10 +2388,10 @@ async function saveCopyrightOwner(e) {
     const body = { name, slug, full_legal_name, organization, territory, email, website, address, ipi_number, isrc_prefix, pro_affiliation, notes, image_url };
 
     if (id) {
-      await apiPut(`${ADMIN_API}/copyright-owners/${id}`, body);
+      await apiPut(`${ADMIN_API}/copyright-owners/${id}`, body, { success: 'Copyright owner updated.' });
       showCOMessage('Copyright owner updated successfully!');
     } else {
-      await apiPost(`${ADMIN_API}/copyright-owners`, body);
+      await apiPost(`${ADMIN_API}/copyright-owners`, body, { success: 'Copyright owner created.' });
       showCOMessage('Copyright owner created successfully!');
     }
     // Clear draft on successful save
@@ -2418,7 +2432,7 @@ let currentArticleSearchQuery = '';
 
 async function loadArticles(page = 1, query = currentArticleSearchQuery) {
   const tbody = document.getElementById('articlesTableBody');
-  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(5);
   currentArticleSearchQuery = query || '';
 
   try {
@@ -2471,7 +2485,7 @@ function articleStatusActionsHtml(article) {
 
 async function changeArticleStatus(id, status) {
   try {
-    const updated = await apiPut(`${ADMIN_API}/articles/${id}/status`, { status });
+    const updated = await apiPut(`${ADMIN_API}/articles/${id}/status`, { status }, { success: `Article marked ${status}.` });
     const article = allArticles.find(a => a.id === id);
     if (article) { article.status = updated.status; article.published_at = updated.published_at; }
     renderArticlesTable(allArticles);
@@ -2483,7 +2497,7 @@ async function changeArticleStatus(id, status) {
     }
   } catch (err) {
     if (typeof Toast !== 'undefined') Toast.show('Failed to update status: ' + err.message, { type: 'error' });
-    else alert('Failed to update status: ' + err.message);
+    else AdminUI.alertToast('Failed to update status: ' + err.message);
   }
 }
 
@@ -2664,6 +2678,9 @@ function populateArticleForm(item) {
 }
 
 async function editArticle(id) {
+  return AdminUI.withLoading('Loading article…', () => _editArticle(id));
+}
+async function _editArticle(id) {
   clearArticleForm();
   document.getElementById('articleModalTitle').textContent = 'Edit Article';
   document.getElementById('articleBtnSubmit').textContent = 'Update Article';
@@ -2745,11 +2762,11 @@ async function saveArticle(e) {
 
   try {
     if (id) {
-      await apiPut(`${ADMIN_API}/articles/${id}`, { ...body, expected_updated_at: currentArticleLoadedUpdatedAt });
+      await apiPut(`${ADMIN_API}/articles/${id}`, { ...body, expected_updated_at: currentArticleLoadedUpdatedAt }, { success: 'Article updated.' });
       showArticleMessage('Article updated successfully!');
       OfflineSync.clearConflict('article', Number(id)).catch(() => {});
     } else {
-      await apiPost(`${ADMIN_API}/articles`, body);
+      await apiPost(`${ADMIN_API}/articles`, body, { success: 'Article saved as a draft.' });
       showArticleMessage('Article created as a draft. Publish it from the table to make it public and notify visitors.');
     }
 
@@ -2796,7 +2813,7 @@ function autoArticleSlug() {
 
 async function loadReports() {
   const tbody = document.getElementById('reportsTableBody');
-  tbody.innerHTML = '<tr><td colspan="6" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(6);
 
   try {
     const data = await apiGet(`${ADMIN_API}/reports`);
@@ -2862,13 +2879,13 @@ function renderReportsTable() {
 
 async function updateReportStatus(id, status) {
   try {
-    await apiPut(`${ADMIN_API}/reports/${id}`, { status });
+    await apiPut(`${ADMIN_API}/reports/${id}`, { status }, { success: `Report marked ${status}.` });
     // Update local state
     const report = allReports.find(r => r.id === id);
     if (report) report.status = status;
     renderReportsTable();
   } catch (err) {
-    alert('Failed to update status: ' + err.message);
+    AdminUI.alertToast('Failed to update status: ' + err.message);
     loadReports();
   }
 }
@@ -2913,7 +2930,7 @@ function closeFeedbackModal() {
 
 async function loadRevisions() {
   const tbody = document.getElementById('revisionsTableBody');
-  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(5);
   try {
     const data = await apiGet(`${ADMIN_API}/revisions`);
     allRevisions = data.revisions || [];
@@ -2972,6 +2989,9 @@ function describeSongFields(song) {
 }
 
 async function openRevisionModal(id) {
+  return AdminUI.withLoading('Loading revision…', () => _openRevisionModal(id));
+}
+async function _openRevisionModal(id) {
   currentRevisionId = id;
   document.getElementById('revisionModal').style.display = 'flex';
   document.getElementById('rdSong').textContent = 'Loading...';
@@ -3026,21 +3046,21 @@ async function approveRevision() {
     loadRevisions();
     loadSongs(currentPage);
   } catch (err) {
-    alert('Failed to approve: ' + err.message);
+    AdminUI.alertToast('Failed to approve: ' + err.message);
   }
 }
 
 async function rejectRevision() {
   if (!currentRevisionId) return;
   const reviewer_note = document.getElementById('rdNoteInput').value.trim();
-  if (!reviewer_note) { alert('A reviewer note is required to reject a revision.'); return; }
+  if (!reviewer_note) { AdminUI.alertToast('A reviewer note is required to reject a revision.'); return; }
   try {
     await apiPut(`${ADMIN_API}/revisions/${currentRevisionId}/reject`, { reviewer_note });
     if (typeof Toast !== 'undefined') Toast.show('Revision rejected.', { type: 'success' });
     closeRevisionModal();
     loadRevisions();
   } catch (err) {
-    alert('Failed to reject: ' + err.message);
+    AdminUI.alertToast('Failed to reject: ' + err.message);
   }
 }
 
@@ -3050,7 +3070,7 @@ async function rejectRevision() {
 
 async function loadAuditLog() {
   const tbody = document.getElementById('auditLogTableBody');
-  tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(5);
   try {
     const targetType = document.getElementById('auditFilterTarget')?.value || '';
     const params = new URLSearchParams({ limit: '100' });
@@ -3088,7 +3108,7 @@ function renderAuditLogTable() {
 
 async function loadContacts() {
   const tbody = document.getElementById('contactsTableBody');
-  tbody.innerHTML = '<tr><td colspan="6" class="admin-table__empty">Loading...</td></tr>';
+  tbody.innerHTML = AdminUI.loadingRows(6);
   try {
     const data = await apiGet(`${ADMIN_API}/contacts`);
     allContacts = data.contacts || [];
@@ -3145,12 +3165,12 @@ function renderContactsTable() {
 
 async function updateContactStatus(id, status) {
   try {
-    await apiPut(`${ADMIN_API}/contacts/${id}`, { status });
+    await apiPut(`${ADMIN_API}/contacts/${id}`, { status }, { success: `Message marked ${status}.` });
     const contact = allContacts.find(c => c.id === id);
     if (contact) contact.status = status;
     renderContactsTable();
   } catch (err) {
-    alert('Failed to update status: ' + err.message);
+    AdminUI.alertToast('Failed to update status: ' + err.message);
     loadContacts();
   }
 }
@@ -3185,6 +3205,9 @@ function closeContactModal() {
 // ═══════════════════════════════════════════════════
 
 async function openProfileModal(id) {
+  return AdminUI.withLoading('Loading profile…', () => _openProfileModal(id));
+}
+async function _openProfileModal(id) {
   currentProfileId = id;
   document.getElementById('profileModal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -3247,7 +3270,7 @@ function selectAvatar(avatar) {
 // it's how a Viewer/Translator/Reviewer/Editor discovers other admins to view/follow at all.
 async function loadProfileDirectory() {
   const listEl = document.getElementById('profileDirectoryList');
-  listEl.innerHTML = '<div class="admin-table__empty">Loading...</div>';
+  listEl.innerHTML = '<div class="admin-table__empty"><span class="inline-spinner" aria-hidden="true"></span> Loading…</div>';
   try {
     const data = await apiGet(`${ADMIN_API}/admin-users/directory`);
     allAdminDirectory = data.admin_users || [];
@@ -3369,7 +3392,7 @@ function closePhotoCrop() {
 }
 
 async function savePhoto(photo) {
-  const updated = await apiPut(`${ADMIN_API}/profile`, { photo });
+  const updated = await apiPut(`${ADMIN_API}/profile`, { photo }, { success: 'Profile photo updated.' });
   const info = getAdminInfo();
   if (info) setAdminInfo({ ...info, photo: updated.photo });
   applyRoleVisibility();
@@ -3448,14 +3471,14 @@ async function toggleProfileFollow() {
   btn.disabled = true;
   try {
     if (currentProfileIsFollowing) {
-      await apiDelete(`${ADMIN_API}/admin-users/${currentProfileId}/follow`);
+      await apiDelete(`${ADMIN_API}/admin-users/${currentProfileId}/follow`, { success: 'Unfollowed.' });
     } else {
-      await apiPost(`${ADMIN_API}/admin-users/${currentProfileId}/follow`, {});
+      await apiPost(`${ADMIN_API}/admin-users/${currentProfileId}/follow`, {}, { success: 'Following.' });
     }
     await openProfileModal(currentProfileId);
   } catch (err) {
     if (typeof Toast !== 'undefined') Toast.show('Failed: ' + err.message, { type: 'error' });
-    else alert('Failed: ' + err.message);
+    else AdminUI.alertToast('Failed: ' + err.message);
   } finally {
     btn.disabled = false;
   }
@@ -3477,7 +3500,7 @@ async function saveProfileChanges() {
   btn.textContent = 'Saving...';
 
   try {
-    const updated = await apiPut(`${ADMIN_API}/profile`, { username, avatar: selectedAvatar });
+    const updated = await apiPut(`${ADMIN_API}/profile`, { username, avatar: selectedAvatar }, { success: 'Profile updated.' });
     showProfileMessage('Profile updated successfully!');
     // Keep the cached session info (header chip, role checks) in sync with the new username/avatar.
     const info = getAdminInfo();
@@ -3508,7 +3531,7 @@ function cancelDeleteAccountConfirm() {
 
 async function confirmDeleteAccount() {
   const password = document.getElementById('profileDeletePassword').value;
-  if (!password) { alert('Enter your password to confirm.'); return; }
+  if (!password) { AdminUI.alertToast('Enter your password to confirm.'); return; }
 
   const btn = document.getElementById('profileBtnConfirmDelete');
   btn.disabled = true;
@@ -3520,7 +3543,7 @@ async function confirmDeleteAccount() {
     alert('Your account has been deleted.');
     location.reload();
   } catch (err) {
-    alert('Failed to delete account: ' + err.message);
+    AdminUI.alertToast('Failed to delete account: ' + err.message);
     btn.disabled = false;
     btn.textContent = 'Permanently Delete My Account';
   }

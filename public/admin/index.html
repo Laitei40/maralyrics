@@ -25,6 +25,15 @@
 </head>
 <body>
 
+  <!-- ─── Splash (hidden by AdminUI.hideSplash once the session check finishes) ── -->
+  <div id="adminSplash" class="admin-splash" role="status" aria-live="polite">
+    <div class="admin-splash__inner">
+      <img src="icon.svg" alt="" class="admin-splash__logo" />
+      <div class="admin-splash__spinner" aria-hidden="true"></div>
+      <p class="admin-splash__text">Loading dashboard…</p>
+    </div>
+  </div>
+
   <!-- ─── Login Overlay ──────────────────────── -->
   <div id="loginOverlay" class="modal" style="display:none;">
     <div class="modal__backdrop"></div>
@@ -1299,6 +1308,7 @@
   </footer>
 
   <script src="/toast.js"></script>
+  <script src="loader.js"></script>
   <script src="offline-db.js"></script>
   <script src="offline-sync.js"></script>
   <script src="index.js"></script>
