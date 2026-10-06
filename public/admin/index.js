@@ -596,6 +596,8 @@ function apiError(status, data) {
 async function apiRequest(method, url, body, opts = {}) {
   const isWrite = method !== 'GET';
   const btn = isWrite && !opts.silent ? AdminUI.activeButton() : null;
+  const dialog = isWrite && !opts.silent;
+  if (dialog) AdminUI.showLoading(opts.loading || (method === 'DELETE' ? 'Deleting…' : 'Saving…'));
   AdminUI.setBusy(btn, true);
   try {
     const res = await AdminUI.track(fetch(url, {
@@ -613,6 +615,7 @@ async function apiRequest(method, url, body, opts = {}) {
     return data;
   } finally {
     AdminUI.setBusy(btn, false);
+    if (dialog) AdminUI.hideLoading();
   }
 }
 
@@ -1029,6 +1032,9 @@ function applySongModalPermissions(mode, role, song) {
 }
 
 async function openNewSong() {
+  return AdminUI.withLoading('Opening form…', () => _openNewSong());
+}
+async function _openNewSong() {
   if (!hasRole(...CAN_CREATE_SONG)) return;
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'New Song';
@@ -1061,6 +1067,9 @@ function populateSongForm(song) {
 }
 
 async function editSong(id) {
+  return AdminUI.withLoading('Loading song…', () => _editSong(id));
+}
+async function _editSong(id) {
   clearSongForm();
   document.getElementById('modalTitle').textContent = 'Edit Song';
   await populateDropdowns();
@@ -1478,6 +1487,9 @@ function openNewPerson(type) {
 }
 
 async function editPerson(type, id) {
+  return AdminUI.withLoading('Loading…', () => _editPerson(type, id));
+}
+async function _editPerson(type, id) {
   clearPersonForm();
   const label = type === 'artist' ? 'Artist' : 'Composer';
   document.getElementById('personModalTitle').textContent = 'Edit ' + label;
@@ -2314,6 +2326,9 @@ function openNewCopyrightOwner() {
 }
 
 async function editCopyrightOwner(id) {
+  return AdminUI.withLoading('Loading…', () => _editCopyrightOwner(id));
+}
+async function _editCopyrightOwner(id) {
   clearCopyrightOwnerForm();
   document.getElementById('coModalTitle').textContent = 'Edit Copyright Owner';
   document.getElementById('coBtnSubmit').textContent = 'Update Copyright Owner';
@@ -2663,6 +2678,9 @@ function populateArticleForm(item) {
 }
 
 async function editArticle(id) {
+  return AdminUI.withLoading('Loading article…', () => _editArticle(id));
+}
+async function _editArticle(id) {
   clearArticleForm();
   document.getElementById('articleModalTitle').textContent = 'Edit Article';
   document.getElementById('articleBtnSubmit').textContent = 'Update Article';
@@ -2971,6 +2989,9 @@ function describeSongFields(song) {
 }
 
 async function openRevisionModal(id) {
+  return AdminUI.withLoading('Loading revision…', () => _openRevisionModal(id));
+}
+async function _openRevisionModal(id) {
   currentRevisionId = id;
   document.getElementById('revisionModal').style.display = 'flex';
   document.getElementById('rdSong').textContent = 'Loading...';
@@ -3184,6 +3205,9 @@ function closeContactModal() {
 // ═══════════════════════════════════════════════════
 
 async function openProfileModal(id) {
+  return AdminUI.withLoading('Loading profile…', () => _openProfileModal(id));
+}
+async function _openProfileModal(id) {
   currentProfileId = id;
   document.getElementById('profileModal').style.display = 'flex';
   document.body.style.overflow = 'hidden';

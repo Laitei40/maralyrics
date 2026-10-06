@@ -87,6 +87,53 @@ const AdminUI = (() => {
     return el && el.tagName === 'BUTTON' && !el.disabled && !el.closest('.skip-busy') ? el : null;
   }
 
+  // ─── Blocking loading dialog (foreground feedback for opens and saves) ──
+  // Shown only if the work takes longer than ~150ms so instant actions don't flash it.
+  let loadingCount = 0;
+  let loadingEl = null;
+  let loadingTimer = null;
+  let loadingMessage = '';
+
+  function getLoadingEl() {
+    if (!loadingEl) {
+      loadingEl = document.createElement('div');
+      loadingEl.className = 'admin-loading';
+      loadingEl.setAttribute('role', 'alertdialog');
+      loadingEl.setAttribute('aria-modal', 'true');
+      loadingEl.setAttribute('aria-live', 'assertive');
+      loadingEl.setAttribute('aria-label', 'Loading');
+      loadingEl.innerHTML = '<div class="admin-loading__card"><div class="admin-loading__spinner" aria-hidden="true"></div><p class="admin-loading__text"></p></div>';
+      document.body.appendChild(loadingEl);
+    }
+    return loadingEl;
+  }
+
+  function showLoading(message = 'Loading…') {
+    loadingCount++;
+    loadingMessage = message;
+    if (loadingCount === 1) {
+      clearTimeout(loadingTimer);
+      loadingTimer = setTimeout(() => {
+        const el = getLoadingEl();
+        el.querySelector('.admin-loading__text').textContent = loadingMessage;
+        el.classList.add('is-visible');
+      }, 150);
+    }
+  }
+
+  function hideLoading() {
+    loadingCount = Math.max(0, loadingCount - 1);
+    if (loadingCount > 0) return;
+    clearTimeout(loadingTimer);
+    if (loadingEl) loadingEl.classList.remove('is-visible');
+  }
+
+  /** Run fn (sync or async) behind the loading dialog; always hides it afterwards. */
+  async function withLoading(message, fn) {
+    showLoading(message);
+    try { return await fn(); } finally { hideLoading(); }
+  }
+
   // ─── Toasts ───────────────────────────────────────────────────────
   function notify(message, type = 'info', opts = {}) {
     if (typeof Toast !== 'undefined') Toast.show(message, { type, duration: type === 'error' ? 5000 : 3500, ...opts });
@@ -114,5 +161,5 @@ const AdminUI = (() => {
     } catch { /* ignore */ }
   }
 
-  return { track, hideSplash, loadingRows, setBusy, activeButton, notify, success, error, alertToast, flash, showFlash };
+  return { track, showLoading, hideLoading, withLoading, hideSplash, loadingRows, setBusy, activeButton, notify, success, error, alertToast, flash, showFlash };
 })();

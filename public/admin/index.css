@@ -1473,3 +1473,25 @@ button.is-busy::after {
 @media (prefers-reduced-motion: reduce) {
   .admin-splash__logo, .admin-splash__spinner, .admin-progress span, .skel-bar::after, .inline-spinner, button.is-busy::after { animation-duration: 2.5s; }
 }
+
+/* Blocking loading dialog (AdminUI.withLoading) — above modals (1000) and toasts (10000) */
+.admin-loading {
+  position: fixed; inset: 0; z-index: 15000; display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 8, 16, 0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  opacity: 0; visibility: hidden; transition: opacity .18s ease, visibility 0s linear .18s; cursor: progress;
+}
+.admin-loading.is-visible { opacity: 1; visibility: visible; transition-delay: 0s; }
+.admin-loading__card {
+  display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 200px; padding: 26px 34px;
+  background: rgba(17, 24, 39, 0.96); border: 1px solid var(--border-glass); border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 28px rgba(139, 92, 246, 0.18);
+  transform: scale(.94); transition: transform .2s ease;
+}
+.admin-loading.is-visible .admin-loading__card { transform: none; }
+.admin-loading__spinner {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: var(--accent); border-right-color: var(--accent-light);
+  animation: ml-spin .8s linear infinite;
+}
+.admin-loading__text { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+@media (prefers-reduced-motion: reduce) { .admin-loading, .admin-loading__card { transition: none; } }
