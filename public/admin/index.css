@@ -1403,7 +1403,7 @@
 
 .photo-upload { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
 .photo-crop { padding: var(--space-lg) var(--space-xl); display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); }
-.photo-crop canvas { width: 300px; max-width: 100%; aspect-ratio: 1; border-radius: var(--radius-md); background: #000; cursor: grab; touch-action: none; }
+.photo-crop canvas { width: 300px; max-width: 100%; aspect-ratio: 1; /* JS sets it for wide crops */ border-radius: var(--radius-md); background: #000; cursor: grab; touch-action: none; }
 .photo-crop canvas:active { cursor: grabbing; }
 .photo-crop__zoom { display: flex; align-items: center; gap: var(--space-sm); width: 100%; max-width: 300px; }
 .photo-crop__zoom input { flex: 1; }
@@ -1518,3 +1518,5 @@ button.is-busy::after {
   font-size: var(--text-lg, 1.1rem);
   margin: var(--space-lg, 24px) 0 var(--space-sm, 8px);
 }
+.profile-avatar--wide.profile-avatar--lg { width: 128px; height: 64px; }
+.profile-avatar--wide .profile-avatar__img { object-fit: cover; }

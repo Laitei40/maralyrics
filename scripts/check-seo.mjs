@@ -217,6 +217,11 @@ for (const c of cases) {
   check(season.html.includes('<link rel="canonical" id="canonicalUrl" href="https://maralyrics.com/mara-idol/season-1" />') && !/name="robots"/.test(season.html), 'season: canonical, not noindex');
   check(season.html.includes('The first &lt;edition&gt;.') && season.html.includes('href="/mara-idol/season-1/win-ner"') && season.html.includes('Win Ner — Winner'), 'season: description (escaped) and contestant links rendered');
   check(season.html.includes('id="ogImage" content="https://img.example.com/cover.jpg"'), 'season: og:image uses the cover');
+  run(`UPDATE idol_seasons SET cover_url = NULL, photo_url = 'https://img.example.com/season.jpg' WHERE id = 1`);
+  const photoOnly = await get(mod, '/mara-idol/season-1');
+  check(photoOnly.html.includes('id="ogImage" content="https://img.example.com/season.jpg"'), 'season: og:image falls back to the season photo when there is no cover');
+  check(nodes(jsonLd(photoOnly.html)).some((n) => n.image === 'https://img.example.com/season.jpg'), 'season: JSON-LD image falls back to the season photo');
+  run(`UPDATE idol_seasons SET cover_url = 'https://img.example.com/cover.jpg', photo_url = NULL WHERE id = 1`);
   const ev = sld.find((n) => n['@type'] === 'Event');
   check(ev && ev.startDate === '2024-12-01' && ev.location.name === 'Town Hall' && sld.some((n) => n['@type'] === 'BreadcrumbList'), 'season: Event JSON-LD (real date + venue) and breadcrumbs');
   check(!/id="idolDescription"[^>]*hidden/.test(season.html), 'season: description paragraph visible');

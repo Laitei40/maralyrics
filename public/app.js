@@ -2959,9 +2959,12 @@ const Idol = {
     const cover = s.cover_url
       ? `<img src="${this.esc(s.cover_url)}" alt="" loading="lazy" onerror="this.remove()" />`
       : '';
+    const photo = s.photo_url
+      ? `<span class="idol-season-card__photo"><img src="${this.esc(s.photo_url)}" alt="" loading="lazy" onerror="this.parentNode.remove()" /></span>`
+      : '';
     return `
       <a href="/mara-idol/${encodeURIComponent(s.slug)}" class="idol-season-card">
-        <span class="idol-season-card__cover"><span class="idol-season-card__fallback" aria-hidden="true">🎤</span>${cover}<span class="idol-season-card__year">${Number(s.year)}</span></span>
+        <span class="idol-season-card__cover"><span class="idol-season-card__fallback" aria-hidden="true">🎤</span>${cover}<span class="idol-season-card__year">${Number(s.year)}</span>${photo}</span>
         <span class="idol-season-card__body">
           <h2 class="idol-season-card__title">${this.esc(s.title)}</h2>
           ${this.seasonMeta(s) ? `<span class="idol-season-card__meta">${this.esc(this.seasonMeta(s))}</span>` : ''}
@@ -3144,6 +3147,8 @@ const IdolSeasonPage = {
     desc.textContent = s.description || '';
     desc.hidden = !s.description;
     const cover = document.getElementById('idolCover');
+    const photoEl = document.getElementById('idolPhoto');
+    if (s.photo_url) { photoEl.innerHTML = `<img src="${Idol.esc(s.photo_url)}" alt="" onerror="this.parentNode.hidden=true" />`; photoEl.hidden = false; } else { photoEl.hidden = true; }
     if (s.cover_url) { cover.innerHTML = `<img src="${Idol.esc(s.cover_url)}" alt="" onerror="this.closest('.idol-hero__cover').hidden=true" />`; cover.hidden = false; } else { cover.hidden = true; }
 
     const videos = document.getElementById('idolVideos');
@@ -3164,7 +3169,7 @@ const IdolSeasonPage = {
     const text = String(s.description || '').replace(/\s+/g, ' ').trim();
     const desc = text ? text.slice(0, 200) : `${s.title} — Mara Idol ${s.year} on MaraLyrics.`;
     const url = `https://maralyrics.com/mara-idol/${encodeURIComponent(s.slug)}`;
-    Idol.applyMeta({ title, desc, url, image: s.cover_url });
+    Idol.applyMeta({ title, desc, url, image: s.cover_url || s.photo_url });
   },
 };
 

@@ -61,10 +61,11 @@ check(validateSeason(okSeason).ok && validateSeason(okSeason).values.slug === 'm
 for (const [label, patch] of [
   ['missing title', { title: '' }], ['year too small', { year: 1899 }], ['year too big', { year: 2101 }], ['year not a number', { year: 'abc' }],
   ['bad start date', { start_date: '2025-02-30' }], ['non-date start', { start_date: 'tomorrow' }], ['end before start', { start_date: '2025-05-02', end_date: '2025-05-01' }],
-  ['end without start', { end_date: '2025-05-01' }], ['bad status', { status: 'archived' }], ['javascript: cover', { cover_url: 'javascript:alert(1)' }],
+  ['end without start', { end_date: '2025-05-01' }], ['bad status', { status: 'archived' }], ['javascript: cover', { cover_url: 'javascript:alert(1)' }], ['javascript: photo', { photo_url: 'javascript:alert(1)' }],
   ['long title', { title: 'x'.repeat(151) }], ['long description', { description: 'x'.repeat(5001) }],
 ]) check(!validateSeason({ ...okSeason, ...patch }).ok, `season: ${label} must be rejected`);
 check(validateSeason({ ...okSeason, cover_url: 'data:image/png;base64,AAAA' }).ok, 'season: data:image cover accepted');
+check(validateSeason({ ...okSeason, photo_url: 'data:image/jpeg;base64,AAAA' }).values.photo_url === 'data:image/jpeg;base64,AAAA' && validateSeason(okSeason).values.photo_url === null, 'season: photo accepted (data:image) and optional');
 check(validateSeason({ ...okSeason, start_date: '2024-02-29' }).ok, 'season: leap day accepted');
 check(validateSeason(okSeason).values.status === 'draft', 'season: defaults to draft');
 
@@ -95,7 +96,7 @@ check(count('SELECT COUNT(*) AS n FROM idol_seasons') === 0, 'nothing written by
 const s1 = await adm('POST', '/idol-seasons', { title: 'Mara Idol Season 1', year: 2024, status: 'published', venue: 'Town Hall', start_date: '2024-12-01', end_date: '2024-12-03',
   description: 'The first edition.', videos: [{ title: 'Final night', url: 'https://youtu.be/final' }] }, 'editor');
 check(s1.status === 201 && s1.json.slug === 'mara-idol-season-1' && s1.json.videos.length === 1, 'editor can create a season (slug + videos returned as array)');
-const s2 = await adm('POST', '/idol-seasons', { title: 'Mara Idol Season 2', year: 2025, status: 'published' }, 'manager');
+const s2 = await adm('POST', '/idol-seasons', { title: 'Mara Idol Season 2', year: 2025, status: 'published', cover_url: 'https://img.example.com/c2.jpg', photo_url: 'https://img.example.com/p2.jpg' }, 'manager');
 const s3 = await adm('POST', '/idol-seasons', { title: 'Mara Idol Season 3', year: 2026 }, 'super_admin'); // draft
 check([s2, s3].every((r) => r.status === 201), 'manager and super_admin can create seasons');
 check((await adm('PUT', `/idol-seasons/${s3.json.id}`, { ...okSeason, title: 'Season 3 renamed', year: 2026 }, 'viewer')).status === 403, 'viewer must not edit');
@@ -139,6 +140,10 @@ console.log('Public API');
 const idx = await pub('');
 check(idx.status === 200 && idx.json.seasons.map((s) => s.slug).join() === 'mara-idol-season-2,mara-idol-season-1', 'index lists published seasons, newest first, no drafts');
 const season1 = idx.json.seasons.find((s) => s.slug === 'mara-idol-season-1');
+const season2 = idx.json.seasons.find((s) => s.slug === 'mara-idol-season-2');
+check(season2.cover_url === 'https://img.example.com/c2.jpg' && season2.photo_url === 'https://img.example.com/p2.jpg' && season1.photo_url === null, 'index: seasons carry cover and season photo');
+check((await pub('/mara-idol-season-2')).json.photo_url === 'https://img.example.com/p2.jpg', 'season detail: season photo returned');
+check((await adm('PUT', `/idol-seasons/${s2.json.id}`, { title: 'Mara Idol Season 2', year: 2025, status: 'published', photo_url: 'javascript:alert(1)' }, 'manager')).status === 400, 'season photo: unsafe URL rejected on update');
 check(season1.contestant_count === 5 && season1.winners.length === 1 && season1.winners[0].slug === 'win-ner', 'season shows contestant count and its winner');
 check(idx.json.idols.every((i) => i.season_slug !== 'mara-idol-season-3'), 'idols of a draft season are not listed');
 check(idx.json.idols.filter((i) => i.season_slug === 'mara-idol-season-1').map((i) => i.name).join() === 'Win Ner,Runner Up,Amy Final,Zed Final,Plain Entry', 'idols ordered: winner → runner-up → finalists (manual order) → others');
