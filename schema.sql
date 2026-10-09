@@ -233,6 +233,45 @@ CREATE TABLE IF NOT EXISTS person_badges (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_person_badges_artist   ON person_badges(artist_id, period, period_value)   WHERE artist_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_person_badges_composer ON person_badges(composer_id, period, period_value) WHERE composer_id IS NOT NULL;
 
+-- Mara Idol: seasons (editions) and their contestants — a season is public only once published
+CREATE TABLE IF NOT EXISTS idol_seasons (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT NOT NULL,
+    slug        TEXT NOT NULL UNIQUE,
+    year        INTEGER NOT NULL CHECK (year BETWEEN 1900 AND 2100),
+    description TEXT,
+    venue       TEXT,
+    start_date  TEXT CHECK (start_date IS NULL OR start_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+    end_date    TEXT CHECK (end_date IS NULL OR end_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+    cover_url   TEXT,
+    videos      TEXT CHECK (videos IS NULL OR json_valid(videos)),   -- JSON array of { title, url }
+    status      TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS idol_contestants (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    season_id  INTEGER NOT NULL REFERENCES idol_seasons(id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    slug       TEXT NOT NULL,
+    bio        TEXT,
+    photo_url  TEXT,
+    result     TEXT NOT NULL DEFAULT 'contestant'
+               CHECK (result IN ('winner', 'runner_up', 'second_runner_up', 'finalist', 'semi_finalist', 'contestant')),
+    placement  INTEGER CHECK (placement IS NULL OR placement >= 1),   -- final position, if known
+    videos     TEXT CHECK (videos IS NULL OR json_valid(videos)),     -- JSON array of { title, url }
+    artist_id  INTEGER REFERENCES artists(id) ON DELETE SET NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (season_id, slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_idol_seasons_status_year   ON idol_seasons(status, year DESC);
+CREATE INDEX IF NOT EXISTS idx_idol_contestants_season    ON idol_contestants(season_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_idol_contestants_artist    ON idol_contestants(artist_id);
+
 -- ── Performance indexes ──
 CREATE INDEX IF NOT EXISTS idx_songs_slug              ON songs(slug);
 CREATE INDEX IF NOT EXISTS idx_songs_title              ON songs(title);

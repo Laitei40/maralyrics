@@ -3,68 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MaraLyrics — Mara Song Lyrics Collection</title>
+  <title id="pageTitle">Mara Idol Season — MaraLyrics</title>
 
-  <!-- SEO Meta -->
-  <meta name="description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
-  <meta name="author" content="MaraLyrics" />
+  <!-- SEO Meta (dynamically updated by JS) -->
+  <meta name="description" id="metaDesc" content="Mara Idol season on MaraLyrics." />
   <meta name="theme-color" content="#0a0e1a" />
   <meta name="google-adsense-account" content="ca-pub-8698846427938035">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8698846427938035"
      crossorigin="anonymous"></script>
 
-
-  <!-- Structured Data (JSON-LD) -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "@id": "https://maralyrics.com/#website",
-        "name": "MaraLyrics",
-        "url": "https://maralyrics.com/",
-        "description": "A collection of Mara song lyrics — traditional, love, gospel, and patriotic.",
-        "inLanguage": ["mrh", "en", "my"],
-        "publisher": { "@id": "https://maralyrics.com/#organization" },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": { "@type": "EntryPoint", "urlTemplate": "https://maralyrics.com/?q={search_term_string}" },
-          "query-input": "required name=search_term_string"
-        }
-      },
-      {
-        "@type": "Organization",
-        "@id": "https://maralyrics.com/#organization",
-        "name": "MaraLyrics",
-        "url": "https://maralyrics.com/",
-        "logo": "https://maralyrics.com/icon.svg",
-        "sameAs": [
-          "https://www.youtube.com/@haoleimrh",
-          "https://www.reddit.com/r/maralyrics/"
-        ]
-      }
-    ]
-  }
-  </script>
-
-  <!-- Favicon -->
-  <link rel="canonical" href="https://maralyrics.com/" />
-  <!-- Open Graph / social sharing -->
+  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="MaraLyrics" />
-  <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="MaraLyrics — Mara Song Lyrics Collection" />
-  <meta property="og:description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
-  <meta property="og:url" content="https://maralyrics.com/" />
-  <meta property="og:image" content="https://maralyrics.com/og-image.png" />
+  <meta property="og:title" id="ogTitle" content="Mara Idol Season — MaraLyrics" />
+  <meta property="og:description" id="ogDesc" content="Mara Idol season on MaraLyrics." />
+  <meta property="og:url" id="ogUrl" content="https://maralyrics.com/mara-idol/" />
+  <meta property="og:image" id="ogImage" content="https://maralyrics.com/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="MaraLyrics — Mara song lyrics" />
+
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MaraLyrics — Mara Song Lyrics Collection" />
-  <meta name="twitter:description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
-  <meta name="twitter:image" content="https://maralyrics.com/og-image.png" />
+  <meta name="twitter:title" id="twTitle" content="Mara Idol Season — MaraLyrics" />
+  <meta name="twitter:description" id="twDesc" content="Mara Idol season on MaraLyrics." />
+  <meta name="twitter:image" id="twImage" content="https://maralyrics.com/og-image.png" />
+
+  <!-- Bare view shell: noindex. The Pages Function removes this tag when it renders a real page. -->
+  <meta name="robots" content="noindex, follow" />
+
+  <!-- Canonical -->
+  <link rel="canonical" id="canonicalUrl" href="https://maralyrics.com/mara-idol/" />
+
+  <!-- JSON-LD (populated by JS) -->
+  <script type="application/ld+json" id="jsonLd">
+  {"@context": "https://schema.org", "@type": "WebPage"}
+  </script>
+
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
 
   <!-- Fonts -->
@@ -91,13 +67,13 @@
         <span></span>
       </button>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link active" data-i18n="common.home">Home</a>
+        <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
         <a href="/articles" class="header__nav-link" data-i18n="nav.articles">Articles</a>
-        <a href="/mara-idol" class="header__nav-link" data-i18n="nav.mara_idol">Mara Idol</a>
+        <a href="/mara-idol" class="header__nav-link active" data-i18n="nav.mara_idol">Mara Idol</a>
 
         <!-- Community Calendar -->
-        <button type="button" class="calendar-toggle__btn" id="calendarToggleBtn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
+        <button type="button" class="calendar-toggle__btn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </button>
         <!-- My Downloads -->
@@ -181,9 +157,7 @@
         </div>
       </nav>
     </div>
-
   </header>
-
   <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
        header does not create a containing block that clips position:fixed. -->
   <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
@@ -209,7 +183,7 @@
           <span class="mobile-drawer__icon">🎤</span>
           <span data-i18n="people.hero_title">Artists &amp; Composers</span>
         </a>
-        <a href="/mara-idol" class="mobile-drawer__link">
+        <a href="/mara-idol" class="mobile-drawer__link active">
           <span class="mobile-drawer__icon">🌟</span>
           <span data-i18n="nav.mara_idol">Mara Idol</span>
         </a>
@@ -226,127 +200,62 @@
     </aside>
   </div>
 
-  <!-- ═══ Hero ═══ -->
-  <section class="hero">
-    <div class="container">
-      <h1 class="hero__title" data-i18n="home.hero_title">Mara Song Lyrics</h1>
-      <p class="hero__subtitle" data-i18n="home.hero_subtitle">Discover and explore beautiful lyrics from the Mara community</p>
 
-      <!-- Search -->
-      <div class="search" role="search">
-        <span class="search__icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </span>
-        <input
-          type="text"
-          id="searchInput"
-          class="search__input"
-          placeholder="Search by title, artist, or lyrics..."
-          data-i18n-placeholder="home.search_placeholder"
-          autocomplete="off"
-          aria-label="Search songs"
-          data-i18n-aria="home.search_aria"
-        />
-        <button id="searchClear" class="search__clear" aria-label="Clear search" data-i18n-aria="home.search_clear_aria">&times;</button>
-      </div>
+  <!-- ═══ Mara Idol Season ═══ -->
+  <main class="profile-page container" id="idolSeasonPage">
 
-      <!-- Categories -->
-      <div id="categories" class="categories" role="tablist" data-i18n-aria="home.categories_aria" aria-label="Filter by category">
-        <!-- Populated by JS -->
+    <nav class="breadcrumb" data-i18n-aria="breadcrumb.aria_label" aria-label="Breadcrumb">
+      <a href="/" class="breadcrumb__link" data-i18n="common.home">Home</a>
+      <span class="breadcrumb__sep">›</span>
+      <a href="/mara-idol" class="breadcrumb__link" data-i18n="idol.hero_title">Mara Idol</a>
+      <span class="breadcrumb__sep">›</span>
+      <span class="breadcrumb__current" id="breadcrumbName">…</span>
+    </nav>
+
+    <div id="idolSkeletonBox">
+      <div class="skeleton" style="padding:var(--space-xl);">
+        <div class="skeleton__line skeleton__line--title"></div>
+        <div class="skeleton__line skeleton__line--short"></div>
+        <div class="skeleton__line"></div>
       </div>
     </div>
-  </section>
 
-  <!-- ═══ Main Content ═══ -->
-  <main class="container">
-
-    <!-- Search Results (hidden by default) -->
-    <section id="searchResults" style="display:none;" class="fade-in">
-      <h2 class="section-title">
-        <span class="section-title__icon">🔎</span>
-        <span data-i18n="home.search_results">Search Results</span>
-        <span id="searchCount" style="font-weight:400;color:var(--text-muted);font-size:var(--text-sm);"></span>
-      </h2>
-      <div id="searchGrid" class="song-grid"></div>
-      <div id="searchSuggestions" class="search-suggestions" style="display:none;"></div>
-    </section>
-
-    <!-- Song of the Day (hidden until loaded — a new site with zero songs stays hidden) -->
-    <section id="songOfTheDaySection" class="fade-in" style="display:none;">
-      <h2 class="section-title">
-        <span class="section-title__icon" id="songOfTheDaySectionIcon">🌟</span>
-        <span id="songOfTheDaySectionLabel" data-i18n="home.song_of_the_day">Song of the Day</span>
-      </h2>
-      <div id="songOfTheDayCard"></div>
-    </section>
-
-    <!-- Featured Artists & Composers (7 random, re-rolled every 5 minutes) -->
-    <section id="featuredPeopleSection" class="fade-in" style="display:none;">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="section-title__icon">🎤</span>
-          <span data-i18n="people.section_title">Featured Artists &amp; Composers</span>
-        </h2>
-        <a href="/artists-composers" class="see-all-btn" aria-label="See all artists and composers" title="See all artists and composers" data-i18n-aria="people.see_all" data-i18n-title="people.see_all">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-      <div id="featuredPeopleRow" class="featured-people"></div>
-    </section>
-
-    <!-- Popular Songs -->
-    <section id="popularSection" class="fade-in">
-      <h2 class="section-title" id="popular">
-        <span class="section-title__icon">🔥</span>
-        <span data-i18n="home.popular_songs">Popular Songs</span>
-      </h2>
-      <div id="popularGrid" class="song-grid"></div>
-    </section>
-
-    <!-- All Songs -->
-    <section id="allSongsSection" class="fade-in">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="section-title__icon">🎵</span>
-          <span data-i18n="home.all_songs">All Songs</span>
-        </h2>
-        <div class="list-controls">
-          <button type="button" id="favoritesFilterBtn" class="list-controls__favorites" aria-pressed="false" data-i18n-aria="common.show_favorites" data-i18n-title="common.show_favorites" aria-label="Show favorites" title="Show favorites">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            <span data-i18n="common.favorites">Favorites</span>
-          </button>
-          <select id="sortSelect" class="sort-select" data-i18n-aria="common.sort_by" aria-label="Sort songs">
-            <option value="name_asc" data-i18n="common.sort_name_asc">Name (A–Z)</option>
-            <option value="name_desc" data-i18n="common.sort_name_desc">Name (Z–A)</option>
-            <option value="views_desc" data-i18n="common.sort_views_desc">Number (9–1)</option>
-            <option value="views_asc" data-i18n="common.sort_views_asc">Number (1–9)</option>
-            <option value="created_desc" data-i18n="common.sort_added_desc">Added (New–Old)</option>
-            <option value="created_asc" data-i18n="common.sort_added_asc">Added (Old–New)</option>
-          </select>
-          <div class="view-toggle" role="group" data-i18n-aria="common.display_style" aria-label="Display style">
-            <button type="button" class="view-toggle__btn active" data-view="card" aria-pressed="true" data-i18n-aria="common.view_card" data-i18n-title="common.view_card" aria-label="Card view" title="Card view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </button>
-            <button type="button" class="view-toggle__btn" data-view="list" aria-pressed="false" data-i18n-aria="common.view_list" data-i18n-title="common.view_list" aria-label="List view" title="List view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </button>
-          </div>
+    <div id="idolSeasonDetail" style="display:none;" class="fade-in">
+      <header class="idol-hero">
+        <div class="idol-hero__cover" id="idolCover" hidden></div>
+        <div class="idol-hero__body">
+          <span class="profile-page__role"><span data-i18n="idol.hero_title">Mara Idol</span> · <span id="idolYear"></span></span>
+          <h1 class="profile-page__name" id="idolTitle"></h1>
+          <p class="idol-meta" id="idolMeta"></p>
+          <p class="profile-page__bio idol-description" id="idolDescription" hidden></p>
         </div>
-      </div>
-      <div id="songGrid" class="song-grid"></div>
+      </header>
 
-      <!-- Pagination -->
-      <div id="pagination" class="pagination"></div>
-    </section>
+      <section class="profile-page__songs" id="idolVideosSection" hidden>
+        <h2 class="profile-page__section-title" data-i18n="idol.videos">Videos</h2>
+        <div class="idol-videos" id="idolVideos"></div>
+      </section>
 
-    <!-- Empty State -->
-    <div id="emptyState" class="empty-state" style="display:none;">
-      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-      <h2 class="empty-state__title" data-i18n="home.no_songs_title">No songs found</h2>
-      <p class="empty-state__text" data-i18n="home.no_songs_text">Try a different search term or browse categories above.</p>
+      <section class="profile-page__songs">
+        <h2 class="profile-page__section-title">
+          <span data-i18n="idol.contestants">Contestants</span>
+          <span class="profile-page__song-count" id="idolCount"></span>
+        </h2>
+        <div class="people-grid" id="idolContestantGrid"></div>
+        <div id="idolNoContestants" class="empty-state" style="display:none;">
+          <p class="empty-state__text" data-i18n="idol.no_contestants">No contestants have been added to this season yet.</p>
+        </div>
+      </section>
     </div>
 
+    <div id="idolError" class="empty-state" style="display:none;">
+      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <h2 class="empty-state__title" data-i18n="idol.season_error_title">Season not found</h2>
+      <p class="empty-state__text" data-i18n="idol.season_error_text">This season may not be published yet, or the link is incorrect.</p>
+      <a href="/mara-idol" class="error-page__btn error-page__btn--primary" data-i18n="idol.back_to_idol">← Back to Mara Idol</a>
+    </div>
   </main>
+
 
   <!-- ═══ Footer ═══ -->
   <footer class="footer">

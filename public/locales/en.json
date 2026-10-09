@@ -2,7 +2,8 @@
   "nav": {
     "popular": "Popular",
     "articles": "Articles",
-    "my_downloads": "My Downloads"
+    "my_downloads": "My Downloads",
+    "mara_idol": "Mara Idol"
   },
   "downloads": {
     "title": "My Downloads",
@@ -503,5 +504,47 @@
     "composer_year": "Composer of the Year",
     "lifetime": "Lifetime Achievement",
     "more": "+{count} more"
+  },
+  "idol": {
+    "hero_title": "Mara Idol",
+    "hero_subtitle": "Every season, every contestant — results, stories and performances from the Mara Idol stage",
+    "search_placeholder": "Search idols or seasons...",
+    "search_aria": "Search Mara Idol",
+    "view_aria": "View",
+    "tab_seasons": "Seasons",
+    "tab_idols": "All Idols",
+    "filter_season": "Season",
+    "filter_result": "Result",
+    "all_seasons": "All seasons",
+    "all_results": "All results",
+    "stats": "{seasons} seasons · {idols} idols",
+    "result_winner": "Winner",
+    "result_runner_up": "Runner-up",
+    "result_second_runner_up": "2nd Runner-up",
+    "result_finalist": "Finalist",
+    "result_semi_finalist": "Semi-finalist",
+    "result_contestant": "Contestant",
+    "count_one": "{count} contestant",
+    "count_other": "{count} contestants",
+    "empty_title": "Nothing here yet",
+    "empty_text": "Mara Idol seasons will appear here once they are published.",
+    "no_match_title": "No matches",
+    "no_match_text": "Try a different search or clear the filters.",
+    "error_index_title": "Couldn't load Mara Idol",
+    "error_index_text": "Please check your connection and try again.",
+    "videos": "Videos",
+    "contestants": "Contestants",
+    "no_contestants": "No contestants have been added to this season yet.",
+    "season_error_title": "Season not found",
+    "season_error_text": "This season may not be published yet, or the link is incorrect.",
+    "error_title": "Contestant not found",
+    "error_text": "This contestant may have been removed, or the link is incorrect.",
+    "back_to_idol": "← Back to Mara Idol",
+    "also_artist": "Also on MaraLyrics",
+    "view_artist": "View artist profile",
+    "performances": "Performances",
+    "watch_video": "Watch video",
+    "open_link": "Open link",
+    "play": "Play"
   }
 }

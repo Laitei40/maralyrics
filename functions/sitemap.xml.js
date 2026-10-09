@@ -2,7 +2,8 @@ import { SITE_ORIGIN, escapeHtml, toIso } from './_shared/seo.js';
 
 // Only canonical, indexable URLs belong here. Left out on purpose: /downloads (per-device
 // content, noindex), /report (a form, noindex), /admin/* (private), and any person/owner page
-// with no published song (a thin page with nothing to rank for).
+// with no published song (a thin page with nothing to rank for). Mara Idol seasons are listed
+// only once published, together with their contestants.
 //
 // <lastmod> is only emitted when we know a real date; a "today" stamp on every request teaches
 // Google to ignore the field. <changefreq>/<priority> are omitted: Google ignores both.
@@ -24,7 +25,7 @@ function urlEntry(path, lastmod) {
 const slugPath = (prefix, slug) => `/${prefix}/${encodeURIComponent(slug)}`;
 
 export async function buildSitemap(db) {
-  const [songs, artists, composers, owners, articles] = await Promise.all([
+  const [songs, artists, composers, owners, articles, idolSeasons, idols] = await Promise.all([
     db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM songs WHERE slug IS NOT NULL AND slug != '' AND status = 'published' ORDER BY id DESC`).all(),
     db.prepare(
       `SELECT a.slug AS slug, COALESCE(a.updated_at, a.created_at) AS lastmod FROM artists a
@@ -45,6 +46,13 @@ export async function buildSitemap(db) {
        ORDER BY o.id DESC`
     ).all(),
     db.prepare(`SELECT slug, COALESCE(updated_at, published_at, created_at) AS lastmod FROM articles WHERE slug IS NOT NULL AND slug != '' AND status = 'published' ORDER BY id DESC`).all(),
+    // Mara Idol: published seasons and their contestants only (drafts never reach the sitemap)
+    db.prepare(`SELECT slug, COALESCE(updated_at, created_at) AS lastmod FROM idol_seasons WHERE slug != '' AND status = 'published' ORDER BY year DESC, id DESC`).all(),
+    db.prepare(
+      `SELECT s.slug AS season_slug, c.slug AS slug, COALESCE(c.updated_at, c.created_at) AS lastmod
+       FROM idol_contestants c JOIN idol_seasons s ON s.id = c.season_id AND s.status = 'published'
+       WHERE c.slug != '' ORDER BY s.year DESC, s.id DESC, c.sort_order, c.id`
+    ).all(),
   ]);
 
   const rows = (r) => r.results || [];
@@ -54,12 +62,15 @@ export async function buildSitemap(db) {
   // matching record rather than the request time.
   const entries = [
     urlEntry('/', newest([...rows(songs), ...rows(articles)])),
+    urlEntry('/mara-idol', newest([...rows(idolSeasons), ...rows(idols)])),
     ...STATIC_PAGES.map((p) => urlEntry(p, p === '/articles' ? newest(rows(articles)) : p === '/artists-composers' ? newest([...rows(artists), ...rows(composers)]) : null)),
     ...rows(songs).map((r) => urlEntry(slugPath('song', r.slug), r.lastmod)),
     ...rows(artists).map((r) => urlEntry(slugPath('artist', r.slug), r.lastmod)),
     ...rows(composers).map((r) => urlEntry(slugPath('composer', r.slug), r.lastmod)),
     ...rows(owners).map((r) => urlEntry(slugPath('copyright-owner', r.slug), r.lastmod)),
     ...rows(articles).map((r) => urlEntry(slugPath('article', r.slug), r.lastmod)),
+    ...rows(idolSeasons).map((r) => urlEntry(slugPath('mara-idol', r.slug), r.lastmod)),
+    ...rows(idols).map((r) => urlEntry(`/mara-idol/${encodeURIComponent(r.season_slug)}/${encodeURIComponent(r.slug)}`, r.lastmod)),
   ];
 
   if (entries.length > MAX_URLS) console.warn(`sitemap has ${entries.length} URLs — over the ${MAX_URLS} limit; split into a sitemap index`);

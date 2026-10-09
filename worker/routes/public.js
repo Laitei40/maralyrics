@@ -3,6 +3,7 @@ import { parsePagination } from '../lib/helpers.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
 import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
 import { attachBadges } from '../lib/badges.js';
+import idolRoutes from './publicIdol.js';
 
 const SONG_COLUMNS = `
   s.id, s.title, s.slug, s.category, s.lyrics, s.views, s.created_at, s.updated_at,
@@ -145,6 +146,8 @@ app.get('/supporters', async (c) => {
   const partners = rows.results.filter((r) => r.kind === 'partner');
   return c.json({ sponsors, partners }, 200, { 'Cache-Control': 'public, max-age=300' });
 });
+
+app.route('/mara-idol', idolRoutes);
 
 app.get('/bootstrap', async (c) => {
   const db = c.env.DB;

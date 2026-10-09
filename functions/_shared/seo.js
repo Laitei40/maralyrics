@@ -83,9 +83,11 @@ export function revealDetail(html, { skeletonId, detailId }) {
     .replace(new RegExp(`(<div id="${detailId}") style="display:none;"`), (_m, open) => open);
 }
 
-/** Show an element that the shell hides inline (e.g. an optional bio paragraph). */
+/** Show an element the shell hides, via inline `display:none` or the `hidden` attribute. */
 export function unhide(html, id) {
-  return html.replace(new RegExp(`(<[a-zA-Z0-9]+\\b[^>]*\\bid="${id}"[^>]*?) style="display:none;"`), (_m, open) => open);
+  return html
+    .replace(new RegExp(`(<[a-zA-Z0-9]+\\b[^>]*\\bid="${id}"[^>]*?) style="display:none;"`), (_m, open) => open)
+    .replace(new RegExp(`(<[a-zA-Z0-9]+\\b[^>]*\\bid="${id}"[^>]*?) hidden(?=[\\s>])`), (_m, open) => open);
 }
 
 /** `<a>` links to credited people, joined with commas. */
@@ -142,6 +144,25 @@ export function badgeChips(role, badges) {
     const { base, when } = badgeParts(role, b);
     return `<span class="badge-chip badge-chip--${escapeHtml(b.period)}" title="${escapeHtml(badgeText(role, b))}"><span class="badge-chip__icon" aria-hidden="true">${BADGE_ICONS[b.period] || '🏅'}</span><span>${escapeHtml(base)}</span>${when ? `<span class="badge-chip__when"> · ${escapeHtml(when)}</span>` : ''}</span>`;
   }).join('');
+}
+
+
+// ─── Mara Idol (English wording, identical to Idol.RESULT_SEO / updateMeta in public/app.js) ──
+export const IDOL_RESULT_SEO = { winner: 'winner', runner_up: 'runner-up', second_runner_up: 'second runner-up', finalist: 'finalist', semi_finalist: 'semi-finalist', contestant: 'contestant' };
+export const IDOL_RESULT_LABEL = { winner: 'Winner', runner_up: 'Runner-up', second_runner_up: '2nd Runner-up', finalist: 'Finalist', semi_finalist: 'Semi-finalist', contestant: 'Contestant' };
+const IDOL_ICONS = { winner: '🏆', runner_up: '🥈', second_runner_up: '🥉', finalist: '⭐', semi_finalist: '🎤', contestant: '' };
+
+/** Same markup as the client's Idol.resultChip(). */
+export function idolResultChip(result, placement, all = false) {
+  if (result === 'contestant' && !all) return '';
+  const icon = IDOL_ICONS[result] ? `<span class="idol-chip__icon" aria-hidden="true">${IDOL_ICONS[result]}</span>` : '';
+  return `<span class="idol-chip idol-chip--${escapeHtml(result)}">${icon}<span>${escapeHtml(IDOL_RESULT_LABEL[result] || result)}</span>${placement ? `<span class="idol-chip__place"> · #${Number(placement)}</span>` : ''}</span>`;
+}
+
+/** Plain <ul> of links (crawlable) — replaced by the real cards once app.js loads. */
+export function linkList(items) {
+  const li = items.map((i) => `<li><a href="${escapeHtml(i.href)}">${escapeHtml(i.text)}</a></li>`).join('');
+  return li ? `<ul class="seo-song-list">${li}</ul>` : '';
 }
 
 /** D1 DATETIME ('YYYY-MM-DD HH:MM:SS', UTC) → ISO 8601 for schema.org; undefined if unusable. */

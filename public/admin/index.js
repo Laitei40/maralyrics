@@ -135,6 +135,8 @@ const CAN_DELETE_SONG        = ['manager', 'super_admin'];
 const CAN_MANAGE_REFERENCE_DATA = ['manager', 'super_admin'];
 const CAN_MANAGE_BADGES = ['super_admin']; // awarding/removing artist & composer badges
 const CAN_MANAGE_ADMIN_USERS = ['manager', 'super_admin'];
+const CAN_MANAGE_IDOL = ['editor', 'manager', 'super_admin']; // Mara Idol seasons & idols — create/edit
+const CAN_DELETE_IDOL = ['manager', 'super_admin'];
 // Kept in sync with worker/lib/permissions.js (this file can't import it — plain <script>, not a module).
 const CAN_CREATE_ARTICLE  = ['editor', 'manager', 'super_admin'];
 const CAN_EDIT_ARTICLE    = ['editor', 'manager', 'super_admin'];
@@ -187,6 +189,7 @@ const ROLE_TABS = {
   composers: ROLES_ALL,
   'copyright-owners': ROLES_ALL,
   articles: ROLES_ALL,
+  'mara-idol': ROLES_ALL,
   supporters: CAN_MANAGE_REFERENCE_DATA,
   reports: ['translator', 'reviewer', 'editor', 'manager', 'super_admin'],
   revisions: ['reviewer', 'manager', 'super_admin'],
@@ -223,6 +226,8 @@ function applyRoleVisibility() {
   toggleEl('btnNewComposer', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewCopyrightOwner', hasRole(...CAN_MANAGE_REFERENCE_DATA));
   toggleEl('btnNewSupporter', hasRole(...CAN_MANAGE_REFERENCE_DATA));
+  toggleEl('btnNewIdolSeason', hasRole(...CAN_MANAGE_IDOL));
+  toggleEl('btnNewIdol', hasRole(...CAN_MANAGE_IDOL));
   toggleEl('btnNewArticle', hasRole(...CAN_CREATE_ARTICLE));
   toggleEl('btnNewAdminUser', hasRole(...CAN_MANAGE_ADMIN_USERS));
   wireQuickAdd();
@@ -276,6 +281,8 @@ let deleteTargetType = 'song'; // 'song' | 'artist' | 'composer' | 'report' | 'a
 let allReports = [];
 let allCopyrightOwners = [];
 let allSupporters = [];
+let allIdolSeasons = [];
+let allIdols = [];
 let allArticles = [];
 let allAdminUsers = [];
 let allRevisions = [];
@@ -640,6 +647,7 @@ function switchTab(tab) {
   if (tab === 'copyright-owners') loadCopyrightOwners();
   if (tab === 'articles') loadArticles();
   if (tab === 'supporters') loadSupporters();
+  if (tab === 'mara-idol') loadIdol();
   if (tab === 'admins') loadAdminUsers();
   if (tab === 'revisions') loadRevisions();
   if (tab === 'auditlog') loadAuditLog();
@@ -1734,16 +1742,20 @@ const DELETE_NAME_LOOKUP = {
   'copyright-owner': (id) => allCopyrightOwners.find(c => c.id === id)?.name,
   article: (id) => allArticles.find(a => a.id === id)?.title,
   supporter: (id) => allSupporters.find(x => x.id === id)?.name,
+  'idol-season': (id) => allIdolSeasons.find(x => x.id === id)?.title,
+  'idol-contestant': (id) => allIdols.find(x => x.id === id)?.name,
   'admin-user': (id) => allAdminUsers.find(u => u.id === id)?.username,
   report: (id) => `Report #${id}`,
   contact: (id) => `Message #${id}`,
 };
 
+const DELETE_TYPE_LABEL = { 'idol-season': 'Season', 'idol-contestant': 'Idol' };
+
 function confirmDelete(id, type) {
   deleteTargetId = id;
   deleteTargetType = type;
   const name = DELETE_NAME_LOOKUP[type]?.(id) || `#${id}`;
-  document.getElementById('deleteModalTitle').textContent = 'Delete ' + (type.charAt(0).toUpperCase() + type.slice(1));
+  document.getElementById('deleteModalTitle').textContent = 'Delete ' + (DELETE_TYPE_LABEL[type] || type.charAt(0).toUpperCase() + type.slice(1));
   document.getElementById('deleteName').textContent = name; // .textContent — safe regardless of what `name` contains
   document.getElementById('deleteModal').style.display = 'flex';
 }
@@ -1772,12 +1784,14 @@ async function deleteItem() {
   else if (type === 'copyright-owner') allCopyrightOwners = allCopyrightOwners.filter(co => co.id !== id);
   else if (type === 'article') allArticles = allArticles.filter(a => a.id !== id);
   else if (type === 'supporter') allSupporters = allSupporters.filter(x => x.id !== id);
+  else if (type === 'idol-season') allIdolSeasons = allIdolSeasons.filter(x => x.id !== id);
+  else if (type === 'idol-contestant') allIdols = allIdols.filter(x => x.id !== id);
   else if (type === 'report') allReports = allReports.filter(r => r.id !== id);
   else if (type === 'admin-user') allAdminUsers = allAdminUsers.filter(u => u.id !== id);
   else if (type === 'contact') allContacts = allContacts.filter(c => c.id !== id);
 
   try {
-    await apiDelete(`${ADMIN_API}/${type}s/${id}`, { success: `${type.replace('-', ' ').replace(/^./, (c) => c.toUpperCase())} deleted.` });
+    await apiDelete(`${ADMIN_API}/${type}s/${id}`, { success: `${(DELETE_TYPE_LABEL[type] || type.replace('-', ' ').replace(/^./, (c) => c.toUpperCase()))} deleted.` });
     // Reload for accurate counts/pagination
     if (type === 'song') { loadSongs(currentPage); refreshStats(); }
     else if (type === 'artist') loadArtists();
@@ -1786,6 +1800,7 @@ async function deleteItem() {
     else if (type === 'copyright-owner') loadCopyrightOwners();
     else if (type === 'article') loadArticles(currentArticlePage);
     else if (type === 'supporter') loadSupporters();
+    else if (type === 'idol-season' || type === 'idol-contestant') loadIdol();
     else if (type === 'admin-user') loadAdminUsers();
     else if (type === 'contact') loadContacts();
   } catch (err) {
@@ -1802,6 +1817,7 @@ async function deleteItem() {
     else if (type === 'copyright-owner') loadCopyrightOwners();
     else if (type === 'article') loadArticles(currentArticlePage);
     else if (type === 'supporter') loadSupporters();
+    else if (type === 'idol-season' || type === 'idol-contestant') loadIdol();
     else if (type === 'admin-user') loadAdminUsers();
     else if (type === 'contact') loadContacts();
   }
@@ -1920,6 +1936,320 @@ async function saveSupporter(e) {
     loadSupporters();
   } catch (err) {
     showSupporterMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ═══ MARA IDOL (editor + manager + super admin) ═══
+// ═══════════════════════════════════════════════════
+
+const IDOL_RESULT_LABEL = {
+  winner: '🏆 Winner', runner_up: '🥈 Runner-up', second_runner_up: '🥉 Second runner-up',
+  finalist: 'Finalist', semi_finalist: 'Semi-finalist', contestant: 'Contestant',
+};
+
+async function loadIdol() {
+  const seasonsBody = document.getElementById('idolSeasonsTableBody');
+  const idolsBody = document.getElementById('idolsTableBody');
+  seasonsBody.innerHTML = AdminUI.loadingRows(5);
+  idolsBody.innerHTML = AdminUI.loadingRows(6);
+  try {
+    const [sData, cData] = await Promise.all([
+      apiGet(`${ADMIN_API}/idol-seasons`),
+      apiGet(`${ADMIN_API}/idol-contestants`),
+    ]);
+    allIdolSeasons = sData.seasons || [];
+    allIdols = cData.contestants || [];
+    renderIdolSeasonsTable();
+    renderIdolSeasonOptions();
+    renderIdolsTable();
+  } catch (err) {
+    const msg = `<tr><td colspan="6" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
+    seasonsBody.innerHTML = msg;
+    idolsBody.innerHTML = msg;
+  }
+}
+
+function idolStatusBadge(status) {
+  return `<span class="status-badge status-badge--${status === 'published' ? 'published' : 'pending'}">${status === 'published' ? 'Published' : 'Draft'}</span>`;
+}
+
+function renderIdolSeasonsTable() {
+  const tbody = document.getElementById('idolSeasonsTableBody');
+  if (!allIdolSeasons.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">No seasons yet. Add a season first, then add its idols.</td></tr>';
+    return;
+  }
+  const canManage = hasRole(...CAN_MANAGE_IDOL);
+  const canDelete = hasRole(...CAN_DELETE_IDOL);
+  tbody.innerHTML = allIdolSeasons.map(item => `
+    <tr data-id="${item.id}">
+      <td><div class="admin-table__person">${entityAvatarHtml(item.cover_url, 'sm', 'square')}<div class="admin-table__title">${escapeHtml(item.title)}</div></div></td>
+      <td>${item.year}</td>
+      <td>${item.contestant_count || 0}</td>
+      <td>${idolStatusBadge(item.status)}</td>
+      <td>
+        <div class="admin-table__actions">
+          ${item.status === 'published' ? `<a class="btn btn--sm btn--ghost" href="/mara-idol/${encodeURIComponent(item.slug)}" target="_blank" rel="noopener" title="View on site">↗</a>` : ''}
+          ${canManage ? `<button class="btn btn--sm btn--ghost" onclick="editIdolSeason(${item.id})" title="Edit">✏️</button>` : ''}
+          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, 'idol-season')" title="Delete">🗑️</button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/** Fills the season filter (keeping the current choice) and the idol modal's season select. */
+function renderIdolSeasonOptions() {
+  const label = (s) => `${s.title} (${s.year})${s.status === 'published' ? '' : ' — draft'}`;
+  const filter = document.getElementById('idolFilterSeason');
+  const keep = filter.value;
+  filter.innerHTML = '<option value="">All Seasons</option>' +
+    allIdolSeasons.map(s => `<option value="${s.id}">${escapeHtml(label(s))}</option>`).join('');
+  if (allIdolSeasons.some(s => String(s.id) === keep)) filter.value = keep;
+
+  const select = document.getElementById('idFormSeason');
+  const current = select.value;
+  select.innerHTML = '<option value="">Select a season…</option>' +
+    allIdolSeasons.map(s => `<option value="${s.id}">${escapeHtml(label(s))}</option>`).join('');
+  select.value = current;
+}
+
+function renderIdolsTable() {
+  const tbody = document.getElementById('idolsTableBody');
+  const season = document.getElementById('idolFilterSeason').value;
+  const query = document.getElementById('idolSearch').value.trim().toLowerCase();
+  const rows = allIdols.filter(i =>
+    (!season || String(i.season_id) === season) &&
+    (!query || i.name.toLowerCase().includes(query) || (i.artist_name || '').toLowerCase().includes(query)));
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${allIdols.length ? 'No idols match your filter.' : 'No idols yet.'}</td></tr>`;
+    return;
+  }
+  const canManage = hasRole(...CAN_MANAGE_IDOL);
+  const canDelete = hasRole(...CAN_DELETE_IDOL);
+  tbody.innerHTML = rows.map(item => `
+    <tr data-id="${item.id}">
+      <td><div class="admin-table__person">${entityAvatarHtml(item.photo_url, 'sm')}<div class="admin-table__title">${escapeHtml(item.name)}</div></div></td>
+      <td>${escapeHtml(item.season_title)} (${item.season_year})</td>
+      <td>${escapeHtml(IDOL_RESULT_LABEL[item.result] || item.result)}${item.placement ? ` · #${item.placement}` : ''}</td>
+      <td>${item.artist_name ? escapeHtml(item.artist_name) : '—'}</td>
+      <td>${item.sort_order}</td>
+      <td>
+        <div class="admin-table__actions">
+          ${canManage ? `<button class="btn btn--sm btn--ghost" onclick="editIdol(${item.id})" title="Edit">✏️</button>` : ''}
+          ${canDelete ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, 'idol-contestant')" title="Delete">🗑️</button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// One video per line: "https://…" or "Title | https://…" (the server stores [{ title?, url }]).
+const videosToText = (videos) => (Array.isArray(videos) ? videos : [])
+  .map(v => (v.title ? `${v.title} | ${v.url}` : v.url)).join('\n');
+function textToVideos(text) {
+  return text.split('\n').map(l => l.trim()).filter(Boolean).map((line) => {
+    const m = /^(.*?)\s*\|\s*(\S+)$/.exec(line);
+    return m && m[1] ? { title: m[1], url: m[2] } : { url: line };
+  });
+}
+
+// ── Season modal ─────────────────────────────────
+function openIdolSeasonModal() {
+  document.getElementById('idolSeasonModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeIdolSeasonModal() {
+  const modal = document.getElementById('idolSeasonModal');
+  if (!modal || modal.style.display === 'none') return;
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  clearIdolSeasonForm();
+}
+function clearIdolSeasonForm() {
+  document.getElementById('idolSeasonForm').reset();
+  document.getElementById('isFormId').value = '';
+  document.getElementById('isFormMessage').style.display = 'none';
+  setImageField('isFormCover', '');
+}
+function showIdolSeasonMessage(text, isError = false) {
+  const el = document.getElementById('isFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = 'block';
+}
+
+function openNewIdolSeason() {
+  if (!hasRole(...CAN_MANAGE_IDOL)) return;
+  clearIdolSeasonForm();
+  document.getElementById('isModalTitle').textContent = 'New Season';
+  document.getElementById('isBtnSubmit').textContent = 'Create';
+  document.getElementById('isFormYear').value = new Date().getFullYear();
+  openIdolSeasonModal();
+  document.getElementById('isFormTitle').focus();
+}
+
+function editIdolSeason(id) {
+  const item = allIdolSeasons.find(x => x.id === id);
+  if (!item || !hasRole(...CAN_MANAGE_IDOL)) return;
+  clearIdolSeasonForm();
+  document.getElementById('isModalTitle').textContent = 'Edit Season';
+  document.getElementById('isBtnSubmit').textContent = 'Update';
+  document.getElementById('isFormId').value = item.id;
+  document.getElementById('isFormTitle').value = item.title || '';
+  document.getElementById('isFormYear').value = item.year;
+  document.getElementById('isFormSlug').value = item.slug || '';
+  document.getElementById('isFormStatus').value = item.status;
+  document.getElementById('isFormVenue').value = item.venue || '';
+  document.getElementById('isFormStart').value = item.start_date || '';
+  document.getElementById('isFormEnd').value = item.end_date || '';
+  document.getElementById('isFormDescription').value = item.description || '';
+  document.getElementById('isFormVideos').value = videosToText(item.videos);
+  setImageField('isFormCover', item.cover_url || '');
+  openIdolSeasonModal();
+}
+
+async function saveIdolSeason(e) {
+  e.preventDefault();
+  const id = document.getElementById('isFormId').value;
+  const title = document.getElementById('isFormTitle').value.trim();
+  if (!title) { showIdolSeasonMessage('Title is required.', true); return; }
+
+  // PUT replaces the whole record, so every field is always sent.
+  const body = {
+    title,
+    year: document.getElementById('isFormYear').value,
+    slug: document.getElementById('isFormSlug').value.trim(),
+    status: document.getElementById('isFormStatus').value,
+    venue: document.getElementById('isFormVenue').value.trim(),
+    start_date: document.getElementById('isFormStart').value,
+    end_date: document.getElementById('isFormEnd').value,
+    description: document.getElementById('isFormDescription').value.trim(),
+    cover_url: document.getElementById('isFormCover').value.trim(),
+    videos: textToVideos(document.getElementById('isFormVideos').value),
+  };
+
+  const btn = document.getElementById('isBtnSubmit');
+  btn.disabled = true;
+  try {
+    if (id) await apiPut(`${ADMIN_API}/idol-seasons/${id}`, body, { success: 'Season updated.' });
+    else await apiPost(`${ADMIN_API}/idol-seasons`, body, { success: 'Season added.' });
+    closeIdolSeasonModal();
+    loadIdol();
+  } catch (err) {
+    showIdolSeasonMessage(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Idol modal ───────────────────────────────────
+function openIdolModal() {
+  document.getElementById('idolModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeIdolModal() {
+  const modal = document.getElementById('idolModal');
+  if (!modal || modal.style.display === 'none') return;
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  clearIdolForm();
+}
+function clearIdolForm() {
+  document.getElementById('idolForm').reset();
+  document.getElementById('idFormId').value = '';
+  document.getElementById('idFormMessage').style.display = 'none';
+  setImageField('idFormPhoto', '');
+}
+function showIdolMessage(text, isError = false) {
+  const el = document.getElementById('idFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = 'block';
+}
+
+/** Artist select for the idol modal — built from the artists already loaded for the song form. */
+function renderIdolArtistOptions() {
+  const select = document.getElementById('idFormArtist');
+  select.innerHTML = '<option value="">None</option>' +
+    [...allArtists].sort((a, b) => a.name.localeCompare(b.name))
+      .map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
+}
+
+function openNewIdol() {
+  if (!hasRole(...CAN_MANAGE_IDOL)) return;
+  if (!allIdolSeasons.length) { AdminUI.alertToast('Add a season first.'); return; }
+  clearIdolForm();
+  renderIdolSeasonOptions();
+  renderIdolArtistOptions();
+  document.getElementById('idModalTitle').textContent = 'New Idol';
+  document.getElementById('idBtnSubmit').textContent = 'Create';
+  // Pre-select the season currently being browsed.
+  document.getElementById('idFormSeason').value = document.getElementById('idolFilterSeason').value;
+  openIdolModal();
+  document.getElementById('idFormName').focus();
+}
+
+function editIdol(id) {
+  const item = allIdols.find(x => x.id === id);
+  if (!item || !hasRole(...CAN_MANAGE_IDOL)) return;
+  clearIdolForm();
+  renderIdolSeasonOptions();
+  renderIdolArtistOptions();
+  document.getElementById('idModalTitle').textContent = 'Edit Idol';
+  document.getElementById('idBtnSubmit').textContent = 'Update';
+  document.getElementById('idFormId').value = item.id;
+  document.getElementById('idFormName').value = item.name || '';
+  document.getElementById('idFormSeason').value = item.season_id;
+  document.getElementById('idFormResult').value = item.result;
+  document.getElementById('idFormPlacement').value = item.placement || '';
+  document.getElementById('idFormOrder').value = item.sort_order;
+  document.getElementById('idFormSlug').value = item.slug || '';
+  document.getElementById('idFormBio').value = item.bio || '';
+  document.getElementById('idFormVideos').value = videosToText(item.videos);
+  setImageField('idFormPhoto', item.photo_url || '');
+  const artistSelect = document.getElementById('idFormArtist');
+  // An artist added after the dropdowns loaded would otherwise be silently unlinked on save.
+  if (item.artist_id && !allArtists.some(a => a.id === item.artist_id)) {
+    artistSelect.insertAdjacentHTML('beforeend', `<option value="${item.artist_id}">${escapeHtml(item.artist_name || '#' + item.artist_id)}</option>`);
+  }
+  artistSelect.value = item.artist_id || '';
+  openIdolModal();
+}
+
+async function saveIdol(e) {
+  e.preventDefault();
+  const id = document.getElementById('idFormId').value;
+  const name = document.getElementById('idFormName').value.trim();
+  if (!name) { showIdolMessage('Name is required.', true); return; }
+  const season = document.getElementById('idFormSeason').value;
+  if (!season) { showIdolMessage('Choose a season.', true); return; }
+
+  const body = {
+    name,
+    season_id: season,
+    result: document.getElementById('idFormResult').value,
+    placement: document.getElementById('idFormPlacement').value,
+    sort_order: document.getElementById('idFormOrder').value,
+    slug: document.getElementById('idFormSlug').value.trim(),
+    artist_id: document.getElementById('idFormArtist').value || null,
+    bio: document.getElementById('idFormBio').value.trim(),
+    photo_url: document.getElementById('idFormPhoto').value.trim(),
+    videos: textToVideos(document.getElementById('idFormVideos').value),
+  };
+
+  const btn = document.getElementById('idBtnSubmit');
+  btn.disabled = true;
+  try {
+    if (id) await apiPut(`${ADMIN_API}/idol-contestants/${id}`, body, { success: 'Idol updated.' });
+    else await apiPost(`${ADMIN_API}/idol-contestants`, body, { success: 'Idol added.' });
+    closeIdolModal();
+    loadIdol();
+  } catch (err) {
+    showIdolMessage(err.message, true);
   } finally {
     btn.disabled = false;
   }
@@ -2221,6 +2551,14 @@ function initDashboard() {
   document.getElementById('btnNewSupporter').addEventListener('click', openNewSupporter);
   document.getElementById('supporterForm').addEventListener('submit', saveSupporter);
   ['supModalClose', 'supBackdrop', 'supBtnCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeSupporterModal));
+  document.getElementById('btnNewIdolSeason').addEventListener('click', openNewIdolSeason);
+  document.getElementById('idolSeasonForm').addEventListener('submit', saveIdolSeason);
+  ['isModalClose', 'isBackdrop', 'isBtnCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeIdolSeasonModal));
+  document.getElementById('btnNewIdol').addEventListener('click', openNewIdol);
+  document.getElementById('idolForm').addEventListener('submit', saveIdol);
+  ['idModalClose', 'idBackdrop', 'idBtnCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeIdolModal));
+  document.getElementById('idolFilterSeason').addEventListener('change', renderIdolsTable);
+  document.getElementById('idolSearch').addEventListener('input', renderIdolsTable);
   document.getElementById('btnNewCopyrightOwner').addEventListener('click', openNewCopyrightOwner);
   document.getElementById('copyrightOwnerForm').addEventListener('submit', saveCopyrightOwner);
   document.getElementById('coModalClose').addEventListener('click', closeCopyrightOwnerModal);
@@ -2365,6 +2703,8 @@ function initDashboard() {
       closePersonModal();
       closeCopyrightOwnerModal();
       closeSupporterModal();
+      closeIdolSeasonModal();
+      closeIdolModal();
       closeDeleteModal();
       closeFeedbackModal();
       closeRevisionModal();

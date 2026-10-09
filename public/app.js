@@ -105,6 +105,11 @@ const Utils = {
     if (path.startsWith('/composer/')) return 'composer';
     if (path.startsWith('/copyright-owner/')) return 'copyright-owner';
     if (path.startsWith('/article/')) return 'article';
+    if (path === '/mara-idol' || path === '/mara-idol.html') return 'idol-index';
+    if (path.startsWith('/mara-idol/')) {
+      const depth = path.split('/').filter(Boolean).length; // mara-idol / season [/ idol]
+      return depth >= 3 ? 'idol' : 'idol-season';
+    }
     if (path === '/articles' || path === '/articles.html') return 'articles';
     if (path === '/artists-composers' || path === '/artists-composers.html') return 'people';
     if (path === '/downloads' || path === '/downloads.html') return 'downloads';
@@ -731,6 +736,17 @@ const API = {
   /** Get composer by slug. */
   async getComposer(slug) {
     return this.fetchJSON(`/composers/${encodeURIComponent(slug)}`);
+  },
+
+  /** Mara Idol: every published season + idol (index page). */
+  async getIdolIndex() {
+    return this.fetchJSON('/mara-idol');
+  },
+  async getIdolSeason(season) {
+    return this.fetchJSON(`/mara-idol/${encodeURIComponent(season)}`);
+  },
+  async getIdolContestant(season, idol) {
+    return this.fetchJSON(`/mara-idol/${encodeURIComponent(season)}/${encodeURIComponent(idol)}`);
   },
 
   /** Get paginated, published articles. */
@@ -2815,6 +2831,418 @@ const PeoplePage = {
   },
 };
 
+// ─── Mara Idol ─────────────────────────────────────────────────
+// Seasons (editions) and their contestants, edited in the admin dashboard. Pages:
+//   /mara-idol                 index: seasons + every idol (searchable, filterable)
+//   /mara-idol/:season         one season with its contestants
+//   /mara-idol/:season/:idol   one idol: photo, result, bio, videos, linked artist
+const Idol = {
+  RESULTS: ['winner', 'runner_up', 'second_runner_up', 'finalist', 'semi_finalist', 'contestant'],
+  ICONS: { winner: '🏆', runner_up: '🥈', second_runner_up: '🥉', finalist: '⭐', semi_finalist: '🎤', contestant: '' },
+  // Wording used in <title>/<meta description>. Deliberately English and identical to
+  // functions/_shared/seo.js so crawlers and browsers see the same text.
+  RESULT_SEO: { winner: 'winner', runner_up: 'runner-up', second_runner_up: 'second runner-up', finalist: 'finalist', semi_finalist: 'semi-finalist', contestant: 'contestant' },
+
+  /** [season-slug, idol-slug] from the URL path. */
+  pathParts() {
+    return location.pathname.split('/').filter(Boolean).slice(1).map((p) => {
+      try { return decodeURIComponent(p); } catch { return p; }
+    });
+  },
+
+  esc: (v) => Utils.escapeHtml(v),
+
+  /** Result chip. A plain "contestant" gets no chip unless `all` is set. */
+  resultChip(result, placement, { all = false } = {}) {
+    if (result === 'contestant' && !all) return '';
+    const key = `idol.result_${result}`;
+    const icon = this.ICONS[result] ? `<span class="idol-chip__icon" aria-hidden="true">${this.ICONS[result]}</span>` : '';
+    return `<span class="idol-chip idol-chip--${this.esc(result)}">${icon}<span data-i18n="${key}">${this.esc(I18n.t(key))}</span>${placement ? `<span class="idol-chip__place"> · #${Number(placement)}</span>` : ''}</span>`;
+  },
+
+  /** Photo avatar with an initial underneath (the photo sits on top; a broken image just disappears). */
+  avatar(photo, name, cls = '') {
+    const initial = this.esc((name || '?').charAt(0));
+    const img = photo ? `<img src="${this.esc(photo)}" alt="" loading="lazy" onerror="this.remove()" />` : '';
+    return `<span class="person-avatar ${cls}"><span class="person-avatar__initial">${initial}</span>${img}</span>`;
+  },
+
+  /** "12 Dec 2024 – 14 Dec 2024" / "12 Dec 2024" / '' — in the visitor's language. */
+  dateRange(season) {
+    const fmt = (iso) => {
+      const [y, m, d] = String(iso).split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(Utils.locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    };
+    if (!season.start_date) return '';
+    return season.end_date && season.end_date !== season.start_date ? `${fmt(season.start_date)} – ${fmt(season.end_date)}` : fmt(season.start_date);
+  },
+
+  seasonMeta(season) {
+    return [this.dateRange(season), season.venue].filter(Boolean).join(' · ');
+  },
+
+  youtubeId(url) {
+    try {
+      const u = new URL(url);
+      const host = u.hostname.replace(/^www\./, '').replace(/^m\./, '');
+      let id = '';
+      if (host === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
+      else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+        id = u.searchParams.get('v') || (u.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/) || [])[1] || '';
+      }
+      return /^[\w-]{11}$/.test(id) ? id : '';
+    } catch { return ''; }
+  },
+
+  /** Videos: YouTube links become click-to-play (nothing is requested from YouTube until the
+   *  visitor clicks); any other link is a plain external link. Always keeps the original link. */
+  videosHtml(videos) {
+    return (videos || []).map((v) => {
+      const id = this.youtubeId(v.url);
+      const title = v.title || I18n.t('idol.watch_video');
+      const link = `<a class="idol-video__link" href="${this.esc(v.url)}" target="_blank" rel="noopener noreferrer">${this.esc(I18n.t('idol.open_link'))} ↗</a>`;
+      if (!id) return `<div class="idol-video idol-video--external"><span class="idol-video__title">${this.esc(title)}</span>${link}</div>`;
+      return `<div class="idol-video"><button type="button" class="idol-video__play" data-yt="${id}" data-title="${this.esc(title)}" aria-label="${this.esc(I18n.t('idol.play'))}: ${this.esc(title)}"><span class="idol-video__icon" aria-hidden="true">▶</span><span class="idol-video__title">${this.esc(title)}</span></button>${link}</div>`;
+    }).join('');
+  },
+
+  /** Click-to-load player (privacy-friendly youtube-nocookie embed). */
+  bindVideos(container) {
+    if (!container || container.dataset.bound) return;
+    container.dataset.bound = '1';
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.idol-video__play');
+      if (!btn) return;
+      const frame = document.createElement('iframe');
+      frame.src = `https://www.youtube-nocookie.com/embed/${btn.dataset.yt}?autoplay=1&rel=0`;
+      frame.title = btn.dataset.title || '';
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      frame.allowFullscreen = true;
+      frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      frame.className = 'idol-video__frame';
+      btn.replaceWith(frame);
+    });
+  },
+
+  /** Card for one idol (index "All Idols" tab and season pages). */
+  card(i, { showSeason = false } = {}) {
+    const href = `/mara-idol/${encodeURIComponent(i.season_slug)}/${encodeURIComponent(i.slug)}`;
+    return `
+      <a href="${href}" class="person-card idol-card">
+        ${this.avatar(i.photo_url, i.name)}
+        <span class="person-card__body">
+          <span class="person-card__name">${this.esc(i.name)}</span>
+          ${this.resultChip(i.result, i.placement)}
+          ${showSeason ? `<span class="person-card__songs">${this.esc(i.season_title)}</span>` : ''}
+        </span>
+      </a>`;
+  },
+
+  seasonCard(s) {
+    const winners = (s.winners || []).map((w) => this.esc(w.name)).join(', ');
+    const cover = s.cover_url
+      ? `<img src="${this.esc(s.cover_url)}" alt="" loading="lazy" onerror="this.remove()" />`
+      : '';
+    return `
+      <a href="/mara-idol/${encodeURIComponent(s.slug)}" class="idol-season-card">
+        <span class="idol-season-card__cover"><span class="idol-season-card__fallback" aria-hidden="true">🎤</span>${cover}<span class="idol-season-card__year">${Number(s.year)}</span></span>
+        <span class="idol-season-card__body">
+          <h2 class="idol-season-card__title">${this.esc(s.title)}</h2>
+          ${this.seasonMeta(s) ? `<span class="idol-season-card__meta">${this.esc(this.seasonMeta(s))}</span>` : ''}
+          ${winners ? `<span class="idol-season-card__winner">🏆 <span data-i18n="idol.result_winner">${this.esc(I18n.t('idol.result_winner'))}</span>: ${winners}</span>` : ''}
+          <span class="idol-season-card__count">${this.esc(I18n.t(s.contestant_count === 1 ? 'idol.count_one' : 'idol.count_other', { count: s.contestant_count }))}</span>
+        </span>
+      </a>`;
+  },
+};
+
+// ─── /mara-idol ────────────────────────────────────────────────
+const IdolIndexPage = {
+  state: { tab: 'seasons', q: '', season: '', result: '' },
+  data: { seasons: [], idols: [] },
+
+  $(id) { return document.getElementById(id); },
+
+  async init() {
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') === 'idols') this.state.tab = 'idols';
+    this.state.q = (params.get('q') || '').slice(0, 100);
+    this.state.season = params.get('season') || '';
+    this.state.result = Idol.RESULTS.includes(params.get('result')) ? params.get('result') : '';
+
+    this.$('idolSkeleton').innerHTML = Array(6).fill('<div class="skeleton person-skeleton"></div>').join('');
+    try {
+      let data;
+      try {
+        data = await API.getIdolIndex();
+        Cache.set('idol_index', data);
+      } catch (err) {
+        data = Cache.get('idol_index');
+        if (!data) throw err;
+      }
+      this.data = { seasons: data.seasons || [], idols: data.idols || [] };
+    } catch (err) {
+      console.warn('Failed to load Mara Idol:', err);
+      this.$('idolLoading').style.display = 'none';
+      this.showEmpty(I18n.t('idol.error_index_title'), I18n.t('idol.error_index_text'));
+      return;
+    }
+    this.$('idolLoading').style.display = 'none';
+    this.buildFilters();
+    this.bind();
+    this.syncControls();
+    this.renderStats();
+    this.render();
+  },
+
+  buildFilters() {
+    const seasonSel = this.$('idolSeasonFilter');
+    seasonSel.innerHTML = `<option value="">${Idol.esc(I18n.t('idol.all_seasons'))}</option>` +
+      this.data.seasons.map((s) => `<option value="${Idol.esc(s.slug)}">${Idol.esc(s.title)}</option>`).join('');
+    const resultSel = this.$('idolResultFilter');
+    resultSel.innerHTML = `<option value="">${Idol.esc(I18n.t('idol.all_results'))}</option>` +
+      Idol.RESULTS.map((r) => `<option value="${r}">${Idol.esc(I18n.t(`idol.result_${r}`))}</option>`).join('');
+    this.seasonDd = Dropdown.enhance(seasonSel);
+    this.resultDd = Dropdown.enhance(resultSel);
+  },
+
+  bind() {
+    const search = this.$('idolSearch');
+    const onSearch = Utils.debounce(() => { this.state.q = search.value.trim(); this.render(); }, 200);
+    search.addEventListener('input', () => { this.$('idolSearchClear').style.display = search.value ? 'block' : 'none'; onSearch(); });
+    this.$('idolSearchClear').addEventListener('click', () => { search.value = ''; this.$('idolSearchClear').style.display = 'none'; this.state.q = ''; this.render(); search.focus(); });
+    this.$('idolTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tab]');
+      if (!btn) return;
+      this.state.tab = btn.dataset.tab; this.syncControls(); this.render();
+    });
+    this.$('idolSeasonFilter').addEventListener('change', (e) => { this.state.season = e.target.value; this.render(); });
+    this.$('idolResultFilter').addEventListener('change', (e) => { this.state.result = e.target.value; this.render(); });
+  },
+
+  syncControls() {
+    this.$('idolSearch').value = this.state.q;
+    this.$('idolSearchClear').style.display = this.state.q ? 'block' : 'none';
+    document.querySelectorAll('#idolTabs [data-tab]').forEach((b) => {
+      const on = b.dataset.tab === this.state.tab;
+      b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on));
+    });
+    this.$('idolIdolControls').hidden = this.state.tab !== 'idols';
+    this.$('idolSeasonFilter').value = this.state.season;
+    this.$('idolResultFilter').value = this.state.result;
+    if (this.seasonDd) this.seasonDd.sync();
+    if (this.resultDd) this.resultDd.sync();
+  },
+
+  renderStats() {
+    const el = this.$('idolStats');
+    el.textContent = I18n.t('idol.stats', { seasons: this.data.seasons.length, idols: this.data.idols.length });
+    el.hidden = !this.data.seasons.length;
+  },
+
+  showEmpty(title, text) {
+    this.$('idolSeasonsSection').style.display = 'none';
+    this.$('idolIdolsSection').style.display = 'none';
+    this.$('idolEmpty').style.display = 'block';
+    this.$('idolEmptyTitle').textContent = title;
+    this.$('idolEmptyText').textContent = text;
+  },
+
+  render() {
+    const { tab, q, season, result } = this.state;
+    const needle = q.toLowerCase();
+
+    const params = new URLSearchParams();
+    if (tab === 'idols') params.set('tab', 'idols');
+    if (q) params.set('q', q);
+    if (tab === 'idols' && season) params.set('season', season);
+    if (tab === 'idols' && result) params.set('result', result);
+    history.replaceState(null, '', location.pathname + (params.toString() ? `?${params}` : ''));
+
+    this.$('idolEmpty').style.display = 'none';
+    if (tab === 'seasons') {
+      this.$('idolIdolsSection').style.display = 'none';
+      const seasons = this.data.seasons.filter((s) => !needle ||
+        [s.title, s.venue, String(s.year), ...(s.winners || []).map((w) => w.name)].some((v) => String(v || '').toLowerCase().includes(needle)));
+      if (!seasons.length) {
+        this.showEmpty(I18n.t(this.data.seasons.length ? 'idol.no_match_title' : 'idol.empty_title'), I18n.t(this.data.seasons.length ? 'idol.no_match_text' : 'idol.empty_text'));
+        return;
+      }
+      this.$('idolSeasonsSection').style.display = 'block';
+      this.$('idolSeasonGrid').innerHTML = seasons.map((s) => Idol.seasonCard(s)).join('');
+    } else {
+      this.$('idolSeasonsSection').style.display = 'none';
+      const idols = this.data.idols.filter((i) =>
+        (!season || i.season_slug === season) && (!result || i.result === result) &&
+        (!needle || [i.name, i.season_title].some((v) => String(v || '').toLowerCase().includes(needle))));
+      if (!idols.length) {
+        this.showEmpty(I18n.t('idol.no_match_title'), I18n.t('idol.no_match_text'));
+        return;
+      }
+      this.$('idolIdolsSection').style.display = 'block';
+      this.$('idolIdolGrid').innerHTML = idols.map((i) => Idol.card(i, { showSeason: true })).join('');
+    }
+  },
+};
+
+// ─── /mara-idol/:season ────────────────────────────────────────
+const IdolSeasonPage = {
+  async init() {
+    const [slug] = Idol.pathParts();
+    if (!slug) return this.showError();
+    try {
+      let data;
+      try {
+        data = await API.getIdolSeason(slug);
+        Cache.set(`idol_season_${slug}`, data);
+      } catch (err) {
+        data = Cache.get(`idol_season_${slug}`);
+        if (!data) throw err;
+      }
+      this.render(data);
+      this.updateMeta(data);
+    } catch (err) {
+      console.warn('Failed to load season:', err);
+      this.showError();
+    }
+  },
+
+  showError() {
+    document.getElementById('idolSkeletonBox').style.display = 'none';
+    document.getElementById('idolSeasonDetail').style.display = 'none';
+    document.getElementById('idolError').style.display = 'block';
+  },
+
+  render(s) {
+    document.getElementById('idolSkeletonBox').style.display = 'none';
+    document.getElementById('idolError').style.display = 'none';
+    document.getElementById('idolSeasonDetail').style.display = 'block';
+    document.getElementById('breadcrumbName').textContent = s.title;
+    document.getElementById('idolTitle').textContent = s.title;
+    document.getElementById('idolYear').textContent = String(s.year);
+    const meta = Idol.seasonMeta(s);
+    const metaEl = document.getElementById('idolMeta');
+    metaEl.textContent = meta;
+    metaEl.hidden = !meta;
+    const desc = document.getElementById('idolDescription');
+    desc.textContent = s.description || '';
+    desc.hidden = !s.description;
+    const cover = document.getElementById('idolCover');
+    if (s.cover_url) { cover.innerHTML = `<img src="${Idol.esc(s.cover_url)}" alt="" onerror="this.closest('.idol-hero__cover').hidden=true" />`; cover.hidden = false; } else { cover.hidden = true; }
+
+    const videos = document.getElementById('idolVideos');
+    document.getElementById('idolVideosSection').hidden = !(s.videos && s.videos.length);
+    videos.innerHTML = Idol.videosHtml(s.videos);
+    Idol.bindVideos(videos);
+
+    const list = s.contestants || [];
+    document.getElementById('idolCount').textContent = `(${list.length})`;
+    document.getElementById('idolNoContestants').style.display = list.length ? 'none' : 'block';
+    document.getElementById('idolContestantGrid').innerHTML = list
+      .map((c) => Idol.card({ ...c, season_slug: s.slug, season_title: s.title })).join('');
+  },
+
+  // Same wording as functions/mara-idol/[[catchall]].js (crawlers see that version first).
+  updateMeta(s) {
+    const title = `${s.title} (${s.year}) — Mara Idol | MaraLyrics`;
+    const text = String(s.description || '').replace(/\s+/g, ' ').trim();
+    const desc = text ? text.slice(0, 200) : `${s.title} — Mara Idol ${s.year} on MaraLyrics.`;
+    const url = `https://maralyrics.com/mara-idol/${encodeURIComponent(s.slug)}`;
+    Idol.applyMeta({ title, desc, url, image: s.cover_url });
+  },
+};
+
+// ─── /mara-idol/:season/:idol ──────────────────────────────────
+const IdolProfilePage = {
+  async init() {
+    const [season, idol] = Idol.pathParts();
+    if (!season || !idol) return this.showError();
+    try {
+      let data;
+      try {
+        data = await API.getIdolContestant(season, idol);
+        Cache.set(`idol_${season}_${idol}`, data);
+      } catch (err) {
+        data = Cache.get(`idol_${season}_${idol}`);
+        if (!data) throw err;
+      }
+      this.render(data);
+      this.updateMeta(data);
+    } catch (err) {
+      console.warn('Failed to load idol:', err);
+      this.showError();
+    }
+  },
+
+  showError() {
+    document.getElementById('idolSkeletonBox').style.display = 'none';
+    document.getElementById('idolDetail').style.display = 'none';
+    document.getElementById('idolError').style.display = 'block';
+  },
+
+  render(i) {
+    document.getElementById('idolSkeletonBox').style.display = 'none';
+    document.getElementById('idolError').style.display = 'none';
+    document.getElementById('idolDetail').style.display = 'block';
+    const seasonHref = `/mara-idol/${encodeURIComponent(i.season.slug)}`;
+    const crumb = document.getElementById('breadcrumbSeason');
+    crumb.textContent = i.season.title; crumb.href = seasonHref;
+    document.getElementById('breadcrumbName').textContent = i.name;
+    document.getElementById('idolName').textContent = i.name;
+    document.getElementById('idolTags').innerHTML = Idol.resultChip(i.result, i.placement, { all: true });
+    const link = document.getElementById('idolSeasonLink');
+    link.href = seasonHref; link.textContent = `${i.season.title} · ${i.season.year}`;
+
+    const avatar = document.getElementById('idolAvatar');
+    avatar.innerHTML = i.photo_url
+      ? `<img src="${Idol.esc(i.photo_url)}" alt="${Idol.esc(i.name)}" class="profile-page__avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><span class="profile-page__avatar-fallback" style="display:none;">${Idol.esc((i.name || '?').charAt(0))}</span>`
+      : `<span class="profile-page__avatar-fallback">${Idol.esc((i.name || '?').charAt(0))}</span>`;
+
+    const bio = document.getElementById('idolBio');
+    bio.textContent = i.bio || '';
+    bio.hidden = !i.bio;
+
+    const artistSection = document.getElementById('idolArtistSection');
+    if (i.artist) {
+      document.getElementById('idolArtistCard').href = `/artist/${encodeURIComponent(i.artist.slug)}`;
+      document.getElementById('idolArtistCard').innerHTML = `${People.avatar({ name: i.artist.name, image_url: i.artist.image_url })}
+        <span class="person-card__body"><span class="person-card__name">${Idol.esc(i.artist.name)}</span>
+        <span class="person-card__role">${Idol.esc(I18n.t('idol.view_artist'))}</span>
+        ${i.artist.badges && i.artist.badges.length ? `<span class="person-card__badges">${Badges.list('artist', i.artist.badges, { compact: true })}</span>` : ''}</span>`;
+      artistSection.hidden = false;
+    } else {
+      artistSection.hidden = true;
+    }
+
+    const videos = document.getElementById('idolVideos');
+    document.getElementById('idolVideosSection').hidden = !(i.videos && i.videos.length);
+    videos.innerHTML = Idol.videosHtml(i.videos);
+    Idol.bindVideos(videos);
+  },
+
+  updateMeta(i) {
+    const title = `${i.name} — ${i.season.title} | Mara Idol | MaraLyrics`;
+    const lead = i.result === 'contestant'
+      ? `${i.name} — contestant in ${i.season.title} (${i.season.year}), Mara Idol.`
+      : `${i.name} — ${Idol.RESULT_SEO[i.result]} of ${i.season.title} (${i.season.year}), Mara Idol.`;
+    const desc = `${lead}${i.bio ? ` ${i.bio}` : ''}`.slice(0, 300);
+    const url = `https://maralyrics.com/mara-idol/${encodeURIComponent(i.season.slug)}/${encodeURIComponent(i.slug)}`;
+    Idol.applyMeta({ title, desc, url, image: i.photo_url });
+  },
+};
+
+/** Browser-side mirror of the server-rendered tags (see updateMeta in the page controllers). */
+Idol.applyMeta = function applyMeta({ title, desc, url, image }) {
+  document.title = title;
+  const set = (id, attr, value) => { const el = document.getElementById(id); if (el) el[attr] = value; };
+  set('pageTitle', 'textContent', title);
+  set('metaDesc', 'content', desc);
+  set('ogTitle', 'content', title); set('twTitle', 'content', title);
+  set('ogDesc', 'content', desc); set('twDesc', 'content', desc);
+  set('ogUrl', 'content', url); set('canonicalUrl', 'href', url);
+  if (image && /^https:\/\//i.test(image)) { set('ogImage', 'content', image); set('twImage', 'content', image); }
+};
+
 // ─── Article Detail Page Controller (/article/:slug) ───────────
 const ArticlePage = {
   async init() {
@@ -4415,6 +4843,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       break;
     case 'people':
       PeoplePage.init();
+      break;
+    case 'idol-index':
+      IdolIndexPage.init();
+      break;
+    case 'idol-season':
+      IdolSeasonPage.init();
+      break;
+    case 'idol':
+      IdolProfilePage.init();
       break;
     case 'downloads':
       DownloadsPage.init();

@@ -14,7 +14,8 @@
     "db:migrate:local": "wrangler d1 migrations apply maralyrics-db --local",
     "i18n:check": "node scripts/check-i18n.js",
     "seo:check": "node --no-warnings scripts/check-seo.mjs",
-    "test:badges": "node --no-warnings scripts/check-badges.mjs"
+    "test:badges": "node --no-warnings scripts/check-badges.mjs",
+    "test:idol": "node --no-warnings scripts/check-idol.mjs"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4",
