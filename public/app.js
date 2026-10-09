@@ -2894,15 +2894,30 @@ const Idol = {
     } catch { return ''; }
   },
 
+  /** Start time in seconds from a "copy video URL at current time" link: `?t=95`, `&t=95s`, `?t=1h2m3s`,
+   *  `?start=95`, `?time_continue=95` or `#t=95`. 0 when there is none. */
+  youtubeStart(url) {
+    try {
+      const u = new URL(url);
+      const hash = new URLSearchParams(u.hash.replace(/^#/, ''));
+      const raw = ['t', 'start', 'time_continue'].map((k) => u.searchParams.get(k) || hash.get(k)).find(Boolean) || '';
+      if (/^\d+$/.test(raw)) return Math.min(Number(raw), 86400);
+      const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/i.exec(raw);
+      if (!m || !raw) return 0;
+      return Math.min(Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0), 86400);
+    } catch { return 0; }
+  },
+
   /** Videos: YouTube links become click-to-play (nothing is requested from YouTube until the
    *  visitor clicks); any other link is a plain external link. Always keeps the original link. */
   videosHtml(videos) {
     return (videos || []).map((v) => {
       const id = this.youtubeId(v.url);
+      const start = id ? this.youtubeStart(v.url) : 0;
       const title = v.title || I18n.t('idol.watch_video');
       const link = `<a class="idol-video__link" href="${this.esc(v.url)}" target="_blank" rel="noopener noreferrer">${this.esc(I18n.t('idol.open_link'))} ↗</a>`;
       if (!id) return `<div class="idol-video idol-video--external"><span class="idol-video__title">${this.esc(title)}</span>${link}</div>`;
-      return `<div class="idol-video"><button type="button" class="idol-video__play" data-yt="${id}" data-title="${this.esc(title)}" aria-label="${this.esc(I18n.t('idol.play'))}: ${this.esc(title)}"><span class="idol-video__icon" aria-hidden="true">▶</span><span class="idol-video__title">${this.esc(title)}</span></button>${link}</div>`;
+      return `<div class="idol-video"><button type="button" class="idol-video__play" data-yt="${id}"${start ? ` data-start="${start}"` : ''} data-title="${this.esc(title)}" aria-label="${this.esc(I18n.t('idol.play'))}: ${this.esc(title)}"><span class="idol-video__icon" aria-hidden="true">▶</span><span class="idol-video__title">${this.esc(title)}</span></button>${link}</div>`;
     }).join('');
   },
 
@@ -2914,7 +2929,8 @@ const Idol = {
       const btn = e.target.closest('.idol-video__play');
       if (!btn) return;
       const frame = document.createElement('iframe');
-      frame.src = `https://www.youtube-nocookie.com/embed/${btn.dataset.yt}?autoplay=1&rel=0`;
+      const start = Number(btn.dataset.start) > 0 ? `&start=${Number(btn.dataset.start)}` : '';
+      frame.src = `https://www.youtube-nocookie.com/embed/${btn.dataset.yt}?autoplay=1&rel=0${start}`;
       frame.title = btn.dataset.title || '';
       frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
       frame.allowFullscreen = true;
