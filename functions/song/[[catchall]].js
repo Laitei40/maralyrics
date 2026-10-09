@@ -1,60 +1,91 @@
-import { injectSeoMeta, seoResponse, notFoundResponse } from '../_shared/seo.js';
+import {
+  injectSeoMeta, seoResponse, notFoundResponse, escapeHtml, setInner, revealDetail, unhide,
+  personLinks, cleanLyrics, breadcrumbSchema, schemaGraph, toIso, slugFromPath, SITE_ORIGIN,
+} from '../_shared/seo.js';
 
+// Title/description are kept byte-identical to ProfilePage/SongPage.updateMeta in public/app.js
+// (crawlers see this server version first; a different client-side wording would look inconsistent).
 function buildSongSeo(song) {
   const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
-  const artist = song.artist_name || 'Unknown Artist';
-  const description = `Read the full lyrics of ${song.title}, a Mara song by ${artist}. Discover Mara music on MaraLyrics.`;
-  const url = `https://maralyrics.com/song/${song.slug}`;
+  const artistNames = song.artists.map((a) => a.name).join(', ') || 'Unknown Artist';
+  const description = `Read the full lyrics of ${song.title}, a Mara song by ${artistNames}. Discover Mara music on MaraLyrics.`;
+  const url = `${SITE_ORIGIN}/song/${encodeURIComponent(song.slug)}`;
 
-  const schema = {
-    '@context': 'https://schema.org',
+  const person = (type, p) => ({ '@type': type, name: p.name, url: `${SITE_ORIGIN}/${type === 'MusicGroup' ? 'artist' : 'composer'}/${encodeURIComponent(p.slug)}` });
+
+  const recording = {
     '@type': 'MusicRecording',
+    '@id': `${url}#recording`,
     name: song.title,
-    byArtist: {
-      '@type': 'MusicGroup',
-      name: artist,
-    },
-    inLanguage: 'mrh',
     url,
-    publisher: {
-      '@type': 'Organization',
-      name: 'MaraLyrics',
-    },
+    inLanguage: 'mrh',
+    ...(song.artists.length ? { byArtist: song.artists.map((a) => person('MusicGroup', a)) } : {}),
+    ...(song.composers.length
+      ? { recordingOf: { '@type': 'MusicComposition', name: song.title, composer: song.composers.map((c) => person('Person', c)) } }
+      : {}),
+    ...(song.category ? { genre: song.category } : {}),
+    ...(toIso(song.updated_at) ? { dateModified: toIso(song.updated_at) } : {}),
+    publisher: { '@type': 'Organization', name: 'MaraLyrics', url: SITE_ORIGIN },
   };
+  const crumbs = breadcrumbSchema([
+    { name: 'Home', url: `${SITE_ORIGIN}/` },
+    { name: song.title },
+  ]);
 
-  return { title, description, url, schema };
+  return { title, description, url, schema: schemaGraph(recording, crumbs) };
 }
 
 async function fetchSong(db, slug) {
-  return db
+  const song = await db
     .prepare(
-      `SELECT s.title, s.slug,
-         (SELECT GROUP_CONCAT(name, ', ') FROM (
-            SELECT a.name AS name FROM song_artists sa JOIN artists a ON a.id = sa.artist_id
-            WHERE sa.song_id = s.id ORDER BY sa.position
-          )) AS artist_name
-       FROM songs s
+      `SELECT s.id, s.title, s.slug, s.category, s.lyrics, s.created_at, s.updated_at,
+              co.name AS owner_name, co.slug AS owner_slug
+       FROM songs s LEFT JOIN copyright_owners co ON co.id = s.copyright_owner_id
        WHERE s.slug = ? AND s.status = 'published'`
     )
     .bind(slug)
     .first();
+  if (!song) return null;
+
+  const [artists, composers] = await Promise.all([
+    db.prepare(`SELECT a.name AS name, a.slug AS slug FROM song_artists sa JOIN artists a ON a.id = sa.artist_id WHERE sa.song_id = ? ORDER BY sa.position`).bind(song.id).all(),
+    db.prepare(`SELECT c.name AS name, c.slug AS slug FROM song_composers sc JOIN composers c ON c.id = sc.composer_id WHERE sc.song_id = ? ORDER BY sc.position`).bind(song.id).all(),
+  ]);
+  return { ...song, artists: artists.results || [], composers: composers.results || [] };
+}
+
+// Real content for crawlers that don't execute JS; app.js re-renders the same containers.
+function renderSongPage(html, song) {
+  let out = html;
+  out = revealDetail(out, { skeletonId: 'songSkeleton', detailId: 'songDetail' });
+  out = setInner(out, 'songTitle', escapeHtml(song.title));
+  out = setInner(out, 'breadcrumbTitle', escapeHtml(song.title));
+  out = setInner(out, 'songArtist', personLinks(song.artists, 'artist'));
+  out = setInner(out, 'songComposer', personLinks(song.composers, 'composer'));
+  if (song.category) out = setInner(out, 'songCategory', escapeHtml(song.category));
+  out = setInner(out, 'songLyrics', escapeHtml(cleanLyrics(song.lyrics)));
+  if (song.owner_name && song.owner_slug) {
+    out = unhide(out, 'songCopyrightOwnerWrap');
+    out = setInner(out, 'songCopyrightOwner', `© <a href="/copyright-owner/${encodeURIComponent(song.owner_slug)}" class="meta-link">${escapeHtml(song.owner_name)}</a>`);
+  }
+  return out;
 }
 
 // Catch-all Pages Function for /song/* routes.
 export async function onRequest(context) {
   const requestUrl = new URL(context.request.url);
-  const slug = requestUrl.pathname.replace(/^\/song\//, '').replace(/\/$/, '');
+  const slug = slugFromPath(requestUrl.pathname, 'song');
 
   const assetUrl = new URL(context.request.url);
   assetUrl.pathname = '/songview.html';
   const assetResponse = await context.env.ASSETS.fetch(assetUrl);
 
-  if (!slug) return assetResponse;
+  // "/song/" with no slug is not a page — a real 404, not a 200 empty shell.
+  if (!slug) return notFoundResponse(assetResponse);
 
   const song = await fetchSong(context.env.DB, slug);
   if (!song) return notFoundResponse(assetResponse);
 
   const html = await assetResponse.text();
-  const seo = buildSongSeo(song);
-  return seoResponse(injectSeoMeta(html, seo));
+  return seoResponse(injectSeoMeta(renderSongPage(html, song), buildSongSeo(song)));
 }

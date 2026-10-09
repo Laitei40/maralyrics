@@ -1,2 +1,17 @@
+# Applies to every response from Cloudflare Pages (static assets and Pages Functions).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Private / non-search pages: keep them out of search results even if a crawler is told the URL.
 /admin/*
   X-Frame-Options: DENY
+  X-Robots-Tag: noindex, nofollow
+/downloads
+  X-Robots-Tag: noindex, follow
+
+# Brand images change rarely — let browsers/CDNs reuse them.
+/og-image.png
+  Cache-Control: public, max-age=86400
+/icon.svg
+  Cache-Control: public, max-age=86400
