@@ -5430,3 +5430,18 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
     background: rgba(17, 24, 39, 0.98);
   }
 }
+
+/* Server-rendered song links on artist/composer/owner pages (replaced by song cards once app.js loads) */
+.seo-song-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-xs);
+}
+.seo-song-list a {
+  color: var(--accent-light);
+  text-decoration: none;
+  font-weight: 500;
+}
+.seo-song-list a:hover { text-decoration: underline; }

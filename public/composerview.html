@@ -18,28 +18,33 @@
   <meta property="og:title" id="ogTitle" content="Composer — MaraLyrics" />
   <meta property="og:description" id="ogDesc" content="Explore composer profile and songs on MaraLyrics." />
   <meta property="og:url" id="ogUrl" content="https://maralyrics.com/composer/" />
+  <meta property="og:image" id="ogImage" content="https://maralyrics.com/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="MaraLyrics — Mara song lyrics" />
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" id="twTitle" content="Composer — MaraLyrics" />
   <meta name="twitter:description" id="twDesc" content="Explore composer profile and songs on MaraLyrics." />
+  <meta name="twitter:image" id="twImage" content="https://maralyrics.com/og-image.png" />
+
+  <!-- Bare view shell: noindex. The Pages Function removes this tag when it renders a real page. -->
+  <meta name="robots" content="noindex, follow" />
 
   <!-- Canonical -->
   <link rel="canonical" id="canonicalUrl" href="https://maralyrics.com/composer/" />
 
   <!-- JSON-LD (populated by JS) -->
   <script type="application/ld+json" id="jsonLd">
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "Composer"
-  }
+  {"@context": "https://schema.org", "@type": "WebPage"}
   </script>
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
 
   <!-- Fonts -->
+  <link rel="preconnect" href="https://api.maralyrics.com" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -53,7 +58,7 @@
   <header class="header">
     <div class="header__inner">
       <a href="/" class="header__logo">
-        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" />
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" width="32" height="32" />
         MaraLyrics
       </a>
       <button class="header__menu-btn" aria-label="Open navigation menu" data-i18n-aria="mobile_drawer.open_aria" aria-expanded="false" aria-controls="mobileDrawer">
@@ -173,6 +178,10 @@
           <span class="mobile-drawer__icon">📰</span>
           <span data-i18n="nav.articles">Articles</span>
         </a>
+        <a href="/artists-composers" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🎤</span>
+          <span data-i18n="people.hero_title">Artists &amp; Composers</span>
+        </a>
         <button type="button" class="mobile-drawer__link" data-calendar-open>
           <span class="mobile-drawer__icon">📅</span>
           <span data-i18n="calendar.toggle_aria">Community Calendar</span>
@@ -193,6 +202,8 @@
     <!-- Breadcrumb -->
     <nav class="breadcrumb" data-i18n-aria="breadcrumb.aria_label" aria-label="Breadcrumb">
       <a href="/" class="breadcrumb__link" data-i18n="common.home">Home</a>
+      <span class="breadcrumb__sep">›</span>
+      <a href="/artists-composers" class="breadcrumb__link" data-i18n="people.hero_title">Artists &amp; Composers</a>
       <span class="breadcrumb__sep">›</span>
       <span class="breadcrumb__current" id="breadcrumbName" data-i18n="composer.role">Composer</span>
     </nav>
@@ -245,7 +256,7 @@
     <!-- Error State -->
     <div id="profileError" class="empty-state" style="display:none;">
       <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-      <h3 class="empty-state__title" data-i18n="composer.error_title">Composer not found</h3>
+      <h2 class="empty-state__title" data-i18n="composer.error_title">Composer not found</h2>
       <p class="empty-state__text" data-i18n="composer.error_text">This composer may have been removed or the link is incorrect.</p>
       <a href="/" class="error-page__btn error-page__btn--primary" data-i18n="common.go_home">
         ← Go Home
@@ -259,7 +270,7 @@
     <div class="container">
       <div class="footer__grid">
         <div class="footer__col">
-          <a href="/" class="footer__brand"><img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" /> MaraLyrics</a>
+          <a href="/" class="footer__brand"><img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" width="28" height="28" loading="lazy" /> MaraLyrics</a>
           <p class="footer__tagline" data-i18n="footer.tagline">Preserving Mara music for future generations.</p>
           <div class="footer__social">
             <a href="https://www.youtube.com/@haoleimrh" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--youtube" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
@@ -267,15 +278,15 @@
           </div>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading" data-i18n="footer.heading_information">Information</h4>
-          <ul class="footer__links"><li><a href="/articles" data-i18n="nav.articles">Articles</a></li><li><a href="/about" data-i18n="about.breadcrumb">About Us</a></li><li><a href="/project" data-i18n="project.title">The Project</a></li><li><a href="/faq" data-i18n="faq.breadcrumb">FAQ</a></li></ul>
+          <h2 class="footer__heading" data-i18n="footer.heading_information">Information</h2>
+          <ul class="footer__links"><li><a href="/articles" data-i18n="nav.articles">Articles</a></li><li><a href="/artists-composers" data-i18n="people.hero_title">Artists &amp; Composers</a></li><li><a href="/about" data-i18n="about.breadcrumb">About Us</a></li><li><a href="/project" data-i18n="project.title">The Project</a></li><li><a href="/faq" data-i18n="faq.breadcrumb">FAQ</a></li></ul>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading" data-i18n="footer.heading_legal">Legal</h4>
+          <h2 class="footer__heading" data-i18n="footer.heading_legal">Legal</h2>
           <ul class="footer__links"><li><a href="/privacy" data-i18n="privacy.title">Privacy Policy</a></li><li><a href="/terms" data-i18n="terms.title">Terms &amp; Conditions</a></li><li><a href="/copyright" data-i18n="footer.link_copyright">Copyright</a></li></ul>
         </div>
         <div class="footer__col">
-          <h4 class="footer__heading" data-i18n="footer.heading_support">Support</h4>
+          <h2 class="footer__heading" data-i18n="footer.heading_support">Support</h2>
           <ul class="footer__links"><li><a href="/contact" data-i18n="contact.title">Contact Us</a></li><li><a href="/report" data-i18n="footer.link_report">Report Error</a></li></ul>
         </div>
       </div>

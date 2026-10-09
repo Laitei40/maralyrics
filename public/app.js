@@ -981,6 +981,15 @@ const HomePage = {
       this.loadPopular(),
       this.favoritesOnly ? this.loadFavorites() : this.loadSongs(),
     ]);
+
+    // Deep link: /?q=term runs that search on arrival. This is the URL the home page's
+    // WebSite SearchAction (JSON-LD) advertises, so it has to actually work.
+    const deepLinkQuery = (new URLSearchParams(location.search).get('q') || '').trim().slice(0, 100);
+    if (deepLinkQuery && this.searchInput) {
+      this.searchInput.value = deepLinkQuery;
+      if (this.searchClear) this.searchClear.classList.add('visible');
+      this.handleSearch(deepLinkQuery);
+    }
   },
 
   bindElements() {
@@ -1748,7 +1757,9 @@ const SongPage = {
 
     // JSON-LD structured data
     const jsonLd = document.getElementById('jsonLd');
-    if (jsonLd) {
+    // The server-rendered page already carries the full graph (incl. breadcrumbs); only fall
+    // back to building it here when it didn't (e.g. a direct hit on the static shell).
+    if (jsonLd && !jsonLd.textContent.includes('@graph')) {
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'MusicRecording',
@@ -1961,7 +1972,9 @@ const ProfilePage = {
     if (pageTitle) pageTitle.textContent = title;
 
     const jsonLd = document.getElementById('jsonLd');
-    if (jsonLd) {
+    // The server-rendered page already carries the full graph (incl. breadcrumbs); only fall
+    // back to building it here when it didn't (e.g. a direct hit on the static shell).
+    if (jsonLd && !jsonLd.textContent.includes('@graph')) {
       // Matches the SSR schema's fields exactly (image/sameAs, not description) —
       // see functions/artist|composer/[[catchall]].js's buildArtistSeo/buildComposerSeo.
       let sameAs;
@@ -2168,14 +2181,15 @@ const CopyrightOwnerPage = {
     if (pageTitle) pageTitle.textContent = title;
 
     const jsonLd = document.getElementById('jsonLd');
-    if (jsonLd) {
+    // The server-rendered page already carries the full graph (incl. breadcrumbs); only fall
+    // back to building it here when it didn't (e.g. a direct hit on the static shell).
+    if (jsonLd && !jsonLd.textContent.includes('@graph')) {
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'Organization',
         name: owner.organization || owner.name,
         url: window.location.href,
         ...(owner.website && Utils.isSafeUrl(owner.website) ? { sameAs: [owner.website] } : {}),
-        ...(owner.email ? { email: owner.email } : {}),
       });
     }
   },
@@ -2842,7 +2856,9 @@ const ArticlePage = {
     set('pageTitle', 'textContent', title);
 
     const jsonLd = document.getElementById('jsonLd');
-    if (jsonLd) {
+    // The server-rendered page already carries the full graph (incl. breadcrumbs); only fall
+    // back to building it here when it didn't (e.g. a direct hit on the static shell).
+    if (jsonLd && !jsonLd.textContent.includes('@graph')) {
       jsonLd.textContent = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'Article',

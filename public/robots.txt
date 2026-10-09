@@ -1,6 +1,13 @@
+# MaraLyrics — crawl rules
+# robots.txt controls crawling only; it is NOT access control. Private areas are protected by
+# authentication, and pages that must stay out of search results also carry a noindex tag/header.
+
 User-agent: *
 Allow: /
+# Admin dashboard (login-protected; also noindex via meta tag and X-Robots-Tag header)
 Disallow: /admin/
-Disallow: /report
+
+# /report and /downloads are intentionally crawlable-but-noindex (see their robots meta tag):
+# a Disallow would hide that noindex from Google and could leave the bare URL listed.
 
 Sitemap: https://maralyrics.com/sitemap.xml
