@@ -4208,42 +4208,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Ensure notifications and settings (language + theme) are available in the mobile
-  // drawer on small screens. We move the existing elements into the drawer when the
-  // header menu is visible (small screens), and restore them back on larger screens.
-  // Moving preserves event listeners and keeps behavior consistent.
-  function attachToggleToDrawer(selector) {
-    const toggle = document.querySelector(selector);
+  // On small screens (where the desktop nav is hidden behind the menu button) pull the
+  // Notifications and Settings icons out into the header bar, next to the menu button,
+  // so they stay one tap away instead of being buried in the drawer. On larger screens
+  // they go back to their place inside the desktop nav. The elements are moved, not
+  // cloned, so their event listeners and state are preserved.
+  (function pinHeaderActions() {
     const menuBtn = document.querySelector('.header__menu-btn');
-    const mobileDrawer = document.querySelector('.mobile-drawer');
-    const mobileDrawerContent = document.querySelector('.mobile-drawer__content');
+    const inner = menuBtn && menuBtn.parentElement;
+    const toggles = ['.notif-toggle', '.settings-toggle']
+      .map((sel) => document.querySelector(sel))
+      .filter(Boolean);
+    if (!menuBtn || !inner || !toggles.length) return;
 
-    if (!toggle || !menuBtn || !mobileDrawer || !mobileDrawerContent) return;
+    const actions = document.createElement('div');
+    actions.className = 'header__actions';
+    inner.insertBefore(actions, menuBtn);
 
-    const originalParent = toggle.parentElement;
-    const originalNext = toggle.nextElementSibling;
-    let moved = false;
+    // Remember each toggle's original spot so it can be restored on wide screens.
+    const homes = toggles.map((el) => ({ el, parent: el.parentElement, next: el.nextElementSibling }));
+    let pinned = false;
 
-    function updatePlacement() {
-      const menuVisible = window.getComputedStyle(menuBtn).display !== 'none';
-      if (menuVisible && !moved) {
-        mobileDrawerContent.appendChild(toggle);
-        toggle.classList.remove('open');
-        moved = true;
-      } else if (!menuVisible && moved) {
-        if (originalNext) originalParent.insertBefore(toggle, originalNext);
-        else originalParent.appendChild(toggle);
-        toggle.classList.remove('open');
-        moved = false;
-      }
+    function update() {
+      const small = window.getComputedStyle(menuBtn).display !== 'none';
+      if (small === pinned) return;
+      pinned = small;
+      homes.forEach(({ el, parent, next }) => {
+        el.classList.remove('open');
+        if (small) actions.appendChild(el);
+        else if (next && next.parentElement === parent) parent.insertBefore(el, next);
+        else parent.appendChild(el);
+      });
     }
-
-    // Update on load and on resize
-    updatePlacement();
-    window.addEventListener('resize', updatePlacement);
-  }
-  attachToggleToDrawer('.notif-toggle');
-  attachToggleToDrawer('.settings-toggle');
+    update();
+    window.addEventListener('resize', update);
+  })();
 
   // Mobile drawer toggle
   const menuBtn = document.querySelector('.header__menu-btn');
