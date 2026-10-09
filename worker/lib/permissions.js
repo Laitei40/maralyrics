@@ -21,6 +21,10 @@ export const CAN_DELETE_SONG       = ['manager', 'super_admin'];
 // Reference data (artists / composers / copyright owners) — read is all 6 roles, write is narrower
 export const CAN_MANAGE_REFERENCE_DATA = ['manager', 'super_admin'];
 
+// Artist / composer recognition badges (month, year, lifetime) — Super Admin only. Reading
+// is public (badges show on the site); only awarding and removing is restricted.
+export const CAN_MANAGE_BADGES = ['super_admin'];
+
 // Articles (Developer Dashboard). Publishing IS the "send notification" action — a
 // published article appears on the public site and is picked up by the client-side
 // notification poller, so there's no separate send permission to gate.

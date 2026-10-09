@@ -1,6 +1,6 @@
 import {
   injectSeoMeta, seoResponse, notFoundResponse, escapeHtml, setInner, revealDetail, unhide,
-  songLinkList, breadcrumbSchema, schemaGraph, slugFromPath, isSafeUrl, SITE_ORIGIN,
+  songLinkList, breadcrumbSchema, schemaGraph, slugFromPath, isSafeUrl, badgeChips, badgeText, sortBadges, SITE_ORIGIN,
 } from '../_shared/seo.js';
 
 function parseSocialLinks(raw) {
@@ -16,7 +16,7 @@ function parseSocialLinks(raw) {
 }
 
 // Title/description are kept byte-identical to ProfilePage.updateMeta in public/app.js.
-function buildArtistSeo(artist, songs) {
+function buildArtistSeo(artist, songs, badges = []) {
   const songCount = songs.length;
   const title = `${artist.name} — Mara Artist Lyrics & Songs | MaraLyrics`;
   const countText = songCount === 1 ? '1 song' : `${songCount} songs`;
@@ -32,6 +32,8 @@ function buildArtistSeo(artist, songs) {
     url,
     ...(artist.image_url && /^https:\/\//i.test(artist.image_url) ? { image: artist.image_url } : {}),
     ...(sameAs ? { sameAs } : {}),
+    // Site-given recognition (Super Admin awards), only what was actually awarded.
+    ...(badges.length ? { award: badges.map((b) => badgeText('artist', b)) } : {}),
   };
   const crumbs = breadcrumbSchema([
     { name: 'Home', url: `${SITE_ORIGIN}/` },
@@ -46,7 +48,8 @@ async function fetchArtist(db, slug) {
   const artist = await db.prepare('SELECT * FROM artists WHERE slug = ?').bind(slug).first();
   if (!artist) return null;
   const songs = await fetchSongsFor(db, 'song_artists', 'artist_id', artist.id);
-  return { artist, songs };
+  const badges = (await db.prepare('SELECT period, period_value, title FROM person_badges WHERE artist_id = ?').bind(artist.id).all()).results || [];
+  return { artist, songs, badges: sortBadges(badges) };
 }
 
 async function fetchSongsFor(db, junction, fk, id) {
@@ -62,13 +65,17 @@ async function fetchSongsFor(db, junction, fk, id) {
 }
 
 // Real content for crawlers that don't execute JS; app.js re-renders the same containers.
-function renderArtistPage(html, artist, songs) {
+function renderArtistPage(html, artist, songs, badges = []) {
   let out = html;
   out = revealDetail(out, { skeletonId: 'profileSkeleton', detailId: 'profileDetail' });
   out = setInner(out, 'profileName', escapeHtml(artist.name));
   out = setInner(out, 'breadcrumbName', escapeHtml(artist.name));
   out = setInner(out, 'avatarFallback', escapeHtml((artist.name || '?').charAt(0)));
   if (artist.bio) out = setInner(out, 'profileBio', escapeHtml(artist.bio));
+  if (badges.length) {
+    out = out.replace('id="profileBadges" hidden>', 'id="profileBadges">');
+    out = setInner(out, 'profileBadges', badgeChips('artist', badges));
+  }
   out = setInner(out, 'songCount', `(${songs.length})`);
   out = setInner(out, 'profileSongGrid', songLinkList(songs));
   return out;
@@ -90,6 +97,6 @@ export async function onRequest(context) {
   if (!result) return notFoundResponse(assetResponse);
 
   const html = await assetResponse.text();
-  const seo = buildArtistSeo(result.artist, result.songs);
-  return seoResponse(injectSeoMeta(renderArtistPage(html, result.artist, result.songs), seo));
+  const seo = buildArtistSeo(result.artist, result.songs, result.badges);
+  return seoResponse(injectSeoMeta(renderArtistPage(html, result.artist, result.songs, result.badges), seo));
 }

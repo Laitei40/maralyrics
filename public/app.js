@@ -1882,6 +1882,13 @@ const ProfilePage = {
       fallbackEl.textContent = data.name?.charAt(0) || '?';
     }
 
+    // Recognition badges (month / year / lifetime)
+    const badgesEl = document.getElementById('profileBadges');
+    if (badgesEl) {
+      badgesEl.innerHTML = Badges.list(this.type, data.badges);
+      badgesEl.hidden = !(data.badges && data.badges.length);
+    }
+
     // Bio
     const bioEl = document.getElementById('profileBio');
     if (bioEl) {
@@ -2414,6 +2421,65 @@ const Dropdown = {
   },
 };
 
+// ─── Badges (artist / composer recognition: month, year, lifetime) ───
+// Awarded by a Super Admin; the API sends them already ordered most-prestigious first.
+// Chip text uses data-i18n so it follows a language switch; a custom title is shown verbatim.
+const Badges = {
+  ICONS: { lifetime: '👑', year: '🏆', month: '🏅' },
+  RANK: { lifetime: 0, year: 1, month: 2 },
+
+  sort(list) {
+    return [...list].sort((a, b) => this.RANK[a.period] - this.RANK[b.period] || String(b.period_value).localeCompare(String(a.period_value)));
+  },
+
+  /** Higher = more recognised; used for the directory's "Most badges" sort. */
+  score(list) {
+    return (list || []).reduce((sum, b) => sum + (b.period === 'lifetime' ? 100 : b.period === 'year' ? 10 : 1), 0);
+  },
+
+  when(b) {
+    if (b.period === 'lifetime') return '';
+    if (b.period === 'year') return b.period_value;
+    const [y, m] = String(b.period_value).split('-').map(Number);
+    return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleDateString(Utils.locale(), { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  },
+
+  key(role, b) {
+    return b.period === 'lifetime' ? 'badges.lifetime' : `badges.${role}_${b.period}`;
+  },
+
+  /** Plain-text label (tooltips, aria). */
+  text(role, b) {
+    const base = b.title || I18n.t(this.key(role, b));
+    const when = this.when(b);
+    return when ? `${base} · ${when}` : base;
+  },
+
+  chip(role, b) {
+    const when = this.when(b);
+    const label = b.title
+      ? `<span>${Utils.escapeHtml(b.title)}</span>`
+      : `<span data-i18n="${this.key(role, b)}">${Utils.escapeHtml(I18n.t(this.key(role, b)))}</span>`;
+    return `<span class="badge-chip badge-chip--${b.period}" title="${Utils.escapeHtml(this.text(role, b))}"><span class="badge-chip__icon" aria-hidden="true">${this.ICONS[b.period] || '🏅'}</span>${label}${when ? `<span class="badge-chip__when"> · ${Utils.escapeHtml(when)}</span>` : ''}</span>`;
+  },
+
+  /** Icon-only chip (tooltip + aria-label carry the full text) for tight spaces. */
+  iconChip(role, b) {
+    const text = Utils.escapeHtml(this.text(role, b));
+    return `<span class="badge-chip badge-chip--${b.period} badge-chip--icon" title="${text}" aria-label="${text}" role="img">${this.ICONS[b.period] || '🏅'}</span>`;
+  },
+
+  /** Row of chips. `compact` (directory cards): the top badge in full, the rest as icons. */
+  list(role, badges, { compact = false } = {}) {
+    if (!Array.isArray(badges) || !badges.length) return '';
+    if (!compact) return badges.map((b) => this.chip(b.role || role, b)).join('');
+    const [top, ...rest] = badges;
+    const icons = rest.slice(0, 4).map((b) => this.iconChip(b.role || role, b)).join('');
+    const more = rest.length - 4;
+    return this.chip(top.role || role, top) + icons + (more > 0 ? `<span class="badge-chip badge-chip--more">${Utils.escapeHtml(I18n.t('badges.more', { count: more }))}</span>` : '');
+  },
+};
+
 // ─── People (Artists & Composers) ──────────────────────────────
 // Shared by the home-page spotlight and the /artists-composers directory.
 const People = {
@@ -2426,6 +2492,7 @@ const People = {
       const [a, c] = await Promise.all([API.fetchJSON('/artists'), API.fetchJSON('/composers')]);
       await this.fillSongCounts(a.artists || [], c.composers || []);
       const map = new Map();
+      const tagBadges = (list, role) => (Array.isArray(list) ? list : []).map((b) => ({ ...b, role }));
       const add = (p, role) => {
         const key = (p.name || '').trim().toLowerCase();
         if (!key) return;
@@ -2433,6 +2500,7 @@ const People = {
         if (existing) {
           existing.roles.push(role);
           existing.image_url = existing.image_url || p.image_url;
+          existing.badges = Badges.sort([...existing.badges, ...tagBadges(p.badges, role)]);
           // A song can credit the same person as artist and composer, so the two
           // counts overlap; the larger one is the best lower bound we have.
           existing.song_count = existing.song_count == null ? p.song_count ?? null : Math.max(existing.song_count, p.song_count ?? 0);
@@ -2440,7 +2508,7 @@ const People = {
         }
         map.set(key, {
           name: p.name.trim(), slug: p.slug, roles: [role], role_slug: role,
-          image_url: p.image_url || '', bio: p.bio || '',
+          image_url: p.image_url || '', bio: p.bio || '', badges: tagBadges(p.badges, role),
           song_count: p.song_count ?? null, created_at: p.created_at || '',
         });
       };
@@ -2508,6 +2576,7 @@ const People = {
           <span class="person-card__name">${Utils.escapeHtml(p.name)}</span>
           <span class="person-card__role">${Utils.escapeHtml(this.roleLabel(p))}</span>
           <span class="person-card__songs">${Utils.escapeHtml(this.songsLabel(p.song_count))}</span>
+          ${p.badges && p.badges.length ? `<span class="person-card__badges" aria-label="${Utils.escapeHtml(I18n.t('badges.aria'))}">${Badges.list(p.role_slug, p.badges, { compact: true })}</span>` : ''}
         </span>
       </a>`;
   },
@@ -2572,6 +2641,7 @@ const FeaturedPeople = {
       <a href="${Utils.escapeHtml(p.href)}" class="featured-person" title="${Utils.escapeHtml(p.name)}">
         ${People.avatar(p, 'person-avatar--lg')}
         <span class="featured-person__name">${Utils.escapeHtml(p.name)}</span>
+        ${p.badges && p.badges.length ? `<span class="featured-person__badges" title="${Utils.escapeHtml(p.badges.map((b) => Badges.text(b.role || p.role_slug, b)).join(', '))}" aria-label="${Utils.escapeHtml(I18n.t('badges.aria'))}">${[...new Set(p.badges.map((b) => b.period))].map((per) => Badges.ICONS[per]).join(' ')}</span>` : ''}
       </a>`).join('');
     if (!animate) { this.row.innerHTML = html; return; }
     this.row.classList.add('is-swapping');
@@ -2601,6 +2671,7 @@ const PeoplePage = {
     name_desc: (a, b) => b.name.localeCompare(a.name),
     songs_desc: (a, b) => (b.song_count ?? 0) - (a.song_count ?? 0) || a.name.localeCompare(b.name),
     songs_asc: (a, b) => (a.song_count ?? 0) - (b.song_count ?? 0) || a.name.localeCompare(b.name),
+    badges_desc: (a, b) => Badges.score(b.badges) - Badges.score(a.badges) || a.name.localeCompare(b.name),
     added_desc: (a, b) => (b.created_at || '').localeCompare(a.created_at || '') || a.name.localeCompare(b.name),
     added_asc: (a, b) => (a.created_at || '').localeCompare(b.created_at || '') || a.name.localeCompare(b.name),
   },

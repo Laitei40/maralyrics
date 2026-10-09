@@ -139,6 +139,7 @@ run(`INSERT INTO songs (id, title, slug, category, lyrics, status, copyright_own
   (2, 'Draft Song', 'draft-song', 'Love', 'secret', 'pending', 1, '2026-09-02 10:00:00')`);
 run(`INSERT INTO song_artists (song_id, artist_id, position) VALUES (1, 1, 0), (2, 2, 0)`);
 run(`INSERT INTO song_composers (song_id, composer_id, position) VALUES (1, 1, 0)`);
+run(`INSERT INTO person_badges (artist_id, period, period_value, title) VALUES (1, 'lifetime', '', NULL), (1, 'month', '2026-10', NULL), (1, 'year', '2025', 'Voice <of> Mara')`);
 run(`INSERT INTO articles (id, title, slug, author_name, summary, content, status, published_at, created_at, updated_at) VALUES
   (1, 'Hello Article', 'hello-article', 'Pat Writer', 'A summary.', '<p>Body <strong>text</strong></p>', 'published', '2026-08-01 09:00:00', '2026-07-30 09:00:00', '2026-08-02 09:00:00'),
   (2, 'Unpublished', 'unpublished', 'X', NULL, '<p>x</p>', 'draft', NULL, '2026-08-03 09:00:00', '2026-08-03 09:00:00')`);
@@ -156,7 +157,7 @@ const cases = [
   { mod: 'song/[[catchall]].js', ok: '/song/song-one', missing: '/song/nope', bare: '/song/', canonical: `${ORIGIN}/song/song-one`,
     expect: ['Song &lt;One&gt; &amp; Co', 'Line one\nLine two $&amp; &lt;script&gt;', 'href="/artist/ann-artist"', 'href="/composer/cy-composer"', 'href="/copyright-owner/owner-one"'], types: ['MusicRecording', 'BreadcrumbList'] },
   { mod: 'artist/[[catchall]].js', ok: '/artist/ann-artist', missing: '/artist/nope', bare: '/artist/', canonical: `${ORIGIN}/artist/ann-artist`,
-    expect: ['Ann Artist', 'href="/song/song-one"', 'Singer &amp; songwriter &lt;b&gt;bio&lt;/b&gt;.'], types: ['MusicGroup', 'BreadcrumbList'], image: 'https://example.com/ann.jpg' },
+    expect: ['Ann Artist', 'href="/song/song-one"', 'Singer &amp; songwriter &lt;b&gt;bio&lt;/b&gt;.', 'id="profileBadges">', 'Lifetime Achievement', 'Artist of the Month', 'Oct 2026', 'Voice &lt;of&gt; Mara'], types: ['MusicGroup', 'BreadcrumbList'], image: 'https://example.com/ann.jpg' },
   { mod: 'composer/[[catchall]].js', ok: '/composer/cy-composer', missing: '/composer/nope', bare: '/composer/', canonical: `${ORIGIN}/composer/cy-composer`,
     expect: ['Cy Composer', 'href="/song/song-one"'], types: ['Person', 'BreadcrumbList'] },
   { mod: 'copyright-owner/[[catchall]].js', ok: '/copyright-owner/owner-one', missing: '/copyright-owner/nope', bare: '/copyright-owner/', canonical: `${ORIGIN}/copyright-owner/owner-one`,
@@ -193,6 +194,17 @@ for (const c of cases) {
     check(!/<link rel="canonical"/.test(nf.html), `${name}: ${bad} 404 must not carry a canonical`);
   }
 }
+// Badges: server-rendered for crawlers, and surfaced as schema.org `award` (only what was awarded).
+{
+  const page = await get(await load('artist/[[catchall]].js'), '/artist/ann-artist');
+  const person = nodes(jsonLd(page.html)).find((n) => n['@type'] === 'MusicGroup');
+  check(JSON.stringify(person.award) === JSON.stringify(['Lifetime Achievement', 'Voice <of> Mara · 2025', 'Artist of the Month · Oct 2026']), `artist: JSON-LD award wrong: ${JSON.stringify(person.award)}`);
+  check(!/id="profileBadges" hidden/.test(page.html), 'artist: badges container must be visible when there are badges');
+  check(!page.html.includes('Voice <of> Mara'), 'artist: custom badge title must be HTML-escaped');
+  const none = await get(await load('composer/[[catchall]].js'), '/composer/cy-composer');
+  check(/id="profileBadges" hidden/.test(none.html) && !nodes(jsonLd(none.html)).some((n) => n.award), 'composer without badges: container stays hidden and no `award` is invented');
+}
+
 // Unpublished/draft content must be invisible.
 check((await get(await load('song/[[catchall]].js'), '/song/draft-song')).status === 404, 'song: pending song must 404');
 check((await get(await load('article/[[catchall]].js'), '/article/unpublished')).status === 404, 'article: draft must 404');

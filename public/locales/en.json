@@ -491,6 +491,17 @@
     "error_text": "Please check your connection and try again.",
     "section_title": "Featured Artists & Composers",
     "see_all": "See all artists and composers",
-    "shuffle_note": "Refreshes every 5 minutes"
+    "shuffle_note": "Refreshes every 5 minutes",
+    "sort_badges_desc": "Most badges"
+  },
+  "badges": {
+    "heading": "Badges",
+    "aria": "Recognition badges",
+    "artist_month": "Artist of the Month",
+    "artist_year": "Artist of the Year",
+    "composer_month": "Composer of the Month",
+    "composer_year": "Composer of the Year",
+    "lifetime": "Lifetime Achievement",
+    "more": "+{count} more"
   }
 }

@@ -9,6 +9,7 @@ import {
   CAN_REVIEW_REVISIONS,
   CAN_DELETE_SONG,
   CAN_MANAGE_REFERENCE_DATA,
+  CAN_MANAGE_BADGES,
   CAN_VIEW_ADMIN_USERS,
   CAN_MANAGE_ADMIN_USERS,
   CAN_MANAGE_REPORTS,
@@ -22,6 +23,7 @@ import {
   statusChangePermission,
 } from '../lib/permissions.js';
 import { logAudit } from '../lib/audit.js';
+import { validateBadgeInput, attachBadges } from '../lib/badges.js';
 import { AVATARS } from '../lib/avatars.js';
 import { sanitizeArticleHtml, isHtmlEmpty, SAFE_HREF } from '../lib/sanitizeHtml.js';
 
@@ -398,15 +400,70 @@ function personCrud(table) {
   const sub = new Hono();
   const targetType = table.replace(/s$/, '');
 
+  const badgeFk = `${targetType}_id`;
+
   sub.get('/', async (c) => {
     const rows = await c.env.DB.prepare(`SELECT * FROM ${table} ORDER BY name`).all();
-    return c.json({ [table]: rows.results, total: rows.results.length });
+    const people = await attachBadges(c.env.DB, rows.results, targetType, { withIds: true });
+    return c.json({ [table]: people, total: people.length });
   });
 
   sub.get('/:id', async (c) => {
     const row = await c.env.DB.prepare(`SELECT * FROM ${table} WHERE id = ?`).bind(c.req.param('id')).first();
     if (!row) return c.json({ error: 'Not found' }, 404);
-    return c.json(row);
+    const [person] = await attachBadges(c.env.DB, [row], targetType, { withIds: true });
+    return c.json(person);
+  });
+
+  // ── Recognition badges (month / year / lifetime). Awarding and removing are Super Admin
+  // only; requireAuth has already re-read the caller's role from the DB for this request, so a
+  // demoted account loses this immediately rather than when its JWT expires. ──
+  sub.post('/:id/badges', requireRole(...CAN_MANAGE_BADGES), async (c) => {
+    const id = Number(c.req.param('id'));
+    if (!Number.isInteger(id)) return c.json({ error: 'Not found' }, 404);
+    const person = await c.env.DB.prepare(`SELECT id, name FROM ${table} WHERE id = ?`).bind(id).first();
+    if (!person) return c.json({ error: 'Not found' }, 404);
+
+    const input = validateBadgeInput(await c.req.json().catch(() => ({})));
+    if (!input.ok) return c.json({ error: input.error }, 400);
+    const { period, period_value, title } = input.value;
+
+    const duplicate = await c.env.DB
+      .prepare(`SELECT id FROM person_badges WHERE ${badgeFk} = ? AND period = ? AND period_value = ?`)
+      .bind(id, period, period_value)
+      .first();
+    if (duplicate) return c.json({ error: `${person.name} already has this ${period} badge` }, 409);
+
+    try {
+      const admin = c.get('admin');
+      const result = await c.env.DB
+        .prepare(`INSERT INTO person_badges (${badgeFk}, period, period_value, title, awarded_by) VALUES (?, ?, ?, ?, ?)`)
+        .bind(id, period, period_value, title, admin.sub)
+        .run();
+      const badge = await c.env.DB
+        .prepare('SELECT id, period, period_value, title, created_at FROM person_badges WHERE id = ?')
+        .bind(result.meta.last_row_id)
+        .first();
+      await logAudit(c.env.DB, admin, 'badge.award', targetType, id, `${person.name} — ${period}${period_value ? ` ${period_value}` : ''}${title ? ` “${title}”` : ''}`);
+      return c.json(badge, 201);
+    } catch (err) {
+      return fail(c, err);
+    }
+  });
+
+  sub.delete('/:id/badges/:badgeId', requireRole(...CAN_MANAGE_BADGES), async (c) => {
+    const id = Number(c.req.param('id'));
+    const badgeId = Number(c.req.param('badgeId'));
+    if (!Number.isInteger(id) || !Number.isInteger(badgeId)) return c.json({ error: 'Not found' }, 404);
+    // Scoped to the person in the URL, so a badge id can't be removed via someone else's route.
+    const badge = await c.env.DB
+      .prepare(`SELECT b.period, b.period_value, p.name FROM person_badges b JOIN ${table} p ON p.id = b.${badgeFk} WHERE b.id = ? AND b.${badgeFk} = ?`)
+      .bind(badgeId, id)
+      .first();
+    if (!badge) return c.json({ error: 'Not found' }, 404);
+    await c.env.DB.prepare('DELETE FROM person_badges WHERE id = ?').bind(badgeId).run();
+    await logAudit(c.env.DB, c.get('admin'), 'badge.remove', targetType, id, `${badge.name} — ${badge.period}${badge.period_value ? ` ${badge.period_value}` : ''}`);
+    return c.json({ success: true });
   });
 
   sub.post('/', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {

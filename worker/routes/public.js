@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { parsePagination } from '../lib/helpers.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
 import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
+import { attachBadges } from '../lib/badges.js';
 
 const SONG_COLUMNS = `
   s.id, s.title, s.slug, s.category, s.lyrics, s.views, s.created_at, s.updated_at,
@@ -381,7 +382,9 @@ async function listPeople(c, table) {
        FROM ${table} p ORDER BY p.name`
     )
     .all();
-  return c.json({ [table]: rows.results, total: rows.results.length });
+  // Recognition badges (month / year / lifetime), most prestigious first. No ids or awarder.
+  const people = await attachBadges(c.env.DB, rows.results, table.replace(/s$/, ''));
+  return c.json({ [table]: people, total: people.length });
 }
 
 async function getPerson(c, table, junctionTable, junctionFk) {
@@ -398,7 +401,8 @@ async function getPerson(c, table, junctionTable, junctionFk) {
     .bind(person.id)
     .all();
 
-  return c.json({ ...person, songs: songs.results.map(parseSongPeople) });
+  const [withBadges] = await attachBadges(db, [person], table.replace(/s$/, ''));
+  return c.json({ ...withBadges, songs: songs.results.map(parseSongPeople) });
 }
 
 app.get('/artists', (c) => listPeople(c, 'artists'));
