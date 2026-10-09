@@ -25,6 +25,11 @@ export const CAN_MANAGE_REFERENCE_DATA = ['manager', 'super_admin'];
 // is public (badges show on the site); only awarding and removing is restricted.
 export const CAN_MANAGE_BADGES = ['super_admin'];
 
+// Mara Idol seasons + contestants. Content, like articles: editors and up create/edit/publish
+// (a season is only public once its status is 'published'); deleting is Manager + Admin.
+export const CAN_MANAGE_IDOL = ['editor', 'manager', 'super_admin'];
+export const CAN_DELETE_IDOL = ['manager', 'super_admin'];
+
 // Articles (Developer Dashboard). Publishing IS the "send notification" action — a
 // published article appears on the public site and is picked up by the client-side
 // notification poller, so there's no separate send permission to gate.

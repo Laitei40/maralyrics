@@ -29,7 +29,7 @@ const section = (name) => console.log(`\n${name}`);
 
 // ─── 1. Static HTML ──────────────────────────────────────────────────────────
 const pages = fs.readdirSync(PUBLIC).filter((f) => f.endsWith('.html')).map((f) => f.replace(/\.html$/, ''));
-const SHELLS = new Set(['songview', 'artistview', 'composerview', 'copyrightownerview', 'articleview']);
+const SHELLS = new Set(['songview', 'artistview', 'composerview', 'copyrightownerview', 'articleview', 'idolseasonview', 'idolview']);
 const NOINDEX = new Set(['404', 'downloads', 'report', ...SHELLS]);
 
 const attr = (tag, name) => (tag.match(new RegExp(`\\b${name}="([^"]*)"`)) || [])[1];
@@ -42,7 +42,7 @@ section('Static HTML');
 const titles = new Map();
 const descs = new Map();
 const knownPaths = new Set(['/', ...pages.map((p) => `/${p}`), ...fs.readdirSync(PUBLIC).map((f) => `/${f}`)]);
-const dynamicPrefixes = ['/song/', '/artist/', '/composer/', '/copyright-owner/', '/article/'];
+const dynamicPrefixes = ['/song/', '/artist/', '/composer/', '/copyright-owner/', '/article/', '/mara-idol/'];
 
 for (const page of pages) {
   const html = fs.readFileSync(path.join(PUBLIC, `${page}.html`), 'utf8');
@@ -144,6 +144,14 @@ run(`INSERT INTO articles (id, title, slug, author_name, summary, content, statu
   (1, 'Hello Article', 'hello-article', 'Pat Writer', 'A summary.', '<p>Body <strong>text</strong></p>', 'published', '2026-08-01 09:00:00', '2026-07-30 09:00:00', '2026-08-02 09:00:00'),
   (2, 'Unpublished', 'unpublished', 'X', NULL, '<p>x</p>', 'draft', NULL, '2026-08-03 09:00:00', '2026-08-03 09:00:00')`);
 
+run(`INSERT INTO idol_seasons (id, title, slug, year, description, venue, start_date, cover_url, status) VALUES
+  (1, 'Mara Idol Season 1', 'season-1', 2024, 'The first <edition>.', 'Town Hall', '2024-12-01', 'https://img.example.com/cover.jpg', 'published'),
+  (2, 'Secret Draft', 'secret-draft', 2025, NULL, NULL, NULL, NULL, 'draft')`);
+run(`INSERT INTO idol_contestants (id, season_id, name, slug, bio, photo_url, result, placement, artist_id) VALUES
+  (1, 1, 'Win Ner', 'win-ner', 'Won <it> all.', 'https://img.example.com/w.jpg', 'winner', 1, 1),
+  (2, 1, 'Plain Entry', 'plain-entry', NULL, NULL, 'contestant', NULL, NULL),
+  (3, 2, 'Hidden Idol', 'hidden-idol', NULL, NULL, 'contestant', NULL, NULL)`);
+
 const ASSETS = { fetch: async (url) => new Response(fs.readFileSync(path.join(PUBLIC, new URL(url).pathname)), { headers: { 'Content-Type': 'text/html' } }) };
 const load = (rel) => import(pathToFileURL(path.join(ROOT, 'functions', rel)).href);
 const get = async (mod, pathname) => {
@@ -194,6 +202,43 @@ for (const c of cases) {
     check(!/<link rel="canonical"/.test(nf.html), `${name}: ${bad} 404 must not carry a canonical`);
   }
 }
+// ─── Mara Idol: one function serves the index, seasons and contestants ───────────────────────
+{
+  const mod = await load('mara-idol/[[catchall]].js');
+  const index = await get(mod, '/mara-idol');
+  check(index.status === 200 && index.html.includes('href="/mara-idol/season-1"') && !index.html.includes('secret-draft'), 'mara-idol index: lists published seasons, never drafts');
+  check(index.html.includes('<link rel="canonical" id="canonicalUrl" href="https://maralyrics.com/mara-idol" />') && !/name="robots"/.test(index.html), 'mara-idol index: canonical set, indexable');
+  check(index.html.includes('<section id="idolLoading" class="fade-in" style="display:none;">'), 'mara-idol index: skeleton hidden when seasons are rendered');
+  check(JSON.parse((index.html.match(/<script type="application\/ld\+json" id="jsonLd">\s*([\s\S]*?)\s*<\/script>/) || [])[1])['@type'] === 'CollectionPage', 'mara-idol index: CollectionPage JSON-LD');
+
+  const season = await get(mod, '/mara-idol/season-1');
+  const sld = nodes(jsonLd(season.html));
+  check(season.status === 200 && season.html.includes('<title id="pageTitle">Mara Idol Season 1 (2024) — Mara Idol | MaraLyrics</title>'), 'season: server-rendered title');
+  check(season.html.includes('<link rel="canonical" id="canonicalUrl" href="https://maralyrics.com/mara-idol/season-1" />') && !/name="robots"/.test(season.html), 'season: canonical, not noindex');
+  check(season.html.includes('The first &lt;edition&gt;.') && season.html.includes('href="/mara-idol/season-1/win-ner"') && season.html.includes('Win Ner — Winner'), 'season: description (escaped) and contestant links rendered');
+  check(season.html.includes('id="ogImage" content="https://img.example.com/cover.jpg"'), 'season: og:image uses the cover');
+  const ev = sld.find((n) => n['@type'] === 'Event');
+  check(ev && ev.startDate === '2024-12-01' && ev.location.name === 'Town Hall' && sld.some((n) => n['@type'] === 'BreadcrumbList'), 'season: Event JSON-LD (real date + venue) and breadcrumbs');
+  check(!/id="idolDescription"[^>]*hidden/.test(season.html), 'season: description paragraph visible');
+
+  const idol = await get(mod, '/mara-idol/season-1/win-ner');
+  const ild = nodes(jsonLd(idol.html));
+  const person = ild.find((n) => n['@type'] === 'Person');
+  check(idol.status === 200 && idol.html.includes('<title id="pageTitle">Win Ner — Mara Idol Season 1 | Mara Idol | MaraLyrics</title>'), 'idol: server-rendered title');
+  check(idol.html.includes('content="Win Ner — winner of Mara Idol Season 1 (2024), Mara Idol. Won &lt;it&gt; all."'), 'idol: meta description wording (escaped)');
+  check(person && person.award === 'Winner — Mara Idol Season 1' && person.image === 'https://img.example.com/w.jpg' && person.sameAs[0] === 'https://maralyrics.com/artist/ann-artist', 'idol: Person JSON-LD with the recorded result, photo and artist link only');
+  check(idol.html.includes('Won &lt;it&gt; all.') && !idol.html.includes('Won <it> all.') && /class="idol-chip idol-chip--winner"/.test(idol.html), 'idol: bio escaped, result chip rendered');
+  check(idol.html.includes('id="breadcrumbSeason">Mara Idol Season 1</a>') && idol.html.includes('href="/mara-idol/season-1" class="breadcrumb__link"'), 'idol: breadcrumb points at its season');
+  check(!/id="idolBio"[^>]*hidden/.test(idol.html), 'idol: bio paragraph visible');
+  const plain = await get(mod, '/mara-idol/season-1/plain-entry');
+  check(plain.status === 200 && !nodes(jsonLd(plain.html)).some((n) => n.award) && plain.html.includes('contestant in Mara Idol Season 1 (2024), Mara Idol.'), 'idol without a result: no award is invented');
+
+  for (const bad of ['/mara-idol/secret-draft', '/mara-idol/secret-draft/hidden-idol', '/mara-idol/nope', '/mara-idol/season-1/nope', '/mara-idol/a/b/c', '/mara-idol/%E0%A4%A']) {
+    const nf = await get(mod, bad);
+    check(nf.status === 404 && /name="robots" content="noindex, nofollow"/.test(nf.html) && nf.headers.get('X-Robots-Tag') === 'noindex' && !/<link rel="canonical"/.test(nf.html), `mara-idol: ${bad} must be a noindex 404`);
+  }
+}
+
 // Badges: server-rendered for crawlers, and surfaced as schema.org `award` (only what was awarded).
 {
   const page = await get(await load('artist/[[catchall]].js'), '/artist/ann-artist');
@@ -221,10 +266,10 @@ check(new Set(locs).size === locs.length, 'sitemap: duplicate URLs');
 check(locs.every((l) => l.startsWith(`${ORIGIN}/`) && !/[?#\s]/.test(l)), 'sitemap: every <loc> must be an absolute https URL without query/fragment');
 check((xml.match(/<url>/g) || []).length === locs.length, 'sitemap: <url>/<loc> count mismatch');
 check([...xml.matchAll(/<lastmod>([^<]*)<\/lastmod>/g)].every((m) => /^\d{4}-\d{2}-\d{2}$/.test(m[1])), 'sitemap: bad <lastmod> format');
-for (const want of ['/', '/about', '/articles', '/artists-composers', '/song/song-one', '/artist/ann-artist', '/composer/cy-composer', '/copyright-owner/owner-one', '/article/hello-article']) {
+for (const want of ['/mara-idol', '/mara-idol/season-1', '/mara-idol/season-1/win-ner', '/mara-idol/season-1/plain-entry', '/', '/about', '/articles', '/artists-composers', '/song/song-one', '/artist/ann-artist', '/composer/cy-composer', '/copyright-owner/owner-one', '/article/hello-article']) {
   check(locs.includes(`${ORIGIN}${want === '/' ? '/' : want}`), `sitemap: missing ${want}`);
 }
-for (const unwanted of ['/downloads', '/report', '/admin', '/song/draft-song', '/artist/no-songs', '/composer/idle-composer', '/copyright-owner/empty-owner', '/article/unpublished']) {
+for (const unwanted of ['/downloads', '/report', '/admin', '/song/draft-song', '/artist/no-songs', '/composer/idle-composer', '/copyright-owner/empty-owner', '/article/unpublished', '/mara-idol/secret-draft', '/mara-idol/secret-draft/hidden-idol']) {
   check(!locs.some((l) => l.endsWith(unwanted) || l.includes(`${unwanted}/`)), `sitemap: must not list ${unwanted}`);
 }
 check(!/<changefreq>|<priority>/.test(xml), 'sitemap: changefreq/priority are ignored by Google; omitted by design');

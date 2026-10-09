@@ -1512,3 +1512,9 @@ button.is-busy::after {
 .badge-admin-form { border-top: 1px solid var(--border-glass); padding-top: var(--space-md); margin-top: var(--space-sm); }
 .form-label--sm { font-size: var(--text-xs); }
 #badgeModalIntro { margin-bottom: var(--space-md); }
+
+/* ─── Mara Idol tab ─────────────────────────────── */
+.admin__subtitle {
+  font-size: var(--text-lg, 1.1rem);
+  margin: var(--space-lg, 24px) 0 var(--space-sm, 8px);
+}

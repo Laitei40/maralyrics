@@ -101,6 +101,7 @@
       <button class="admin__tab" data-tab="composers">Composers</button>
       <button class="admin__tab" data-tab="copyright-owners">Copyright Owners</button>
       <button class="admin__tab" data-tab="articles">Articles</button>
+      <button class="admin__tab" data-tab="mara-idol">Mara Idol</button>
       <button class="admin__tab" data-tab="supporters">Sponsors &amp; Partners</button>
       <button class="admin__tab" data-tab="reports">Reports</button>
       <button class="admin__tab" data-tab="revisions">Revisions</button>
@@ -260,6 +261,65 @@
           </thead>
           <tbody id="copyrightOwnersTableBody">
             <tr><td colspan="5" class="admin-table__empty">Loading copyright owners...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Mara Idol Tab ═══ -->
+    <div class="admin__panel" id="panelMara-idol" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Mara Idol</h1>
+        <div class="admin__topbar-actions">
+          <button id="btnNewIdolSeason" class="btn btn--primary">+ New Season</button>
+          <button id="btnNewIdol" class="btn btn--primary">+ New Idol</button>
+        </div>
+      </div>
+      <p class="form-hint" style="margin:0 0 var(--space-md);">Seasons and idols appear on the public Mara Idol page. Draft seasons (and their idols) stay hidden until published.</p>
+
+      <h2 class="admin__subtitle">Seasons</h2>
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="idolSeasonsTable">
+          <thead>
+            <tr>
+              <th>Season</th>
+              <th>Year</th>
+              <th>Idols</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="idolSeasonsTableBody">
+            <tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="admin__subtitle">Idols</h2>
+      <div class="admin__toolbar">
+        <div class="search" style="max-width:360px;flex:1;">
+          <span class="search__icon">🔍</span>
+          <input type="text" id="idolSearch" class="search__input" placeholder="Filter idols..." autocomplete="off" />
+        </div>
+        <select id="idolFilterSeason" class="form-input form-input--sm" style="width:auto;" aria-label="Filter by season">
+          <option value="">All Seasons</option>
+        </select>
+      </div>
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="idolsTable">
+          <thead>
+            <tr>
+              <th>Idol</th>
+              <th>Season</th>
+              <th>Result</th>
+              <th>Artist profile</th>
+              <th>Order</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="idolsTableBody">
+            <tr><td colspan="6" class="admin-table__empty">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -883,6 +943,197 @@
       <div class="modal__actions">
         <button type="button" id="profileBtnClose" class="btn btn--ghost">Close</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ─── Mara Idol Season Modal ────────────── -->
+  <div id="idolSeasonModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="isBackdrop"></div>
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="isModalTitle">
+      <div class="modal__header">
+        <h2 class="modal__title" id="isModalTitle">New Season</h2>
+        <button class="modal__close" id="isModalClose" type="button">&times;</button>
+      </div>
+      <form id="idolSeasonForm" class="modal__form">
+        <input type="hidden" id="isFormId" value="" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="isFormTitle">Title <span class="required">*</span></label>
+            <input type="text" id="isFormTitle" class="form-input" required maxlength="150" placeholder="Mara Idol Season 1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="isFormYear">Year <span class="required">*</span></label>
+            <input type="number" id="isFormYear" class="form-input" required min="1900" max="2100" step="1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="isFormSlug">URL slug</label>
+            <input type="text" id="isFormSlug" class="form-input" maxlength="120" placeholder="Auto from title" />
+            <span class="form-hint">Leave blank to generate from the title.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="isFormStatus">Status <span class="required">*</span></label>
+            <select id="isFormStatus" class="form-input">
+              <option value="draft">Draft (hidden)</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="isFormVenue">Venue / location</label>
+          <input type="text" id="isFormVenue" class="form-input" maxlength="200" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="isFormStart">Start date</label>
+            <input type="date" id="isFormStart" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="isFormEnd">End date</label>
+            <input type="date" id="isFormEnd" class="form-input" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="isFormDescription">Description</label>
+          <textarea id="isFormDescription" class="form-input" rows="4" maxlength="5000"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cover image</label>
+          <div class="image-field" data-target="isFormCover" data-shape="square">
+            <span class="image-field__preview"></span>
+            <div class="image-field__body">
+              <div class="image-field__actions">
+                <label class="btn btn--sm btn--primary">
+                  Upload &amp; Crop
+                  <input type="file" class="image-field__file" accept="image/*" hidden />
+                </label>
+                <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
+                <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
+              </div>
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" />
+            </div>
+          </div>
+          <input type="hidden" id="isFormCover" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="isFormVideos">Performance videos</label>
+          <textarea id="isFormVideos" class="form-input" rows="3" placeholder="One per line, e.g. https://www.youtube.com/watch?v=...
+or: Final round | https://youtu.be/..."></textarea>
+          <span class="form-hint">Up to 10. Optionally add a title first: <code>Title | link</code>. YouTube links play on the page; other links open in a new tab.</span>
+        </div>
+
+        <div id="isFormMessage" class="form-message" style="display:none;"></div>
+
+        <div class="modal__actions">
+          <button type="button" id="isBtnCancel" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="isBtnSubmit" class="btn btn--primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ─── Mara Idol Idol (contestant) Modal ──── -->
+  <div id="idolModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="idBackdrop"></div>
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="idModalTitle">
+      <div class="modal__header">
+        <h2 class="modal__title" id="idModalTitle">New Idol</h2>
+        <button class="modal__close" id="idModalClose" type="button">&times;</button>
+      </div>
+      <form id="idolForm" class="modal__form">
+        <input type="hidden" id="idFormId" value="" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="idFormName">Name <span class="required">*</span></label>
+            <input type="text" id="idFormName" class="form-input" required maxlength="150" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="idFormSeason">Season <span class="required">*</span></label>
+            <select id="idFormSeason" class="form-input" required></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="idFormResult">Result</label>
+            <select id="idFormResult" class="form-input">
+              <option value="contestant">Contestant</option>
+              <option value="winner">Winner</option>
+              <option value="runner_up">Runner-up</option>
+              <option value="second_runner_up">Second runner-up</option>
+              <option value="finalist">Finalist</option>
+              <option value="semi_finalist">Semi-finalist</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="idFormPlacement">Final placement</label>
+            <input type="number" id="idFormPlacement" class="form-input" min="1" max="999" step="1" placeholder="e.g. 1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="idFormOrder">Display order</label>
+            <input type="number" id="idFormOrder" class="form-input" value="0" step="1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="idFormSlug">URL slug</label>
+            <input type="text" id="idFormSlug" class="form-input" maxlength="120" placeholder="Auto from name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="idFormArtist">Artist profile</label>
+            <select id="idFormArtist" class="form-input"></select>
+            <span class="form-hint">Links this idol to their artist page, if they have one.</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="idFormBio">Bio</label>
+          <textarea id="idFormBio" class="form-input" rows="4" maxlength="5000"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          <div class="image-field" data-target="idFormPhoto" data-shape="square">
+            <span class="image-field__preview"></span>
+            <div class="image-field__body">
+              <div class="image-field__actions">
+                <label class="btn btn--sm btn--primary">
+                  Upload &amp; Crop
+                  <input type="file" class="image-field__file" accept="image/*" hidden />
+                </label>
+                <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
+                <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
+              </div>
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" />
+            </div>
+          </div>
+          <input type="hidden" id="idFormPhoto" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="idFormVideos">Performance videos</label>
+          <textarea id="idFormVideos" class="form-input" rows="3" placeholder="One per line, e.g. https://www.youtube.com/watch?v=...
+or: Final round | https://youtu.be/..."></textarea>
+          <span class="form-hint">Up to 10. Optionally add a title first: <code>Title | link</code>. YouTube links play on the page; other links open in a new tab.</span>
+        </div>
+
+        <div id="idFormMessage" class="form-message" style="display:none;"></div>
+
+        <div class="modal__actions">
+          <button type="button" id="idBtnCancel" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="idBtnSubmit" class="btn btn--primary">Create</button>
+        </div>
+      </form>
     </div>
   </div>
 

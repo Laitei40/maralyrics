@@ -10,12 +10,13 @@ The site is static HTML + `public/app.js` on **Cloudflare Pages**, with **Pages 
 
 | Concern | Where |
 | --- | --- |
-| Per-page `<title>`, description, canonical, Open Graph / Twitter tags | Static pages: in each `public/*.html`. Song / artist / composer / copyright-owner / article pages: injected on the server by `functions/<type>/[[catchall]].js` via `functions/_shared/seo.js` |
+| Per-page `<title>`, description, canonical, Open Graph / Twitter tags | Static pages: in each `public/*.html`. Song / artist / composer / copyright-owner / article / Mara Idol pages: injected on the server by `functions/<type>/[[catchall]].js` via `functions/_shared/seo.js` |
 | Page content for crawlers | The same functions also fill the view shell with the real content (title, credited people as links, lyrics, bio, song lists, article body). `app.js` re-renders the same containers once it loads, so visitors see no change |
-| Structured data (JSON-LD) | Home: `WebSite` (+ working `SearchAction`, `/?q=`) and `Organization`. Entity pages: `MusicRecording` / `MusicGroup` / `Person` / `Organization` / `Article` plus `BreadcrumbList`. Built from database fields only — no ratings, reviews or invented authors |
+| Structured data (JSON-LD) | Home: `WebSite` (+ working `SearchAction`, `/?q=`) and `Organization`. Entity pages: `MusicRecording` / `MusicGroup` / `Person` / `Organization` / `Article` plus `BreadcrumbList`. Mara Idol: `CollectionPage` (index), `Event` (season), `Person` (idol; `award` only when a result is recorded). Built from database fields only — no ratings, reviews or invented authors |
 | 404s | Unknown slugs (and bare `/song/`, `/artist/`, …) return a real **404** with `noindex` and no canonical |
-| Sitemap | `functions/sitemap.xml.js` → `/sitemap.xml`. Published songs/articles, plus artists, composers and copyright owners **that have at least one published song**. `<lastmod>` only where a real date exists |
+| Sitemap | `functions/sitemap.xml.js` → `/sitemap.xml`. Published songs/articles, published Mara Idol seasons and their idols (draft seasons never), plus artists, composers and copyright owners **that have at least one published song**. `<lastmod>` only where a real date exists |
 | Crawl rules | `public/robots.txt`; `public/_headers` adds `X-Robots-Tag` for `/admin/*` and `/downloads` |
+| Mara Idol | `/mara-idol`, `/mara-idol/:season`, `/mara-idol/:season/:idol` are all served by `functions/mara-idol/[[catchall]].js`; draft seasons and unknown slugs return a real 404 with `noindex` |
 | Not indexed | `/admin/*` (login-protected), `/downloads` (per-device), `/report` (form), bare view shells, 404 page |
 | Share image | `public/og-image.png` (1200×630). An artist/composer's own `https` image is used when they have one |
 
@@ -32,7 +33,7 @@ Deliberate choices:
 ## Verify locally
 
 ```bash
-npm run seo:check    # ~870 checks, no network, exits 1 on any failure
+npm run seo:check    # ~1,090 checks, no network, exits 1 on any failure
 npm run i18n:check   # translation coverage
 ```
 

@@ -11,7 +11,7 @@
 //
 // Bump CACHE_VERSION whenever a precached file's content changes, so returning admins
 // pick up the new version instead of a stale cached copy.
-const CACHE_VERSION = 'ml-admin-v8';
+const CACHE_VERSION = 'ml-admin-v9';
 const SHELL_ASSETS = [
   './',
   './index.html',

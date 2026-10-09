@@ -7,7 +7,7 @@
 // i18n.js, theme.js, consent.js, toast.js, or the locale JSON files) — those are served
 // cache-first below, so a returning visitor's browser keeps the exact bytes it first
 // cached forever otherwise, immune even to a hard refresh, until this version changes.
-const CACHE_VERSION = 'ml-v22';
+const CACHE_VERSION = 'ml-v23';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -32,6 +32,9 @@ const PRECACHE_ASSETS = [
 // Page shells that should be cached when visited
 const PAGE_SHELLS = [
   '/songview.html',
+  '/mara-idol.html',
+  '/idolseasonview.html',
+  '/idolview.html',
   '/artistview.html',
   '/composerview.html',
   '/copyrightownerview.html',

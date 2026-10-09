@@ -24,6 +24,7 @@ import {
 } from '../lib/permissions.js';
 import { logAudit } from '../lib/audit.js';
 import { validateBadgeInput, attachBadges } from '../lib/badges.js';
+import { idolSeasonsApp, idolContestantsApp } from './adminIdol.js';
 import { AVATARS } from '../lib/avatars.js';
 import { sanitizeArticleHtml, isHtmlEmpty, SAFE_HREF } from '../lib/sanitizeHtml.js';
 
@@ -683,6 +684,10 @@ supApp.delete('/:id', async (c) => {
 });
 
 app.route('/supporters', supApp);
+
+// ── Mara Idol seasons + contestants (see adminIdol.js) ──
+app.route('/idol-seasons', idolSeasonsApp);
+app.route('/idol-contestants', idolContestantsApp);
 
 // ── Songs ──
 const MAX_CREDITED_PEOPLE = 20;
