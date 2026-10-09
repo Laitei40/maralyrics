@@ -5395,3 +5395,38 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 .dropdown__menu::-webkit-scrollbar-thumb { background: var(--border-glass); border-radius: 3px; }
 @media (max-width: 600px) { .dropdown__menu { max-width: calc(100vw - 32px); } }
 @media (prefers-reduced-motion: reduce) { .dropdown__menu, .dropdown__chev, .dropdown__check { transition: none; } }
+
+/* ═══ Header actions on small screens (notifications + settings pinned in the bar) ═══ */
+.header__actions { display: none; }
+@media (max-width: 768px) {
+  .header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-left: auto;
+    margin-right: var(--space-sm);
+  }
+  .header__actions .notif-toggle,
+  .header__actions .settings-toggle {
+    /* Static, so the dropdown panels anchor to the (positioned) header and can span
+       its full width instead of hanging off a small icon near the screen edge. */
+    position: static;
+    margin: 0;
+  }
+  .header__actions .notif-toggle__btn,
+  .header__actions .settings-toggle__btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .header__actions .notif-panel,
+  .header__actions .settings-panel {
+    top: calc(100% + 8px);
+    left: var(--space-md);
+    right: var(--space-md);
+    width: auto;
+    max-height: calc(100vh - var(--header-height) - 24px);
+    overflow-y: auto;
+    background: rgba(17, 24, 39, 0.98);
+  }
+}
