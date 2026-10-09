@@ -57,6 +57,13 @@ const Utils = {
     return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
   },
 
+  /** BCP 47 tag for Intl/toLocale* formatting, following the site language rather than the
+   *  browser's. Mara (mrh) has no Intl locale data, so it formats dates like English. */
+  locale() {
+    const lang = typeof I18n !== 'undefined' && I18n.getLang ? I18n.getLang() : 'en';
+    return lang === 'my' ? 'my' : 'en';
+  },
+
   /** Format a date string as e.g. "Sep 17, 2026" for article cards/pages. D1's
    *  DATETIME columns come back as 'YYYY-MM-DD HH:MM:SS' (UTC, no timezone marker). */
   formatDateShort(dateStr) {
@@ -66,7 +73,7 @@ const Utils = {
     if (!/[Zz]|[+-]\d{2}:\d{2}$/.test(iso)) iso += 'Z';
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString(Utils.locale(), { month: 'short', day: 'numeric', year: 'numeric' });
   },
 
   /** Check if device is online. */
@@ -381,7 +388,7 @@ const Downloads = {
   },
 
   async add(song) {
-    if (!this.supported || !song?.slug) throw new Error('Downloads are not supported in this browser.');
+    if (!this.supported || !song?.slug) throw new Error(I18n.t('downloads.unsupported'));
     const existing = await this.get(song.slug);
     await this._tx('readwrite', (store) => store.put({ slug: song.slug, song, savedAt: existing?.savedAt || Date.now() }));
     this.slugs.add(song.slug);
@@ -740,7 +747,12 @@ const API = {
 };
 
 // The blue "downloaded" mark shown beside a song's view count, and the download button icon.
-const DOWNLOADED_MARK_HTML = '<span class="song-card__dlmark" data-slug="__SLUG__"__HIDDEN__ role="img" aria-label="Downloaded" title="Downloaded — available offline"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#2f80ed"/><path d="M12 5v9m0 0l-4-4m4 4l4-4M6.5 18.5h11" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+// The blue "downloaded" mark shown beside a song's view count. Built per render so its
+// label follows the site language; data-i18n-* keeps it in step on a later language switch.
+function downloadedMarkHtml(slug, downloaded) { // slug: already HTML-escaped
+  return `<span class="song-card__dlmark" data-slug="${slug}"${downloaded ? '' : ' hidden'} role="img" aria-label="${Utils.escapeHtml(I18n.t('common.downloaded_btn'))}" title="${Utils.escapeHtml(I18n.t('downloads.saved'))}" data-i18n-aria="common.downloaded_btn" data-i18n-title="downloads.saved"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#2f80ed"/><path d="M12 5v9m0 0l-4-4m4 4l4-4M6.5 18.5h11" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+}
+// The download button icon.
 const DOWNLOAD_ICON_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14"/></svg>';
 
 // ─── UI Rendering Module ───────────────────────────────────────
@@ -761,7 +773,7 @@ const UI = {
           <p class="song-card__artist">${Utils.escapeHtml(Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown_artist')))}</p>
           <div class="song-card__meta">
             ${song.category ? `<span class="song-card__category">${Utils.escapeHtml(song.category)}</span>` : '<span></span>'}
-            <span class="song-card__views">${DOWNLOADED_MARK_HTML.replace('__SLUG__', slug).replace('__HIDDEN__', isDownloaded ? '' : ' hidden')}👁 ${Utils.formatViews(song.views)}</span>
+            <span class="song-card__views">${downloadedMarkHtml(slug, isDownloaded)}👁 ${Utils.formatViews(song.views)}</span>
           </div>
         </a>
         <button type="button" class="song-card__favorite${isFavorited ? ' active' : ''}" data-slug="${slug}" aria-pressed="${isFavorited}" aria-label="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}" title="${I18n.t(isFavorited ? 'common.remove_from_favorites' : 'common.add_to_favorites')}">
@@ -807,10 +819,10 @@ const UI = {
     let when;
     if (isAllDay) {
       when = ev.start === ev.end
-        ? new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-        : `${new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(ev.end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        ? new Date(ev.start + 'T00:00:00').toLocaleDateString(Utils.locale(), { weekday: 'long', month: 'long', day: 'numeric' })
+        : `${new Date(ev.start + 'T00:00:00').toLocaleDateString(Utils.locale(), { month: 'short', day: 'numeric' })} – ${new Date(ev.end + 'T00:00:00').toLocaleDateString(Utils.locale(), { month: 'short', day: 'numeric', year: 'numeric' })}`;
     } else {
-      when = new Date(ev.start).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      when = new Date(ev.start).toLocaleString(Utils.locale(), { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
     return `
@@ -3223,24 +3235,24 @@ const EventDetail = (() => {
     const short = { month: 'short', day: 'numeric', year: 'numeric' };
     if (isAllDay(ev.start)) {
       if (!ev.end || ev.end === ev.start) {
-        return { primary: start.toLocaleDateString(undefined, long), secondary: I18n.t('event_detail.all_day') };
+        return { primary: start.toLocaleDateString(Utils.locale(), long), secondary: I18n.t('event_detail.all_day') };
       }
       const end = parse(ev.end);
       const days = Math.round((end - start) / DAY) + 1;
       return {
-        primary: `${start.toLocaleDateString(undefined, short)} – ${end.toLocaleDateString(undefined, short)}`,
+        primary: `${start.toLocaleDateString(Utils.locale(), short)} – ${end.toLocaleDateString(Utils.locale(), short)}`,
         secondary: `${I18n.t('event_detail.all_day')} · ${I18n.t('event_detail.days', { count: days })}`,
       };
     }
     const time = { hour: '2-digit', minute: '2-digit' };
     const end = ev.end ? parse(ev.end) : null;
-    let secondary = start.toLocaleTimeString(undefined, time);
+    let secondary = start.toLocaleTimeString(Utils.locale(), time);
     if (end && !isNaN(end)) {
       secondary += ' – ' + (startOfDay(end).getTime() === startOfDay(start).getTime()
-        ? end.toLocaleTimeString(undefined, time)
-        : end.toLocaleString(undefined, { month: 'short', day: 'numeric', ...time }));
+        ? end.toLocaleTimeString(Utils.locale(), time)
+        : end.toLocaleString(Utils.locale(), { month: 'short', day: 'numeric', ...time }));
     }
-    return { primary: start.toLocaleDateString(undefined, long), secondary };
+    return { primary: start.toLocaleDateString(Utils.locale(), long), secondary };
   }
 
   /** { live: true/false, text } — "Happening today/now", "Tomorrow", "In N days", "Ended". */
@@ -3321,8 +3333,8 @@ const EventDetail = (() => {
     const start = parse(ev.start);
     const st = status(ev);
     const when = describeWhen(ev);
-    const month = start.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
-    const weekday = start.toLocaleDateString(undefined, { weekday: 'short' });
+    const month = start.toLocaleDateString(Utils.locale(), { month: 'short' }).toUpperCase();
+    const weekday = start.toLocaleDateString(Utils.locale(), { weekday: 'short' });
     const mapUrl = ev.location ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}` : '';
 
     el.querySelector('.event-modal__panel').classList.toggle('event-modal__panel--live', st.live);
@@ -3453,12 +3465,12 @@ const CalendarFeature = (() => {
 
   function formatEventWhen(ev) {
     if (isAllDayDate(ev.start)) {
-      const startFmt = new Date(ev.start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      const startFmt = new Date(ev.start + 'T00:00:00').toLocaleDateString(Utils.locale(), { month: 'short', day: 'numeric', year: 'numeric' });
       if (ev.start === ev.end) return startFmt;
-      const endFmt = new Date(ev.end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      const endFmt = new Date(ev.end + 'T00:00:00').toLocaleDateString(Utils.locale(), { month: 'short', day: 'numeric', year: 'numeric' });
       return `${startFmt} – ${endFmt}`;
     }
-    return new Date(ev.start).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return new Date(ev.start).toLocaleString(Utils.locale(), { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   function isSingleAllDay(ev) {
@@ -3470,8 +3482,8 @@ const CalendarFeature = (() => {
   function eventBadgeHtml(ev) {
     if (isSingleAllDay(ev)) {
       const d = new Date(ev.start + 'T00:00:00');
-      const day = d.toLocaleDateString(undefined, { day: '2-digit' });
-      const month = d.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+      const day = d.toLocaleDateString(Utils.locale(), { day: '2-digit' });
+      const month = d.toLocaleDateString(Utils.locale(), { month: 'short' }).toUpperCase();
       return `<span class="calendar-event__badge"><span class="calendar-event__badge-day">${day}</span><span class="calendar-event__badge-month">${Utils.escapeHtml(month)}</span></span>`;
     }
     return `<span class="calendar-event__badge calendar-event__badge--text">${Utils.escapeHtml(formatEventWhen(ev))}</span>`;
@@ -3479,7 +3491,7 @@ const CalendarFeature = (() => {
 
   function monthLabel(ev) {
     const d = new Date(isAllDayDate(ev.start) ? ev.start + 'T00:00:00' : ev.start);
-    return d.toLocaleDateString(undefined, { month: 'long' });
+    return d.toLocaleDateString(Utils.locale(), { month: 'long' });
   }
 
   function currentCalendarName() {

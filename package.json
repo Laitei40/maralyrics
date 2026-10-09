@@ -11,7 +11,8 @@
     "db:schema:local": "wrangler d1 execute maralyrics-db --local --file=./schema.sql",
     "db:seed:local": "wrangler d1 execute maralyrics-db --local --file=./seed.sql",
     "db:migrate": "wrangler d1 migrations apply maralyrics-db --remote",
-    "db:migrate:local": "wrangler d1 migrations apply maralyrics-db --local"
+    "db:migrate:local": "wrangler d1 migrations apply maralyrics-db --local",
+    "i18n:check": "node scripts/check-i18n.js"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4",
