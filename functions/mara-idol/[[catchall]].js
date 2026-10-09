@@ -46,7 +46,7 @@ async function seasonPage(context, slug) {
   const res = await shell(context, 'idolseasonview.html');
   const db = context.env.DB;
   const season = await db.prepare(
-    `SELECT id, title, slug, year, description, venue, start_date, end_date, cover_url, videos
+    `SELECT id, title, slug, year, description, venue, start_date, end_date, cover_url, photo_url, videos
      FROM idol_seasons WHERE slug = ? AND status = 'published'`
   ).bind(slug).first();
   if (!season) return notFoundResponse(res);
@@ -57,6 +57,7 @@ async function seasonPage(context, slug) {
   ).bind(season.id).all()).results || [];
 
   const url = `${SITE_ORIGIN}/mara-idol/${enc(season.slug)}`;
+  const shareImage = season.cover_url || season.photo_url;
   const title = `${season.title} (${season.year}) — Mara Idol | MaraLyrics`;
   const text = String(season.description || '').replace(/\s+/g, ' ').trim();
   const description = text ? text.slice(0, 200) : `${season.title} — Mara Idol ${season.year} on MaraLyrics.`;
@@ -70,7 +71,7 @@ async function seasonPage(context, slug) {
     ...(season.start_date ? { startDate: season.start_date } : {}),
     ...(season.end_date ? { endDate: season.end_date } : {}),
     ...(season.start_date && season.venue ? { location: { '@type': 'Place', name: season.venue } } : {}),
-    ...(httpsImage(season.cover_url) ? { image: season.cover_url } : {}),
+    ...(httpsImage(shareImage) ? { image: shareImage } : {}),
   };
   const crumbs = breadcrumbSchema([
     { name: 'Home', url: `${SITE_ORIGIN}/` },
@@ -90,7 +91,7 @@ async function seasonPage(context, slug) {
   }
   html = setInner(html, 'idolCount', `(${contestants.length})`);
   html = setInner(html, 'idolContestantGrid', linkList(contestants.map((c) => ({ href: `/mara-idol/${enc(season.slug)}/${enc(c.slug)}`, text: `${c.name}${c.result !== 'contestant' ? ` — ${IDOL_RESULT_LABEL[c.result]}` : ''}` }))));
-  return seoResponse(injectSeoMeta(html, { title, description, url, image: season.cover_url, schema: schemaGraph(node, crumbs) }));
+  return seoResponse(injectSeoMeta(html, { title, description, url, image: shareImage, schema: schemaGraph(node, crumbs) }));
 }
 
 // ── Contestant ───────────────────────────────────────────────────────────────────

@@ -1545,12 +1545,13 @@ function loadSocialLinks(socialLinksStr) {
 // input (`data-target`) holds the value that gets saved: '' (no photo), an http(s) URL, or a
 // cropped data:image URL.
 const ENTITY_PHOTO_SIZE = 400;
+const WIDE_PHOTO_SIZE = 1000; // output width of a 2:1 cover banner (1000 × 500)
 
 function entityAvatarHtml(imageUrl, size = 'sm', shape = 'circle') {
   const inner = imageUrl
     ? `<img class="profile-avatar__img" src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />`
     : DEFAULT_AVATAR_SVG;
-  return `<span class="profile-avatar profile-avatar--${size}${shape === 'square' ? ' profile-avatar--square' : ''}${imageUrl ? '' : ' profile-avatar--empty'}" title="${imageUrl ? 'Has a photo' : 'No photo'}">${inner}</span>`;
+  return `<span class="profile-avatar profile-avatar--${size}${shape === 'square' || shape === 'wide' ? ' profile-avatar--square' : ''}${shape === 'wide' ? ' profile-avatar--wide' : ''}${imageUrl ? '' : ' profile-avatar--empty'}" title="${imageUrl ? 'Has a photo' : 'No photo'}">${inner}</span>`;
 }
 
 function setImageField(targetId, url) {
@@ -1575,8 +1576,8 @@ function initImageFields() {
       const file = fileInput.files[0];
       fileInput.value = '';
       openPhotoCrop(file, {
-        size: ENTITY_PHOTO_SIZE,
-        title: 'Crop Photo',
+        size: field.dataset.shape === 'wide' ? WIDE_PHOTO_SIZE : ENTITY_PHOTO_SIZE,
+        title: field.dataset.shape === 'wide' ? 'Crop Cover Photo' : 'Crop Photo',
         shape: field.dataset.shape || 'circle',
         onError: (msg) => AdminUI.alertToast(msg),
         onSave: (dataUrl) => setImageField(target, dataUrl),
@@ -1986,7 +1987,7 @@ function renderIdolSeasonsTable() {
   const canDelete = hasRole(...CAN_DELETE_IDOL);
   tbody.innerHTML = allIdolSeasons.map(item => `
     <tr data-id="${item.id}">
-      <td><div class="admin-table__person">${entityAvatarHtml(item.cover_url, 'sm', 'square')}<div class="admin-table__title">${escapeHtml(item.title)}</div></div></td>
+      <td><div class="admin-table__person">${entityAvatarHtml(item.photo_url || item.cover_url, 'sm', 'square')}<div class="admin-table__title">${escapeHtml(item.title)}</div></div></td>
       <td>${item.year}</td>
       <td>${item.contestant_count || 0}</td>
       <td>${idolStatusBadge(item.status)}</td>
@@ -2074,6 +2075,7 @@ function clearIdolSeasonForm() {
   document.getElementById('isFormId').value = '';
   document.getElementById('isFormMessage').style.display = 'none';
   setImageField('isFormCover', '');
+  setImageField('isFormPhoto', '');
 }
 function showIdolSeasonMessage(text, isError = false) {
   const el = document.getElementById('isFormMessage');
@@ -2109,6 +2111,7 @@ function editIdolSeason(id) {
   document.getElementById('isFormDescription').value = item.description || '';
   document.getElementById('isFormVideos').value = videosToText(item.videos);
   setImageField('isFormCover', item.cover_url || '');
+  setImageField('isFormPhoto', item.photo_url || '');
   openIdolSeasonModal();
 }
 
@@ -2129,6 +2132,7 @@ async function saveIdolSeason(e) {
     end_date: document.getElementById('isFormEnd').value,
     description: document.getElementById('isFormDescription').value.trim(),
     cover_url: document.getElementById('isFormCover').value.trim(),
+    photo_url: document.getElementById('isFormPhoto').value.trim(),
     videos: textToVideos(document.getElementById('isFormVideos').value),
   };
 
@@ -3787,37 +3791,38 @@ function renderProfileDirectory() {
 // ─── Profile photo upload + square crop ─────────
 // Drag to position, slider/wheel to zoom; the visible 300px square is exported as a 256px JPEG
 // (small enough to store in the row) and saved straight away via PUT /profile.
-const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, dragging: null, outSize: 256, onSave: null, onError: null, shape: 'circle' };
+// `size` is the canvas width and `h` its height (equal for circle/square crops; 'wide' is a 2:1 banner).
+const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, h: 300, dragging: null, outSize: 256, onSave: null, onError: null, shape: 'circle' };
 const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
 
 function photoCropClamp() {
   const s = photoCrop.minScale * photoCrop.zoom;
   const w = photoCrop.img.width * s, h = photoCrop.img.height * s;
   photoCrop.x = Math.min(0, Math.max(photoCrop.size - w, photoCrop.x));
-  photoCrop.y = Math.min(0, Math.max(photoCrop.size - h, photoCrop.y));
+  photoCrop.y = Math.min(0, Math.max(photoCrop.h - h, photoCrop.y));
 }
 
 function photoCropDraw() {
   if (!photoCrop.img) return;
   const canvas = document.getElementById('photoCropCanvas');
   const ctx = canvas.getContext('2d');
-  const size = photoCrop.size;
+  const size = photoCrop.size, height = photoCrop.h;
   const s = photoCrop.minScale * photoCrop.zoom;
-  ctx.clearRect(0, 0, size, size);
+  ctx.clearRect(0, 0, size, height);
   ctx.drawImage(photoCrop.img, photoCrop.x, photoCrop.y, photoCrop.img.width * s, photoCrop.img.height * s);
   // Dim everything outside the shape the result will actually be shown in.
-  const square = photoCrop.shape === 'square';
-  const inset = 2, r = size / 2 - inset, rad = size * 0.12;
+  const square = photoCrop.shape === 'square' || photoCrop.shape === 'wide';
+  const inset = 2, r = size / 2 - inset, rad = Math.min(size, height) * 0.12;
   const guide = () => {
     ctx.beginPath();
-    if (square) ctx.roundRect(inset, inset, size - inset * 2, size - inset * 2, rad);
+    if (square) ctx.roundRect(inset, inset, size - inset * 2, height - inset * 2, rad);
     else ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2);
   };
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.beginPath();
-  ctx.rect(0, 0, size, size);
-  if (square) ctx.roundRect(inset, inset, size - inset * 2, size - inset * 2, rad);
+  ctx.rect(0, 0, size, height);
+  if (square) ctx.roundRect(inset, inset, size - inset * 2, height - inset * 2, rad);
   else ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2, true);
   ctx.fill('evenodd');
   ctx.strokeStyle = 'rgba(255,255,255,0.8)';
@@ -3828,13 +3833,13 @@ function photoCropDraw() {
 }
 
 function photoCropSetZoom(zoom) {
-  const half = photoCrop.size / 2;
+  const halfX = photoCrop.size / 2, halfY = photoCrop.h / 2;
   const oldS = photoCrop.minScale * photoCrop.zoom;
-  const cx = (half - photoCrop.x) / oldS, cy = (half - photoCrop.y) / oldS;
+  const cx = (halfX - photoCrop.x) / oldS, cy = (halfY - photoCrop.y) / oldS;
   photoCrop.zoom = Math.min(4, Math.max(1, zoom));
   const newS = photoCrop.minScale * photoCrop.zoom;
-  photoCrop.x = half - cx * newS;
-  photoCrop.y = half - cy * newS;
+  photoCrop.x = halfX - cx * newS;
+  photoCrop.y = halfY - cy * newS;
   photoCropClamp();
   document.getElementById('photoCropZoom').value = photoCrop.zoom;
   photoCropDraw();
@@ -3856,6 +3861,14 @@ function openPhotoCrop(file, opts = {}) {
   if (file.size > MAX_PHOTO_FILE_BYTES) { fail('That image is too large (max 15 MB).'); return; }
   photoCrop.outSize = opts.size || 256;
   photoCrop.shape = opts.shape || 'circle';
+  const wide = photoCrop.shape === 'wide';
+  photoCrop.size = wide ? 360 : 300;
+  photoCrop.h = wide ? 180 : 300;
+  const canvas = document.getElementById('photoCropCanvas');
+  canvas.width = photoCrop.size;
+  canvas.height = photoCrop.h;
+  canvas.style.width = `${photoCrop.size}px`;
+  canvas.style.aspectRatio = `${photoCrop.size} / ${photoCrop.h}`;
   photoCrop.onSave = opts.onSave;
   document.getElementById('photoCropTitle').textContent = opts.title || 'Crop Profile Photo';
   const url = URL.createObjectURL(file);
@@ -3863,10 +3876,10 @@ function openPhotoCrop(file, opts = {}) {
   img.onload = () => {
     URL.revokeObjectURL(url);
     photoCrop.img = img;
-    photoCrop.minScale = Math.max(photoCrop.size / img.width, photoCrop.size / img.height);
+    photoCrop.minScale = Math.max(photoCrop.size / img.width, photoCrop.h / img.height);
     photoCrop.zoom = 1;
     photoCrop.x = (photoCrop.size - img.width * photoCrop.minScale) / 2;
-    photoCrop.y = (photoCrop.size - img.height * photoCrop.minScale) / 2;
+    photoCrop.y = (photoCrop.h - img.height * photoCrop.minScale) / 2;
     document.getElementById('photoCropZoom').value = 1;
     showPhotoCropMessage('');
     document.getElementById('photoCropModal').style.display = 'flex';
@@ -3894,12 +3907,13 @@ async function applyPhotoCrop() {
   if (!photoCrop.img) return;
   const outSize = photoCrop.outSize;
   const out = document.createElement('canvas');
-  out.width = out.height = outSize;
   const ratio = outSize / photoCrop.size;
+  out.width = outSize;
+  out.height = Math.round(photoCrop.h * ratio);
   const s = photoCrop.minScale * photoCrop.zoom * ratio;
   const ctx = out.getContext('2d');
   ctx.fillStyle = '#fff'; // JPEG has no alpha — transparent PNGs would turn black otherwise
-  ctx.fillRect(0, 0, outSize, outSize);
+  ctx.fillRect(0, 0, out.width, out.height);
   ctx.drawImage(photoCrop.img, photoCrop.x * ratio, photoCrop.y * ratio, photoCrop.img.width * s, photoCrop.img.height * s);
   const btn = document.getElementById('photoCropSave');
   btn.disabled = true;
@@ -3931,7 +3945,7 @@ function wirePhotoCrop() {
   canvas.addEventListener('pointermove', (e) => {
     const d = photoCrop.dragging;
     if (!d || !photoCrop.img) return;
-    const k = photoCrop.size / canvas.getBoundingClientRect().width; // canvas may be CSS-scaled down
+    const k = photoCrop.size / canvas.getBoundingClientRect().width; // canvas may be CSS-scaled down (same factor on both axes)
     photoCrop.x = d.x + (e.clientX - d.px) * k;
     photoCrop.y = d.y + (e.clientY - d.py) * k;
     photoCropClamp();

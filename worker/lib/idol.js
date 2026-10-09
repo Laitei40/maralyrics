@@ -82,6 +82,8 @@ export function validateSeason(data = {}) {
 
   const cover = str(data.cover_url);
   if (cover && !SAFE_IMAGE_SRC.test(cover)) return { ok: false, error: 'cover image must be an http(s) or data:image URL' };
+  const photo = str(data.photo_url);
+  if (photo && !SAFE_IMAGE_SRC.test(photo)) return { ok: false, error: 'photo must be an http(s) or data:image URL' };
 
   const videos = normalizeVideos(data.videos);
   if (!videos.ok) return videos;
@@ -91,7 +93,7 @@ export function validateSeason(data = {}) {
 
   return {
     ok: true,
-    values: { title, slug, year, description: description || null, venue: venue || null, start_date: start || null, end_date: end || null, cover_url: cover || null, videos: videos.value, status },
+    values: { title, slug, year, description: description || null, venue: venue || null, start_date: start || null, end_date: end || null, cover_url: cover || null, photo_url: photo || null, videos: videos.value, status },
   };
 }
 

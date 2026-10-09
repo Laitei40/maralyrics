@@ -19,7 +19,7 @@ app.get('/', async (c) => {
   const db = c.env.DB;
   const [seasonRows, idolRows] = await Promise.all([
     db.prepare(
-      `SELECT s.id, s.title, s.slug, s.year, s.description, s.venue, s.start_date, s.end_date, s.cover_url,
+      `SELECT s.id, s.title, s.slug, s.year, s.description, s.venue, s.start_date, s.end_date, s.cover_url, s.photo_url,
               (SELECT COUNT(*) FROM idol_contestants c WHERE c.season_id = s.id) AS contestant_count
        FROM idol_seasons s WHERE s.status = 'published'
        ORDER BY s.year DESC, s.start_date DESC, s.title COLLATE NOCASE`
@@ -45,7 +45,7 @@ app.get('/', async (c) => {
 
 async function loadSeason(db, slug) {
   return db.prepare(
-    `SELECT id, title, slug, year, description, venue, start_date, end_date, cover_url, videos
+    `SELECT id, title, slug, year, description, venue, start_date, end_date, cover_url, photo_url, videos
      FROM idol_seasons WHERE slug = ? AND status = 'published'`
   ).bind(slug).first();
 }

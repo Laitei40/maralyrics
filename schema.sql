@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS idol_seasons (
     start_date  TEXT CHECK (start_date IS NULL OR start_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
     end_date    TEXT CHECK (end_date IS NULL OR end_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
     cover_url   TEXT,
+    photo_url   TEXT,   -- square season photo/logo (migration 0014)
     videos      TEXT CHECK (videos IS NULL OR json_valid(videos)),   -- JSON array of { title, url }
     status      TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,

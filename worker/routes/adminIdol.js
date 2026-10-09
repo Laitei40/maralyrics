@@ -27,7 +27,7 @@ const withVideos = (row) => (row ? { ...row, videos: parseVideos(row.videos) } :
 // ── Seasons ─────────────────────────────────────────────────────────────────────
 export const idolSeasonsApp = new Hono();
 
-const SEASON_COLS = ['title', 'slug', 'year', 'description', 'venue', 'start_date', 'end_date', 'cover_url', 'videos', 'status'];
+const SEASON_COLS = ['title', 'slug', 'year', 'description', 'venue', 'start_date', 'end_date', 'cover_url', 'photo_url', 'videos', 'status'];
 
 idolSeasonsApp.get('/', async (c) => {
   const rows = await c.env.DB

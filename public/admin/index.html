@@ -1005,8 +1005,8 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Cover image</label>
-          <div class="image-field" data-target="isFormCover" data-shape="square">
+          <label class="form-label">Cover photo <span class="form-hint" style="display:inline;">(wide banner, 2:1)</span></label>
+          <div class="image-field" data-target="isFormCover" data-shape="wide">
             <span class="image-field__preview"></span>
             <div class="image-field__body">
               <div class="image-field__actions">
@@ -1021,6 +1021,25 @@
             </div>
           </div>
           <input type="hidden" id="isFormCover" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Season photo <span class="form-hint" style="display:inline;">(square, like a profile photo)</span></label>
+          <div class="image-field" data-target="isFormPhoto" data-shape="square">
+            <span class="image-field__preview"></span>
+            <div class="image-field__body">
+              <div class="image-field__actions">
+                <label class="btn btn--sm btn--primary">
+                  Upload &amp; Crop
+                  <input type="file" class="image-field__file" accept="image/*" hidden />
+                </label>
+                <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
+                <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
+              </div>
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" />
+            </div>
+          </div>
+          <input type="hidden" id="isFormPhoto" />
         </div>
 
         <div class="form-group">
