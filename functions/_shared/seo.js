@@ -109,6 +109,41 @@ export function cleanLyrics(text = '') {
   return String(text).replace(/\\n/g, '\n');
 }
 
+
+// ─── Recognition badges (month / year / lifetime), English, mirrors Badges in public/app.js ──
+const BADGE_RANK = { lifetime: 0, year: 1, month: 2 };
+const BADGE_ICONS = { lifetime: '👑', year: '🏆', month: '🏅' };
+
+export function sortBadges(list) {
+  return [...(list || [])].sort((a, b) => BADGE_RANK[a.period] - BADGE_RANK[b.period] || String(b.period_value).localeCompare(String(a.period_value)));
+}
+
+/** Label parts: the title (custom, or the standard one) and the month/year it was earned. */
+function badgeParts(role, b) {
+  const base = b.title || (b.period === 'lifetime' ? 'Lifetime Achievement' : `${role === 'composer' ? 'Composer' : 'Artist'} of the ${b.period === 'year' ? 'Year' : 'Month'}`);
+  let when = '';
+  if (b.period === 'year') when = String(b.period_value);
+  if (b.period === 'month') {
+    const [y, m] = String(b.period_value).split('-').map(Number);
+    when = new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  }
+  return { base, when };
+}
+
+/** "Artist of the Month · Oct 2026", "Lifetime Achievement", or the custom title (+ date). */
+export function badgeText(role, b) {
+  const { base, when } = badgeParts(role, b);
+  return when ? `${base} · ${when}` : base;
+}
+
+/** Same markup as the client's Badges.list(), so the browser re-render is seamless. */
+export function badgeChips(role, badges) {
+  return sortBadges(badges).map((b) => {
+    const { base, when } = badgeParts(role, b);
+    return `<span class="badge-chip badge-chip--${escapeHtml(b.period)}" title="${escapeHtml(badgeText(role, b))}"><span class="badge-chip__icon" aria-hidden="true">${BADGE_ICONS[b.period] || '🏅'}</span><span>${escapeHtml(base)}</span>${when ? `<span class="badge-chip__when"> · ${escapeHtml(when)}</span>` : ''}</span>`;
+  }).join('');
+}
+
 /** D1 DATETIME ('YYYY-MM-DD HH:MM:SS', UTC) → ISO 8601 for schema.org; undefined if unusable. */
 export function toIso(value) {
   if (!value) return undefined;

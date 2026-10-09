@@ -133,6 +133,7 @@ const CAN_PUBLISH_UNPUBLISH  = ['reviewer', 'editor', 'manager', 'super_admin'];
 const CAN_ARCHIVE_RESTORE    = ['reviewer', 'manager', 'super_admin'];
 const CAN_DELETE_SONG        = ['manager', 'super_admin'];
 const CAN_MANAGE_REFERENCE_DATA = ['manager', 'super_admin'];
+const CAN_MANAGE_BADGES = ['super_admin']; // awarding/removing artist & composer badges
 const CAN_MANAGE_ADMIN_USERS = ['manager', 'super_admin'];
 // Kept in sync with worker/lib/permissions.js (this file can't import it — plain <script>, not a module).
 const CAN_CREATE_ARTICLE  = ['editor', 'manager', 'super_admin'];
@@ -1305,13 +1306,15 @@ function renderPersonTable(type, items, tbody, isFiltered = false) {
     return;
   }
   const canManage = hasRole(...CAN_MANAGE_REFERENCE_DATA);
+  const canBadge = hasRole(...CAN_MANAGE_BADGES);
   tbody.innerHTML = items.map(item => `
     <tr data-id="${item.id}">
-      <td><div class="admin-table__person">${entityAvatarHtml(item.image_url)}<div class="admin-table__title">${escapeHtml(item.name)}</div></div></td>
+      <td><div class="admin-table__person">${entityAvatarHtml(item.image_url)}<div class="admin-table__person-text"><div class="admin-table__title">${escapeHtml(item.name)}</div>${badgeChipsHtml(type, item.badges)}</div></div></td>
       <td><div class="admin-table__slug">/${type}/${escapeHtml(item.slug)}</div></td>
       <td>${escapeHtml((item.bio || '').substring(0, 60))}${item.bio && item.bio.length > 60 ? '...' : ''}</td>
       <td>
         <div class="admin-table__actions">
+          ${canBadge ? `<button class="btn btn--sm btn--ghost" onclick="openBadgeModal('${type}', ${item.id})" title="Badges" aria-label="Manage badges for ${escapeHtml(item.name)}">🏅</button>` : ''}
           ${canManage ? `<button class="btn btn--sm btn--ghost" onclick="editPerson('${type}', ${item.id})" title="Edit">✏️</button>` : ''}
           ${canManage ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="confirmDelete(${item.id}, '${type}')" title="Delete">🗑️</button>` : ''}
           <a href="${SITE_ORIGIN}/${type}/${escapeHtml(item.slug)}" target="_blank" class="btn btn--sm btn--ghost" title="View">👁️</a>
@@ -1319,6 +1322,152 @@ function renderPersonTable(type, items, tbody, isFiltered = false) {
       </td>
     </tr>
   `).join('');
+}
+
+// ═══ ARTIST / COMPOSER BADGES (Super Admin) ═══════
+// A badge recognises one artist or composer for a month ('YYYY-MM'), a year ('YYYY') or a
+// lifetime. Anyone in the dashboard sees them; only a Super Admin can award or remove them
+// (enforced by the API — hiding the button here is just a convenience).
+const BADGE_ICONS = { lifetime: '👑', year: '🏆', month: '🏅' };
+
+function badgeWhen(b) {
+  if (b.period === 'lifetime') return '';
+  if (b.period === 'year') return b.period_value;
+  const [y, m] = String(b.period_value).split('-').map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleDateString('en', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+/** Standard label unless a custom title was given, e.g. "Artist of the Month · Oct 2026". */
+function badgeText(type, b) {
+  const role = type === 'artist' ? 'Artist' : 'Composer';
+  const base = b.title || (b.period === 'lifetime' ? 'Lifetime Achievement' : `${role} of the ${b.period === 'year' ? 'Year' : 'Month'}`);
+  const when = badgeWhen(b);
+  return when ? `${base} · ${when}` : base;
+}
+
+function badgeChipsHtml(type, badges) {
+  if (!Array.isArray(badges) || !badges.length) return '';
+  return `<div class="admin-badges">${badges.map((b) =>
+    `<span class="badge-chip badge-chip--${b.period}" title="${escapeHtml(badgeText(type, b))}">${BADGE_ICONS[b.period] || '🏅'} ${escapeHtml(badgeText(type, b))}</span>`).join('')}</div>`;
+}
+
+let badgeTarget = null; // { type: 'artist' | 'composer', id }
+
+const badgeList = () => (badgeTarget.type === 'artist' ? allArtists : allComposers);
+const badgePerson = () => badgeList().find((p) => p.id === badgeTarget.id);
+
+function showBadgeMessage(text, isError = false) {
+  const el = document.getElementById('badgeFormMessage');
+  el.textContent = text;
+  el.className = 'form-message ' + (isError ? 'form-message--error' : 'form-message--success');
+  el.style.display = text ? 'block' : 'none';
+}
+
+function syncBadgeFormFields() {
+  const period = document.getElementById('badgePeriod').value;
+  document.getElementById('badgeMonthGroup').style.display = period === 'month' ? '' : 'none';
+  document.getElementById('badgeYearGroup').style.display = period === 'year' ? '' : 'none';
+}
+
+function renderBadgeModal() {
+  const person = badgePerson();
+  if (!person) return;
+  document.getElementById('badgeModalTitle').textContent = `Badges — ${person.name}`;
+  const list = document.getElementById('badgeList');
+  const badges = person.badges || [];
+  list.innerHTML = badges.length
+    ? badges.map((b) => `
+        <div class="badge-admin-row">
+          <span class="badge-chip badge-chip--${b.period}">${BADGE_ICONS[b.period] || '🏅'} ${escapeHtml(badgeText(badgeTarget.type, b))}</span>
+          <button type="button" class="btn btn--sm btn--ghost btn--danger-text" data-remove-badge="${b.id}" title="Remove this badge" aria-label="Remove ${escapeHtml(badgeText(badgeTarget.type, b))}">✕</button>
+        </div>`).join('')
+    : '<p class="admin-table__empty" style="padding:var(--space-sm) 0;">No badges yet.</p>';
+}
+
+function openBadgeModal(type, id) {
+  if (!hasRole(...CAN_MANAGE_BADGES)) return;
+  badgeTarget = { type, id };
+  document.getElementById('badgeForm').reset();
+  document.getElementById('badgePeriod').value = 'month';
+  // Default the pickers to "now" — the common case is recognising the current month/year.
+  const now = new Date();
+  document.getElementById('badgeMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  document.getElementById('badgeYear').value = String(now.getFullYear());
+  syncBadgeFormFields();
+  showBadgeMessage('');
+  renderBadgeModal();
+  document.getElementById('badgeModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('badgePeriod').focus();
+}
+
+function closeBadgeModal() {
+  document.getElementById('badgeModal').style.display = 'none';
+  document.body.style.overflow = '';
+  badgeTarget = null;
+}
+
+/** Re-read one person (with badge ids) from the API and refresh the table + modal in place. */
+async function refreshBadgePerson() {
+  const { type, id } = badgeTarget;
+  const fresh = await apiGet(`${ADMIN_API}/${type}s/${id}`);
+  const list = badgeList();
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx >= 0) list[idx] = fresh;
+  if (type === 'artist') renderArtistsTable(); else renderComposersTable();
+  renderBadgeModal();
+}
+
+async function submitBadge(e) {
+  e.preventDefault();
+  if (!badgeTarget || !hasRole(...CAN_MANAGE_BADGES)) return;
+  const period = document.getElementById('badgePeriod').value;
+  const body = { period };
+  if (period === 'month') {
+    body.period_value = document.getElementById('badgeMonth').value;
+    if (!/^\d{4}-\d{2}$/.test(body.period_value)) { showBadgeMessage('Pick a month.', true); return; }
+  } else if (period === 'year') {
+    body.period_value = String(document.getElementById('badgeYear').value || '').trim();
+    if (!/^\d{4}$/.test(body.period_value)) { showBadgeMessage('Enter a 4-digit year.', true); return; }
+  }
+  const title = document.getElementById('badgeTitle').value.trim();
+  if (title) body.title = title;
+
+  const person = badgePerson();
+  try {
+    await apiPost(`${ADMIN_API}/${badgeTarget.type}s/${badgeTarget.id}/badges`, body,
+      { success: `Badge awarded${person ? ` to ${person.name}` : ''}.` });
+    document.getElementById('badgeTitle').value = '';
+    showBadgeMessage('');
+    await refreshBadgePerson();
+  } catch (err) {
+    showBadgeMessage(err.status === 403 ? 'Only a Super Admin can award badges.' : err.message, true);
+  }
+}
+
+async function removeBadge(badgeId) {
+  if (!badgeTarget || !hasRole(...CAN_MANAGE_BADGES)) return;
+  try {
+    await apiDelete(`${ADMIN_API}/${badgeTarget.type}s/${badgeTarget.id}/badges/${badgeId}`, { success: 'Badge removed.' });
+    await refreshBadgePerson();
+  } catch (err) {
+    showBadgeMessage(err.status === 403 ? 'Only a Super Admin can remove badges.' : err.message, true);
+  }
+}
+
+function initBadgeModal() {
+  document.getElementById('badgeModalClose').addEventListener('click', closeBadgeModal);
+  document.getElementById('badgeBtnClose').addEventListener('click', closeBadgeModal);
+  document.getElementById('badgeBackdrop').addEventListener('click', closeBadgeModal);
+  document.getElementById('badgePeriod').addEventListener('change', syncBadgeFormFields);
+  document.getElementById('badgeForm').addEventListener('submit', submitBadge);
+  document.getElementById('badgeList').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-badge]');
+    if (btn) removeBadge(Number(btn.dataset.removeBadge));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('badgeModal').style.display === 'flex') closeBadgeModal();
+  });
 }
 
 // ─── Social Link Helpers ────────────────────────
@@ -2063,6 +2212,7 @@ function initDashboard() {
   document.getElementById('btnNewArtist').addEventListener('click', () => openNewPerson('artist'));
   document.getElementById('btnNewComposer').addEventListener('click', () => openNewPerson('composer'));
   document.getElementById('personForm').addEventListener('submit', savePerson);
+  initBadgeModal();
   document.getElementById('personModalClose').addEventListener('click', closePersonModal);
   document.getElementById('personBackdrop').addEventListener('click', closePersonModal);
   document.getElementById('personBtnCancel').addEventListener('click', closePersonModal);

@@ -1051,6 +1051,54 @@
     </div>
   </div>
 
+  <!-- ─── Artist / Composer Badges Modal (Super Admin only) ─────── -->
+  <div id="badgeModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="badgeBackdrop"></div>
+    <div class="modal__content modal__content--sm" role="dialog" aria-modal="true" aria-labelledby="badgeModalTitle">
+      <div class="modal__header">
+        <h2 class="modal__title" id="badgeModalTitle">Badges</h2>
+        <button class="modal__close" id="badgeModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__form">
+        <p class="form-hint" id="badgeModalIntro">Recognise this person for a month, a year, or a lifetime. Badges appear on their public profile.</p>
+
+        <div class="form-group">
+          <label class="form-label">Current badges</label>
+          <div id="badgeList" class="badge-admin-list" aria-live="polite"></div>
+        </div>
+
+        <form id="badgeForm" class="badge-admin-form" novalidate>
+          <label class="form-label">Award a new badge</label>
+          <div class="form-group">
+            <label class="form-label form-label--sm" for="badgePeriod">Badge type</label>
+            <select id="badgePeriod" class="form-input">
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+              <option value="lifetime">Lifetime</option>
+            </select>
+          </div>
+          <div class="form-group" id="badgeMonthGroup">
+            <label class="form-label form-label--sm" for="badgeMonth">Month</label>
+            <input type="month" id="badgeMonth" class="form-input" min="1900-01" max="2100-12" />
+          </div>
+          <div class="form-group" id="badgeYearGroup" style="display:none;">
+            <label class="form-label form-label--sm" for="badgeYear">Year</label>
+            <input type="number" id="badgeYear" class="form-input" min="1900" max="2100" step="1" placeholder="e.g. 2026" />
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label--sm" for="badgeTitle">Custom title <span class="form-hint" style="display:inline;">(optional)</span></label>
+            <input type="text" id="badgeTitle" class="form-input" maxlength="60" placeholder="Leave blank for the standard title" autocomplete="off" />
+          </div>
+          <div id="badgeFormMessage" class="form-message" style="display:none;"></div>
+          <div class="modal__actions">
+            <button type="button" id="badgeBtnClose" class="btn btn--ghost">Close</button>
+            <button type="submit" id="badgeBtnSubmit" class="btn btn--primary">🏅 Award badge</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── Copyright Owner Modal ──────────────── -->
   <div id="copyrightOwnerModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="coBackdrop"></div>

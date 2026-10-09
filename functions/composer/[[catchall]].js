@@ -1,6 +1,6 @@
 import {
   injectSeoMeta, seoResponse, notFoundResponse, escapeHtml, setInner, revealDetail, unhide,
-  songLinkList, breadcrumbSchema, schemaGraph, slugFromPath, isSafeUrl, SITE_ORIGIN,
+  songLinkList, breadcrumbSchema, schemaGraph, slugFromPath, isSafeUrl, badgeChips, badgeText, sortBadges, SITE_ORIGIN,
 } from '../_shared/seo.js';
 
 function parseSocialLinks(raw) {
@@ -16,7 +16,7 @@ function parseSocialLinks(raw) {
 }
 
 // Title/description are kept byte-identical to ProfilePage.updateMeta in public/app.js.
-function buildComposerSeo(composer, songs) {
+function buildComposerSeo(composer, songs, badges = []) {
   const songCount = songs.length;
   const title = `${composer.name} — Mara Composer | MaraLyrics`;
   const countText = songCount === 1 ? '1 song' : `${songCount} songs`;
@@ -32,6 +32,8 @@ function buildComposerSeo(composer, songs) {
     url,
     ...(composer.image_url && /^https:\/\//i.test(composer.image_url) ? { image: composer.image_url } : {}),
     ...(sameAs ? { sameAs } : {}),
+    // Site-given recognition (Super Admin awards), only what was actually awarded.
+    ...(badges.length ? { award: badges.map((b) => badgeText('composer', b)) } : {}),
   };
   const crumbs = breadcrumbSchema([
     { name: 'Home', url: `${SITE_ORIGIN}/` },
@@ -46,7 +48,8 @@ async function fetchComposer(db, slug) {
   const composer = await db.prepare('SELECT * FROM composers WHERE slug = ?').bind(slug).first();
   if (!composer) return null;
   const songs = await fetchSongsFor(db, 'song_composers', 'composer_id', composer.id);
-  return { composer, songs };
+  const badges = (await db.prepare('SELECT period, period_value, title FROM person_badges WHERE composer_id = ?').bind(composer.id).all()).results || [];
+  return { composer, songs, badges: sortBadges(badges) };
 }
 
 async function fetchSongsFor(db, junction, fk, id) {
@@ -62,13 +65,17 @@ async function fetchSongsFor(db, junction, fk, id) {
 }
 
 // Real content for crawlers that don't execute JS; app.js re-renders the same containers.
-function renderComposerPage(html, composer, songs) {
+function renderComposerPage(html, composer, songs, badges = []) {
   let out = html;
   out = revealDetail(out, { skeletonId: 'profileSkeleton', detailId: 'profileDetail' });
   out = setInner(out, 'profileName', escapeHtml(composer.name));
   out = setInner(out, 'breadcrumbName', escapeHtml(composer.name));
   out = setInner(out, 'avatarFallback', escapeHtml((composer.name || '?').charAt(0)));
   if (composer.bio) out = setInner(out, 'profileBio', escapeHtml(composer.bio));
+  if (badges.length) {
+    out = out.replace('id="profileBadges" hidden>', 'id="profileBadges">');
+    out = setInner(out, 'profileBadges', badgeChips('composer', badges));
+  }
   out = setInner(out, 'songCount', `(${songs.length})`);
   out = setInner(out, 'profileSongGrid', songLinkList(songs));
   return out;
@@ -90,6 +97,6 @@ export async function onRequest(context) {
   if (!result) return notFoundResponse(assetResponse);
 
   const html = await assetResponse.text();
-  const seo = buildComposerSeo(result.composer, result.songs);
-  return seoResponse(injectSeoMeta(renderComposerPage(html, result.composer, result.songs), seo));
+  const seo = buildComposerSeo(result.composer, result.songs, result.badges);
+  return seoResponse(injectSeoMeta(renderComposerPage(html, result.composer, result.songs, result.badges), seo));
 }
