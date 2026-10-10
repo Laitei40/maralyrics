@@ -272,6 +272,7 @@
   function renderLinks() {
     $('editorLinks').innerHTML = links.map((url, i) => `
       <div class="account-link-row">
+        <span class="account-link-icon" title="${esc(SocialIcons.detect(url, { websiteLabel: t('common.website') }).name)}">${SocialIcons.detect(url).icon}</span>
         <input type="url" class="form-input" value="${esc(url)}" data-i="${i}" placeholder="${esc(t('account.social_ph'))}" maxlength="500" />
         <button type="button" class="btn btn--ghost btn--sm" data-remove="${i}" aria-label="${esc(t('account.social_remove'))}">✕</button>
       </div>`).join('');
@@ -303,7 +304,15 @@
 
   $('editorBio').addEventListener('input', countBio);
   $('editorAddLink').addEventListener('click', () => { links.push(''); renderLinks(); $('editorLinks').lastElementChild?.querySelector('input').focus(); });
-  $('editorLinks').addEventListener('input', (e) => { if (e.target.dataset.i !== undefined) links[Number(e.target.dataset.i)] = e.target.value; });
+  $('editorLinks').addEventListener('input', (e) => {
+    if (e.target.dataset.i === undefined) return;
+    links[Number(e.target.dataset.i)] = e.target.value;
+    // Update just this row's icon (re-rendering the list would steal focus from the input).
+    const found = SocialIcons.detect(e.target.value, { websiteLabel: t('common.website') });
+    const icon = e.target.previousElementSibling;
+    icon.innerHTML = found.icon;
+    icon.title = found.name;
+  });
   $('editorLinks').addEventListener('click', (e) => {
     const b = e.target.closest('[data-remove]');
     if (b) { links.splice(Number(b.dataset.remove), 1); renderLinks(); }

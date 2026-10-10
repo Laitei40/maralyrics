@@ -5653,3 +5653,4 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 [data-theme="light"] .account-form .form-input { background: rgba(0, 0, 0, 0.03); border-color: rgba(0, 0, 0, 0.12); }
 [data-theme="light"] .account-form .form-input:focus { background: #fff; border-color: var(--accent); }
 [data-theme="light"] .account-form select.form-input option { background: #fff; }
+.account-link-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
