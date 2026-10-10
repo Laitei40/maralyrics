@@ -1539,3 +1539,10 @@ button.is-busy::after {
 
 /* ─── Profile claims ────────────────────────────── */
 .claim-evidence { max-width: 420px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); }
+
+/* ─── Green mark ────────────────────────────────── */
+.green-settings { margin-bottom: var(--space-lg); }
+.green-order { display: grid; grid-template-columns: max-content 1fr; gap: 4px var(--space-md); margin: 0 0 var(--space-md); }
+.green-order dt { color: var(--text-muted); font-size: var(--text-sm); }
+.green-order dd { margin: 0; overflow-wrap: anywhere; }
+.green-order__receipt { display: block; max-width: 100%; max-height: 360px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); }

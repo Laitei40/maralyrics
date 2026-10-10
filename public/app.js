@@ -1865,7 +1865,10 @@ const ProfilePage = {
 
     // Name
     const nameEl = document.getElementById('profileName');
-    if (nameEl) nameEl.textContent = data.name;
+    if (nameEl) {
+      nameEl.textContent = data.name;
+      if (data.green) nameEl.insertAdjacentHTML('beforeend', GreenMark.html());
+    }
 
     // Update "Songs by {name}" section title
     const songsTitleEl = document.getElementById('songsSectionTitle');
@@ -2493,6 +2496,14 @@ const Badges = {
 
 // ─── People (Artists & Composers) ──────────────────────────────
 // Shared by the home-page spotlight and the /artists-composers directory.
+// ─── Green mark (a paid, hand-approved tick next to a name — like a verified mark) ──
+const GreenMark = {
+  html() {
+    const label = Utils.escapeHtml(I18n.t('green.mark'));
+    return `<span class="green-mark" role="img" aria-label="${label}" title="${label}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="currentColor"/><path d="M7 12.6l3.3 3.3L17.2 9" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+  },
+};
+
 const People = {
   /** Fetch artists + composers and merge into one list. Someone credited as both
    *  (same name) becomes one entry linking to their artist page. */
@@ -2511,6 +2522,7 @@ const People = {
         if (existing) {
           existing.roles.push(role);
           existing.image_url = existing.image_url || p.image_url;
+          existing.green = existing.green || !!p.green;
           existing.badges = Badges.sort([...existing.badges, ...tagBadges(p.badges, role)]);
           // A song can credit the same person as artist and composer, so the two
           // counts overlap; the larger one is the best lower bound we have.
@@ -2519,7 +2531,7 @@ const People = {
         }
         map.set(key, {
           name: p.name.trim(), slug: p.slug, roles: [role], role_slug: role,
-          image_url: p.image_url || '', bio: p.bio || '', badges: tagBadges(p.badges, role),
+          image_url: p.image_url || '', bio: p.bio || '', badges: tagBadges(p.badges, role), green: !!p.green,
           song_count: p.song_count ?? null, created_at: p.created_at || '',
         });
       };
@@ -2584,7 +2596,7 @@ const People = {
       <a href="${Utils.escapeHtml(p.href)}" class="person-card">
         ${this.avatar(p)}
         <span class="person-card__body">
-          <span class="person-card__name">${Utils.escapeHtml(p.name)}</span>
+          <span class="person-card__name">${Utils.escapeHtml(p.name)}${p.green ? GreenMark.html() : ''}</span>
           <span class="person-card__role">${Utils.escapeHtml(this.roleLabel(p))}</span>
           <span class="person-card__songs">${Utils.escapeHtml(this.songsLabel(p.song_count))}</span>
           ${p.badges && p.badges.length ? `<span class="person-card__badges" aria-label="${Utils.escapeHtml(I18n.t('badges.aria'))}">${Badges.list(p.role_slug, p.badges, { compact: true })}</span>` : ''}

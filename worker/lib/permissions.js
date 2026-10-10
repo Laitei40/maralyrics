@@ -34,6 +34,10 @@ export const CAN_DELETE_IDOL = ['manager', 'super_admin'];
 // hands that person edit rights over a public profile, so it is Manager + Super Admin, like the profiles themselves.
 export const CAN_REVIEW_CLAIMS = ['manager', 'super_admin'];
 
+// Green mark (paid, hand-reviewed): prices, payment instructions, approving/rejecting orders and granting or
+// removing marks. Money is involved, so Super Admin only.
+export const CAN_MANAGE_GREEN = ['super_admin'];
+
 // Articles (Developer Dashboard). Publishing IS the "send notification" action — a
 // published article appears on the public site and is picked up by the client-side
 // notification poller, so there's no separate send permission to gate.

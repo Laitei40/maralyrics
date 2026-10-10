@@ -104,6 +104,7 @@
       <button class="admin__tab" data-tab="mara-idol">Mara Idol</button>
       <button class="admin__tab" data-tab="supporters">Sponsors &amp; Partners</button>
       <button class="admin__tab" data-tab="claims">Claims</button>
+      <button class="admin__tab" data-tab="green">Green Mark</button>
       <button class="admin__tab" data-tab="reports">Reports</button>
       <button class="admin__tab" data-tab="revisions">Revisions</button>
       <button class="admin__tab" data-tab="auditlog">Audit Log</button>
@@ -358,6 +359,73 @@
           <tbody id="claimsTableBody">
             <tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>
           </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Green Mark Tab (Super Admin: prices, orders, marks) ═══ -->
+    <div class="admin__panel" id="panelGreen" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Green Mark</h1>
+      </div>
+      <p class="form-hint" style="margin:0 0 var(--space-md);">A paid green tick for artists and composers who own their profile. Artists pay outside the site and send a reference; you check the payment here, then approve to switch the mark on (time is added to whatever they already have). Nothing is automatic.</p>
+
+      <h2 class="admin__subtitle">Plans &amp; payment instructions</h2>
+      <form id="greenSettingsForm" class="green-settings">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="greenCurrency">Currency</label>
+            <input type="text" id="greenCurrency" class="form-input" maxlength="3" placeholder="USD" style="text-transform:uppercase;" />
+            <span class="form-hint">3-letter code. Prices below are in this currency.</span>
+          </div>
+        </div>
+        <div class="admin__table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Plan</th><th>Price</th><th>Offered</th></tr></thead>
+            <tbody id="greenPlansBody"></tbody>
+          </table>
+        </div>
+        <div class="form-group" style="margin-top:var(--space-md);">
+          <label class="form-label" for="greenInstructions">How to pay (shown to artists)</label>
+          <textarea id="greenInstructions" class="form-input" rows="6" maxlength="2000" placeholder="e.g. Bank transfer to ... / UPI id ... / PayPal ... Tell them to put their MaraLyrics username in the payment note."></textarea>
+          <span class="form-hint">Plain text, links become clickable. A plan is only shown to artists when it has a price and is switched on.</span>
+        </div>
+        <div id="greenSettingsMessage" class="form-message" style="display:none;"></div>
+        <button type="submit" class="btn btn--primary" id="greenSettingsSave">Save plans &amp; instructions</button>
+      </form>
+
+      <h2 class="admin__subtitle">Orders</h2>
+      <div class="admin__toolbar">
+        <select id="greenOrderFilter" class="form-input form-input--sm" style="width:auto;" aria-label="Filter orders by status">
+          <option value="pending">Waiting for review</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Not approved</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="admin__table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Profile</th><th>Buyer</th><th>Plan</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="greenOrdersBody"><tr><td colspan="6" class="admin-table__empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <h2 class="admin__subtitle">Green marks</h2>
+      <form id="greenGrantForm" class="admin__toolbar" style="gap:var(--space-sm);flex-wrap:wrap;">
+        <select id="greenGrantType" class="form-input form-input--sm" style="width:auto;" aria-label="Type"><option value="artist">Artist</option><option value="composer">Composer</option></select>
+        <select id="greenGrantProfile" class="form-input form-input--sm" style="width:auto;min-width:200px;" aria-label="Profile"></select>
+        <select id="greenGrantMonths" class="form-input form-input--sm" style="width:auto;" aria-label="Months">
+          <option value="1">1 month</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">1 year</option><option value="36">3 years</option>
+        </select>
+        <button type="submit" class="btn btn--sm btn--primary">Grant / extend by hand</button>
+      </form>
+      <p class="form-hint" style="margin:0 0 var(--space-sm);">For free marks, corrections or goodwill. It adds time to the current mark, the same as an approved order.</p>
+      <div class="admin__table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Profile</th><th>Status</th><th>Expires</th><th>Actions</th></tr></thead>
+          <tbody id="greenMarksBody"><tr><td colspan="4" class="admin-table__empty">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1215,6 +1283,35 @@
           <button type="submit" id="claimReviewSubmit" class="btn btn--primary">Confirm</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ─── Green mark order review modal ───────── -->
+  <div id="greenOrderModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="greenOrderBackdrop"></div>
+    <div class="modal__content" role="dialog" aria-modal="true" aria-labelledby="greenOrderModalTitle">
+      <div class="modal__header">
+        <h2 class="modal__title" id="greenOrderModalTitle">Review order</h2>
+        <button class="modal__close" id="greenOrderClose" type="button">&times;</button>
+      </div>
+      <div class="modal__form">
+        <input type="hidden" id="greenOrderId" value="" />
+        <dl class="green-order" id="greenOrderDetails"></dl>
+        <div id="greenOrderReceiptBox" class="form-group" style="display:none;">
+          <span class="form-label">Receipt</span>
+          <img id="greenOrderReceipt" class="green-order__receipt" alt="Receipt uploaded by the buyer" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="greenOrderNote">Note for the buyer <span class="form-hint" style="display:inline;">(required to reject)</span></label>
+          <textarea id="greenOrderNote" class="form-input" rows="3" maxlength="500" placeholder="Shown to them on their My Profile page"></textarea>
+        </div>
+        <div id="greenOrderMessage" class="form-message" style="display:none;"></div>
+        <div class="modal__actions">
+          <button type="button" id="greenOrderCancel" class="btn btn--ghost">Close</button>
+          <button type="button" id="greenOrderReject" class="btn btn--ghost btn--danger-text">Reject</button>
+          <button type="button" id="greenOrderApprove" class="btn btn--primary">Approve &amp; switch on</button>
+        </div>
+      </div>
     </div>
   </div>
 
