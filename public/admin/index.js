@@ -2048,13 +2048,101 @@ function renderIdolsTable() {
   `).join('');
 }
 
-// One video per line: "https://…" or "Title | https://…" (the server stores [{ title?, url }]).
-const videosToText = (videos) => (Array.isArray(videos) ? videos : [])
-  .map(v => (v.title ? `${v.title} | ${v.url}` : v.url)).join('\n');
-function textToVideos(text) {
-  return text.split('\n').map(l => l.trim()).filter(Boolean).map((line) => {
-    const m = /^(.*?)\s*\|\s*(\S+)$/.exec(line);
-    return m && m[1] ? { title: m[1], url: m[2] } : { url: line };
+// ── Video list editor ────────────────────────────
+// One row per video: link, optional title, and a thumbnail that is either uploaded here (16:9 crop, stored on the
+// video) or — when nothing is uploaded — loaded from the video platform (YouTube) by the public page.
+// The server stores [{ title?, url, thumb? }].
+const MAX_VIDEO_ROWS = 10; // mirrors worker/lib/idol.js
+const VIDEO_THUMB_WIDTH = 480; // output px of an uploaded thumbnail (480 × 270)
+
+function adminYoutubeId(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^(www|m)\./, '');
+    let id = '';
+    if (host === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
+    else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+      id = u.searchParams.get('v') || (u.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/) || [])[1] || '';
+    }
+    return /^[\w-]{11}$/.test(id) ? id : '';
+  } catch { return ''; }
+}
+
+function refreshVideoRow(row) {
+  const thumb = row.videoThumb || '';
+  const id = adminYoutubeId(row.querySelector('.video-row__url').value.trim());
+  const src = thumb || (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '');
+  row.querySelector('.video-row__preview').innerHTML = src
+    ? `<img src="${escapeHtml(src)}" alt="" referrerpolicy="no-referrer" />`
+    : '<span aria-hidden="true">▶</span>';
+  row.querySelector('.video-row__source').textContent = thumb
+    ? 'Uploaded thumbnail'
+    : id ? 'Automatic: YouTube thumbnail' : 'No thumbnail — upload one (other platforms have no automatic thumbnail)';
+  row.querySelector('.video-row__clear').style.display = thumb ? '' : 'none';
+}
+
+function addVideoRow(editorId, video = {}) {
+  const box = document.getElementById(editorId);
+  if (box.children.length >= MAX_VIDEO_ROWS) { AdminUI.alertToast(`At most ${MAX_VIDEO_ROWS} videos.`); return null; }
+  const row = document.createElement('div');
+  row.className = 'video-row';
+  row.innerHTML = `
+    <span class="video-row__preview"></span>
+    <div class="video-row__fields">
+      <input type="url" class="form-input form-input--sm video-row__url" placeholder="https://www.youtube.com/watch?v=…" maxlength="500" value="${escapeHtml(video.url || '')}" />
+      <input type="text" class="form-input form-input--sm video-row__title" placeholder="Title (optional)" maxlength="100" value="${escapeHtml(video.title || '')}" />
+      <div class="video-row__actions">
+        <label class="btn btn--sm btn--primary">Upload thumbnail<input type="file" class="video-row__file" accept="image/*" hidden /></label>
+        <button type="button" class="btn btn--sm btn--ghost btn--danger-text video-row__clear">Remove uploaded</button>
+        <span class="form-hint video-row__source"></span>
+      </div>
+    </div>
+    <button type="button" class="btn btn--sm btn--ghost btn--danger-text video-row__remove" title="Remove video" aria-label="Remove video">✕</button>`;
+  row.videoThumb = video.thumb || '';
+  box.appendChild(row);
+  refreshVideoRow(row);
+  return row;
+}
+
+function setVideoEditor(editorId, videos) {
+  document.getElementById(editorId).innerHTML = '';
+  (Array.isArray(videos) ? videos : []).forEach((v) => addVideoRow(editorId, v));
+}
+
+/** Rows with a link → [{ title?, url, thumb? }] (the thumbnail is omitted when none was uploaded). */
+function getVideoEditor(editorId) {
+  return [...document.getElementById(editorId).children].map((row) => {
+    const url = row.querySelector('.video-row__url').value.trim();
+    const title = row.querySelector('.video-row__title').value.trim();
+    return { url, ...(title ? { title } : {}), ...(row.videoThumb ? { thumb: row.videoThumb } : {}) };
+  }).filter((v) => v.url);
+}
+
+function initVideoEditors() {
+  document.querySelectorAll('.video-editor').forEach((box) => {
+    box.addEventListener('input', (e) => { if (e.target.classList.contains('video-row__url')) refreshVideoRow(e.target.closest('.video-row')); });
+    box.addEventListener('click', (e) => {
+      const row = e.target.closest('.video-row');
+      if (!row) return;
+      if (e.target.closest('.video-row__remove')) row.remove();
+      else if (e.target.closest('.video-row__clear')) { row.videoThumb = ''; refreshVideoRow(row); }
+    });
+    box.addEventListener('change', (e) => {
+      if (!e.target.classList.contains('video-row__file')) return;
+      const row = e.target.closest('.video-row');
+      const file = e.target.files[0];
+      e.target.value = '';
+      openPhotoCrop(file, {
+        size: VIDEO_THUMB_WIDTH,
+        shape: 'video',
+        title: 'Crop Video Thumbnail',
+        onError: (msg) => AdminUI.alertToast(msg),
+        onSave: (dataUrl) => { row.videoThumb = dataUrl; refreshVideoRow(row); },
+      });
+    });
+  });
+  document.querySelectorAll('[data-video-add]').forEach((btn) => {
+    btn.addEventListener('click', () => addVideoRow(btn.dataset.videoAdd)?.querySelector('.video-row__url').focus());
   });
 }
 
@@ -2076,6 +2164,7 @@ function clearIdolSeasonForm() {
   document.getElementById('isFormMessage').style.display = 'none';
   setImageField('isFormCover', '');
   setImageField('isFormPhoto', '');
+  setVideoEditor('isVideos', []);
 }
 function showIdolSeasonMessage(text, isError = false) {
   const el = document.getElementById('isFormMessage');
@@ -2109,7 +2198,7 @@ function editIdolSeason(id) {
   document.getElementById('isFormStart').value = item.start_date || '';
   document.getElementById('isFormEnd').value = item.end_date || '';
   document.getElementById('isFormDescription').value = item.description || '';
-  document.getElementById('isFormVideos').value = videosToText(item.videos);
+  setVideoEditor('isVideos', item.videos);
   setImageField('isFormCover', item.cover_url || '');
   setImageField('isFormPhoto', item.photo_url || '');
   openIdolSeasonModal();
@@ -2133,7 +2222,7 @@ async function saveIdolSeason(e) {
     description: document.getElementById('isFormDescription').value.trim(),
     cover_url: document.getElementById('isFormCover').value.trim(),
     photo_url: document.getElementById('isFormPhoto').value.trim(),
-    videos: textToVideos(document.getElementById('isFormVideos').value),
+    videos: getVideoEditor('isVideos'),
   };
 
   const btn = document.getElementById('isBtnSubmit');
@@ -2167,6 +2256,7 @@ function clearIdolForm() {
   document.getElementById('idFormId').value = '';
   document.getElementById('idFormMessage').style.display = 'none';
   setImageField('idFormPhoto', '');
+  setVideoEditor('idVideos', []);
 }
 function showIdolMessage(text, isError = false) {
   const el = document.getElementById('idFormMessage');
@@ -2213,7 +2303,7 @@ function editIdol(id) {
   document.getElementById('idFormOrder').value = item.sort_order;
   document.getElementById('idFormSlug').value = item.slug || '';
   document.getElementById('idFormBio').value = item.bio || '';
-  document.getElementById('idFormVideos').value = videosToText(item.videos);
+  setVideoEditor('idVideos', item.videos);
   setImageField('idFormPhoto', item.photo_url || '');
   const artistSelect = document.getElementById('idFormArtist');
   // An artist added after the dropdowns loaded would otherwise be silently unlinked on save.
@@ -2242,7 +2332,7 @@ async function saveIdol(e) {
     artist_id: document.getElementById('idFormArtist').value || null,
     bio: document.getElementById('idFormBio').value.trim(),
     photo_url: document.getElementById('idFormPhoto').value.trim(),
-    videos: textToVideos(document.getElementById('idFormVideos').value),
+    videos: getVideoEditor('idVideos'),
   };
 
   const btn = document.getElementById('idBtnSubmit');
@@ -2540,6 +2630,7 @@ function initDashboard() {
 
   // Image upload & social links
   initImageFields();
+  initVideoEditors();
   document.getElementById('btnAddSocial').addEventListener('click', () => addSocialLinkRow());
 
   // Artist / Composer buttons
@@ -3791,7 +3882,8 @@ function renderProfileDirectory() {
 // ─── Profile photo upload + square crop ─────────
 // Drag to position, slider/wheel to zoom; the visible 300px square is exported as a 256px JPEG
 // (small enough to store in the row) and saved straight away via PUT /profile.
-// `size` is the canvas width and `h` its height (equal for circle/square crops; 'wide' is a 2:1 banner).
+// `size` is the canvas width and `h` its height (equal for circle/square crops; 'wide' is a 2:1 banner, 'video' a 16:9 thumbnail).
+const CROP_CANVAS = { wide: [360, 180], video: [384, 216] };
 const photoCrop = { img: null, minScale: 1, zoom: 1, x: 0, y: 0, size: 300, h: 300, dragging: null, outSize: 256, onSave: null, onError: null, shape: 'circle' };
 const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
 
@@ -3811,7 +3903,7 @@ function photoCropDraw() {
   ctx.clearRect(0, 0, size, height);
   ctx.drawImage(photoCrop.img, photoCrop.x, photoCrop.y, photoCrop.img.width * s, photoCrop.img.height * s);
   // Dim everything outside the shape the result will actually be shown in.
-  const square = photoCrop.shape === 'square' || photoCrop.shape === 'wide';
+  const square = photoCrop.shape !== 'circle';
   const inset = 2, r = size / 2 - inset, rad = Math.min(size, height) * 0.12;
   const guide = () => {
     ctx.beginPath();
@@ -3861,9 +3953,7 @@ function openPhotoCrop(file, opts = {}) {
   if (file.size > MAX_PHOTO_FILE_BYTES) { fail('That image is too large (max 15 MB).'); return; }
   photoCrop.outSize = opts.size || 256;
   photoCrop.shape = opts.shape || 'circle';
-  const wide = photoCrop.shape === 'wide';
-  photoCrop.size = wide ? 360 : 300;
-  photoCrop.h = wide ? 180 : 300;
+  [photoCrop.size, photoCrop.h] = CROP_CANVAS[photoCrop.shape] || [300, 300];
   const canvas = document.getElementById('photoCropCanvas');
   canvas.width = photoCrop.size;
   canvas.height = photoCrop.h;

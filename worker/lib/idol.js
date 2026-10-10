@@ -13,6 +13,8 @@ const HTTP_URL = /^https?:\/\//i;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 const MAX_VIDEOS = 10;
+// An uploaded thumbnail is stored in the row as a data: URL (480×270 JPEG ≈ 30–60 KB); cap it so 10 of them stay far below D1's 2 MB row limit.
+const MAX_THUMB_CHARS = 120000;
 
 const str = (v) => (typeof v === 'string' ? v.trim() : '');
 
@@ -23,7 +25,9 @@ function isRealDate(value) {
   return d.getUTCFullYear() === Number(m[1]) && d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]);
 }
 
-/** Accepts an array (or its JSON string) of { title?, url }. → { ok, value: JSON string | null } */
+/** Accepts an array (or its JSON string) of { title?, url, thumb? }. `thumb` is an optional manually uploaded
+ *  thumbnail (http(s) or data:image); without it the page falls back to the video platform's own thumbnail.
+ *  → { ok, value: JSON string | null } */
 export function normalizeVideos(raw) {
   if (raw === undefined || raw === null || raw === '') return { ok: true, value: null };
   let list = raw;
@@ -39,7 +43,10 @@ export function normalizeVideos(raw) {
     if (url.length > 500) return { ok: false, error: 'a video link is too long (max 500 characters)' };
     const title = str(item.title).replace(/[\u0000-\u001f\u007f]/g, ' ');
     if (title.length > 100) return { ok: false, error: 'a video title is too long (max 100 characters)' };
-    cleaned.push(title ? { title, url } : { url });
+    const thumb = str(item.thumb);
+    if (thumb && !SAFE_IMAGE_SRC.test(thumb)) return { ok: false, error: 'a video thumbnail must be an http(s) or data:image URL' };
+    if (thumb.length > MAX_THUMB_CHARS) return { ok: false, error: 'a video thumbnail is too large — upload a smaller image' };
+    cleaned.push({ ...(title ? { title } : {}), url, ...(thumb ? { thumb } : {}) });
   }
   if (cleaned.length > MAX_VIDEOS) return { ok: false, error: `at most ${MAX_VIDEOS} video links` };
   return { ok: true, value: cleaned.length ? JSON.stringify(cleaned) : null };
@@ -50,7 +57,9 @@ export function parseVideos(text) {
   if (!text) return [];
   try {
     const list = JSON.parse(text);
-    return Array.isArray(list) ? list.filter((v) => v && HTTP_URL.test(String(v.url || ''))) : [];
+    return Array.isArray(list)
+      ? list.filter((v) => v && HTTP_URL.test(String(v.url || ''))).map((v) => (v.thumb && !SAFE_IMAGE_SRC.test(String(v.thumb)) ? { ...v, thumb: undefined } : v))
+      : [];
   } catch {
     return [];
   }
