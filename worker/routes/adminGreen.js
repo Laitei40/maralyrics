@@ -53,7 +53,7 @@ const ORDER_SELECT = `
          o.created_at, o.reviewed_at, (o.receipt IS NOT NULL) AS has_receipt,
          CASE WHEN o.artist_id IS NOT NULL THEN 'artist' ELSE 'composer' END AS type,
          COALESCE(a.name, p.name) AS name, COALESCE(a.slug, p.slug) AS slug,
-         acc.username AS buyer, acc.contact_email AS buyer_email, r.username AS reviewed_by_username,
+         acc.username AS buyer, acc.contact_email AS buyer_email, acc.contact_phone AS buyer_phone, r.username AS reviewed_by_username,
          COALESCE(ma.expires_at, mp.expires_at) AS mark_expires_at
   FROM green_orders o
   JOIN person_accounts acc ON acc.id = o.account_id

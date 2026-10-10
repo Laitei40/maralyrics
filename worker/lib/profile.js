@@ -57,3 +57,19 @@ export function validateOwnerEdit(data = {}) {
 
   return { ok: true, values: { bio: bio || null, image_url: image || null, social_links: links.value } };
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Contact details of a profile claimant: BOTH are compulsory (claiming is a real-identity step and the review team
+ * has to be able to reach the person). The phone is stored without spaces/dashes/brackets, as + and digits.
+ * → { ok: true, email, phone } | { ok: false, error }
+ */
+export function validateContact(data = {}) {
+  const email = typeof data.contact_email === 'string' ? data.contact_email.trim() : '';
+  if (!email || email.length > 200 || !EMAIL_RE.test(email)) return { ok: false, error: 'Enter a valid email address' };
+  const raw = typeof data.contact_phone === 'string' ? data.contact_phone.trim() : '';
+  const phone = raw.replace(/[\s().-]/g, '').replace(/^00/, '+');
+  if (!/^\+?\d{8,15}$/.test(phone)) return { ok: false, error: 'Enter a valid phone number with your country code, for example +91 98765 43210' };
+  return { ok: true, email, phone };
+}

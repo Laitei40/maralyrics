@@ -84,7 +84,7 @@ for (const role of ROLES.filter((r) => r !== SA)) {
   check((await adm('GET', '/settings', role)).status === 403 && (await adm('PUT', '/settings', role, { currency: 'USD' })).status === 403 && (await adm('GET', '/orders', role)).status === 403 && (await adm('POST', '/marks', role, { type: 'artist', id: 1, months: 1 })).status === 403, `${role} cannot touch the Green mark (settings, orders, marks)`);
 }
 check((await call('GET', '/api/v1/admin/green/settings')).status === 401, 'anonymous → 401');
-const register = async (username) => { const r = await call('POST', '/api/v1/account/register', { body: { username, password: 'correct horse' } }); return r.json.token; };
+const register = async (username) => { const r = await call('POST', '/api/v1/account/register', { body: { username, password: 'correct horse', contact_email: `${username}@example.com`, contact_phone: '+91 98765 43210' } }); return r.json.token; };
 const ann = await register('ann_real');
 const bob = await register('bob_real');
 check((await call('GET', '/api/v1/admin/green/settings', { token: ann })).status === 401, 'an artist token does not work on the Green mark admin API');
@@ -197,6 +197,16 @@ check((await adm('PUT', `/orders/${o6.json.id}/reject`, SA, { note: 'Claim revok
 run(`UPDATE person_claims SET status = 'approved' WHERE id = 2`);
 run(`INSERT INTO artists (id, name, slug) VALUES (20,'A20','a20'),(21,'A21','a21'),(22,'A22','a22'),(23,'A23','a23'),(24,'A24','a24'),(25,'A25','a25')`);
 run(`INSERT INTO person_accounts (id, username, password_hash) VALUES (50, 'busy', 'x')`);
+{
+  // Ordering needs an email AND a phone number on the account (so a payment can be followed up).
+  run(`INSERT INTO person_claims (id, account_id, artist_id, status, evidence) VALUES (99, 50, 20, 'approved', 'proof here')`);
+  const { signJWT: sign } = await load('worker/lib/auth.js');
+  const noContact = await sign({ sub: 50, username: 'busy', typ: 'person' }, `${SECRET}:person-account`);
+  const refused = await order(noContact, { claim_id: 99, months: 1, reference: 'NOCONTACT-1' });
+  check(refused.status === 400 && /phone/i.test(refused.json.error), 'an account without email + phone cannot order → 400');
+  run(`UPDATE person_accounts SET contact_email = 'busy@example.com', contact_phone = '+919876543210' WHERE id = 50`);
+  run(`DELETE FROM person_claims WHERE id = 99`);
+}
 const busyToken = await (async () => { const { signJWT: s } = await load('worker/lib/auth.js'); return s({ sub: 50, username: 'busy', typ: 'person' }, `${SECRET}:person-account`); })();
 let lastStatus = 0;
 for (let i = 0; i < 6; i++) {

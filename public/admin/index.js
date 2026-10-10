@@ -2396,6 +2396,7 @@ function renderClaimsTable() {
       <td>
         <div class="admin-table__title">${escapeHtml(c.claimant)}</div>
         <div class="admin-table__slug">${c.claimant_email ? escapeHtml(c.claimant_email) : 'no email'}</div>
+        <div class="admin-table__slug">${c.claimant_phone ? escapeHtml(c.claimant_phone) : 'no phone'}</div>
         <div class="admin-table__slug">${escapeHtml(formatDate(c.created_at))}</div>
       </td>
       <td><div class="claim-evidence">${linkifyEvidence(c.evidence)}</div>${c.review_note ? `<div class="admin-table__slug">Note: ${escapeHtml(c.review_note)}</div>` : ''}</td>
@@ -2567,7 +2568,7 @@ function renderGreenOrders() {
   tbody.innerHTML = greenOrders.map((o) => `
     <tr data-id="${o.id}">
       <td><div class="admin-table__title">${escapeHtml(o.name)}</div><div class="admin-table__slug">${escapeHtml(o.type)}</div></td>
-      <td><div class="admin-table__title">${escapeHtml(o.buyer)}</div><div class="admin-table__slug">${o.buyer_email ? escapeHtml(o.buyer_email) : 'no email'}</div><div class="admin-table__slug">${escapeHtml(formatDate(o.created_at))}</div></td>
+      <td><div class="admin-table__title">${escapeHtml(o.buyer)}</div><div class="admin-table__slug">${o.buyer_email ? escapeHtml(o.buyer_email) : 'no email'}</div><div class="admin-table__slug">${o.buyer_phone ? escapeHtml(o.buyer_phone) : 'no phone'}</div><div class="admin-table__slug">${escapeHtml(formatDate(o.created_at))}</div></td>
       <td><div class="admin-table__title">${GREEN_PLAN_LABEL[o.months] || o.months + ' months'}</div><div class="admin-table__slug">${escapeHtml(greenMoney(o.amount_cents, o.currency))}</div></td>
       <td><div class="claim-evidence">${escapeHtml(o.reference)}</div>${o.note ? `<div class="admin-table__slug">${escapeHtml(o.note)}</div>` : ''}${o.has_receipt ? '<div class="admin-table__slug">📎 receipt attached</div>' : ''}</td>
       <td><span class="status-badge status-badge--${GREEN_STATUS_CLASS[o.status] || 'archived'}">${escapeHtml(GREEN_STATUS_LABEL[o.status] || o.status)}</span>${o.reviewed_by_username ? `<div class="admin-table__slug">by ${escapeHtml(o.reviewed_by_username)}</div>` : ''}${o.review_note ? `<div class="admin-table__slug">Note: ${escapeHtml(o.review_note)}</div>` : ''}</td>
@@ -2581,7 +2582,7 @@ async function openGreenOrder(id) {
   document.getElementById('greenOrderId').value = id;
   document.getElementById('greenOrderModalTitle').textContent = `Order #${id} — ${o.name}`;
   document.getElementById('greenOrderDetails').innerHTML = `
-    <dt>Buyer</dt><dd>${escapeHtml(o.buyer)}${o.buyer_email ? ` · ${escapeHtml(o.buyer_email)}` : ''}</dd>
+    <dt>Buyer</dt><dd>${escapeHtml(o.buyer)}${o.buyer_email ? ` · ${escapeHtml(o.buyer_email)}` : ''}${o.buyer_phone ? ` · ${escapeHtml(o.buyer_phone)}` : ''}</dd>
     <dt>Plan</dt><dd>${GREEN_PLAN_LABEL[o.months] || o.months + ' months'} · <strong>${escapeHtml(greenMoney(o.amount_cents, o.currency))}</strong></dd>
     <dt>Reference</dt><dd>${escapeHtml(o.reference)}</dd>
     ${o.note ? `<dt>Note</dt><dd>${escapeHtml(o.note)}</dd>` : ''}

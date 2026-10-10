@@ -13,7 +13,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
 const { default: app } = await load('worker/worker.js');
 const { signJWT } = await load('worker/lib/auth.js');
-const { validateOwnerEdit, validateSocialLinks } = await load('worker/lib/profile.js');
+const { validateOwnerEdit, validateSocialLinks, validateContact } = await load('worker/lib/profile.js');
 
 let passes = 0;
 let failures = 0;
@@ -61,7 +61,7 @@ const acct = (method, url, token, body, env) => call(method, `/api/v1/account${u
 const adm = (method, url, role, body) => call(method, `/api/v1/admin${url}`, { token: adminToken[role], body });
 
 const register = async (username, extra = {}) => {
-  const r = await acct('POST', '/register', undefined, { username, password: 'correct horse', ...extra });
+  const r = await acct('POST', '/register', undefined, { username, password: 'correct horse', contact_email: `${username}@example.com`, contact_phone: '+91 98765 43210', ...extra });
   return { ...r, token: r.json && r.json.token };
 };
 
@@ -77,15 +77,21 @@ check(!validateOwnerEdit({ social_links: Array.from({ length: 11 }, (_, i) => `h
 check(validateSocialLinks('["https://a.example"]').value === '["https://a.example"]' && validateSocialLinks(['  ', 'https://b.example']).value === '["https://b.example"]', 'social links: JSON string or array, blanks dropped');
 check(validateOwnerEdit({}).values.bio === null && validateOwnerEdit({}).values.social_links === null, 'empty edit clears fields (PUT replaces)');
 
+console.log('Contact details');
+check(validateContact({ contact_email: ' a@b.co ', contact_phone: '+91 98765-43210' }).phone === '+919876543210' && validateContact({ contact_email: 'a@b.co', contact_phone: '0091 (98765) 43210' }).phone === '+919876543210', 'phone is stored as + and digits (spaces, dashes, brackets removed, 00 → +)');
+for (const [label, c] of [['no email', { contact_phone: '+919876543210' }], ['bad email', { contact_email: 'nope', contact_phone: '+919876543210' }], ['no phone', { contact_email: 'a@b.co' }], ['short phone', { contact_email: 'a@b.co', contact_phone: '12345' }], ['letters in phone', { contact_email: 'a@b.co', contact_phone: '+91 98x65 43210' }], ['too long phone', { contact_email: 'a@b.co', contact_phone: '+1234567890123456' }]]) check(!validateContact(c).ok, `contact: ${label} rejected`);
+
 // ─── Accounts ────────────────────────────────────────────────────────────────
 console.log('Accounts');
 for (const [label, body] of [
   ['username too short', { username: 'ab', password: 'correct horse' }], ['username with spaces', { username: 'has space', password: 'correct horse' }],
   ['username starts with dot', { username: '.abc', password: 'correct horse' }], ['password too short', { username: 'okname', password: 'short' }],
-  ['bad email', { username: 'okname', password: 'correct horse', contact_email: 'nope' }],
+  ['bad email', { username: 'okname', password: 'correct horse', contact_email: 'nope', contact_phone: '+919876543210' }],
+  ['no email', { username: 'okname', password: 'correct horse', contact_phone: '+919876543210' }], ['no phone', { username: 'okname', password: 'correct horse', contact_email: 'a@b.co' }],
+  ['bad phone', { username: 'okname', password: 'correct horse', contact_email: 'a@b.co', contact_phone: '12' }],
 ]) check((await acct('POST', '/register', undefined, body)).status === 400, `register: ${label} → 400`);
 
-const ann = await register('Ann_Singer', { contact_email: 'ann@example.com' });
+const ann = await register('Ann_Singer', { contact_email: 'ann@example.com', contact_phone: '+91 98765 43210' });
 check(ann.status === 201 && ann.token && ann.json.account.username === 'ann_singer' && !('password_hash' in ann.json.account), 'register creates the account (username lower-cased, no hash returned)');
 check((await register('ann_SINGER')).status === 409, 'username is unique, case-insensitively → 409');
 const bob = await register('bob.writer');
@@ -120,7 +126,28 @@ check((await claim(ann.token, { type: 'artist', slug: 'nobody', evidence: 'long 
 check((await claim(ann.token, { type: 'composer', slug: 'ann-artist', evidence: 'long enough evidence' })).status === 404, 'type and slug must match (artist slug is not a composer)');
 const c1 = await claim(ann.token, { type: 'artist', slug: 'ann-artist', evidence: 'This is my channel https://youtube.com/@ann', contact_email: 'ann@new.example' });
 check(c1.status === 201 && c1.json.status === 'pending' && c1.json.name === 'Ann Artist', 'create a pending claim');
-check(get('SELECT contact_email FROM person_accounts WHERE id = 1').contact_email === 'ann@new.example', 'contact email updated from the claim');
+check(get('SELECT contact_email, contact_phone FROM person_accounts WHERE id = 1').contact_email === 'ann@new.example' && get('SELECT contact_phone FROM person_accounts WHERE id = 1').contact_phone === '+919876543210', 'contact email updated from the claim; the phone on the account is kept');
+check(ann.json.account.contact_phone === '+919876543210' && ann.json.account.contact_complete === true && (await acct('GET', '/me', ann.token)).json.account.contact_complete === true, 'registration stores the phone; /me says the contact details are complete');
+{
+  // An account from before phone numbers existed has no phone: it cannot claim until it adds one.
+  run(`INSERT INTO person_accounts (id, username, password_hash, contact_email) VALUES (60, 'oldtimer', 'x', 'old@example.com')`);
+  const { signJWT: s } = await load('worker/lib/auth.js');
+  const oldTok = await s({ sub: 60, username: 'oldtimer', typ: 'person' }, `${SECRET}:person-account`);
+  check((await acct('GET', '/me', oldTok)).json.account.contact_complete === false, 'an account without a phone is incomplete');
+  const noPhone = await claim(oldTok, { type: 'artist', slug: 'ben-singer', evidence: 'long enough evidence here' });
+  check(noPhone.status === 400 && /phone/i.test(noPhone.json.error), 'claiming needs a phone number on file (or in the form) → 400');
+  check((await acct('PUT', '/contact', oldTok, { contact_email: 'old@example.com', contact_phone: 'abc' })).status === 400 && (await acct('PUT', '/contact', undefined, { contact_email: 'a@b.co', contact_phone: '+919876543210' })).status === 401, 'updating contact details validates and needs a login');
+  const upd = await acct('PUT', '/contact', oldTok, { contact_email: 'old@example.com', contact_phone: '+44 7700 900123' });
+  check(upd.status === 200 && upd.json.account.contact_phone === '+447700900123' && upd.json.account.contact_complete === true, 'contact details can be updated');
+  const viaForm = await claim(oldTok, { type: 'artist', slug: 'ben-singer', evidence: 'long enough evidence here' });
+  check(viaForm.status === 201, 'after adding the phone the claim goes through');
+  await acct('DELETE', `/claims/${viaForm.json.id}`, oldTok);
+  const withForm = await claim(ann.token, { type: 'artist', slug: 'ben-singer', evidence: 'long enough evidence here', contact_phone: '+1 202 555 0143', contact_email: 'ann@new.example' });
+  check(withForm.status === 201 && get('SELECT contact_phone FROM person_accounts WHERE id = 1').contact_phone === '+12025550143', 'phone and email given with the claim are saved on the account');
+  check((await claim(ann.token, { type: 'artist', slug: 'a1', evidence: 'long enough evidence here', contact_phone: '12' })).status === 400, 'a bad phone in the claim form → 400');
+  await acct('DELETE', `/claims/${withForm.json.id}`, ann.token);
+  run(`UPDATE person_accounts SET contact_phone = '+919876543210' WHERE id = 1`);
+}
 check((await claim(ann.token, { type: 'artist', slug: 'ann-artist', evidence: 'long enough evidence' })).status === 409, 'the same account cannot claim the same profile twice');
 const c2 = await claim(bob.token, { type: 'artist', slug: 'ann-artist', evidence: 'I am also Ann, honest' });
 check(c2.status === 201, 'a second account can also have a pending claim (admins decide)');
@@ -143,7 +170,7 @@ for (const role of ['viewer', 'translator', 'reviewer', 'editor']) {
 }
 check((await call('GET', '/api/v1/admin/claims')).status === 401, 'anonymous → 401');
 const list = await adm('GET', '/claims', 'manager');
-check(list.status === 200 && list.json.total === 3 && list.json.claims[0].status === 'pending' && list.json.claims[0].claimant && list.json.claims.some((c) => c.claimant_email === 'ann@new.example'), 'manager sees claims with claimant, evidence and contact email');
+check(list.status === 200 && list.json.total === 3 && list.json.claims[0].status === 'pending' && list.json.claims[0].claimant && list.json.claims.some((c) => c.claimant_email === 'ann@new.example' && c.claimant_phone === '+919876543210'), 'manager sees claims with claimant, evidence, contact email and phone');
 check((await adm('GET', '/claims?status=approved', 'manager')).json.total === 0, 'status filter');
 check((await adm('PUT', `/claims/${c1.json.id}/reject`, 'manager', {})).status === 400, 'reject needs a note');
 check((await adm('PUT', '/claims/999/approve', 'manager')).status === 404, 'unknown claim → 404');
@@ -203,7 +230,7 @@ run(`INSERT INTO artists (id, name, slug) VALUES (10,'A1','a1'),(11,'A2','a2'),(
 let last;
 for (const s of ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']) last = await claim(dan.token, { type: 'artist', slug: s, evidence: 'long enough evidence here' });
 check(last.status === 429, 'at most 5 open claims per account → 429');
-const strict = await acct('POST', '/register', undefined, { username: 'turnstile_user', password: 'correct horse' }, { ...ENV, TURNSTILE_SECRET_KEY: 'x' });
+const strict = await acct('POST', '/register', undefined, { username: 'turnstile_user', password: 'correct horse', contact_email: 'ts@example.com', contact_phone: '+919876543210' }, { ...ENV, TURNSTILE_SECRET_KEY: 'x' });
 check(strict.status === 400 && /Security check/.test(strict.json.error), 'with Turnstile configured, registering without a token is refused');
 
 // ─── The refactored admin profile validators still behave ─────────────────────
