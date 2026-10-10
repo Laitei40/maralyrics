@@ -1,9 +1,10 @@
 // ┌───────────────────────────────────────────────┐
-// │  MaraLyrics — artist & composer accounts       │
+// │  MaraLyrics — Artist Court (artist & composer accounts)  │
 // └───────────────────────────────────────────────┘
 // Sign in / create an account, ask to claim an artist or composer profile, and — once a claim is approved —
-// edit that profile's bio, photo and social links. Talks to /api/v1/account (see worker/routes/account.js).
-// Loaded after app.js (uses CONFIG, I18n, Utils, Toast).
+// edit that profile's bio, photo and social links and apply for the Green mark. Four tabs: Profile, Green Mark,
+// Claims, Account. Talks to /api/v1/account (see worker/routes/account.js). Loaded after app.js (uses CONFIG,
+// I18n, Utils, Toast, GreenMark, SocialIcons).
 (() => {
   'use strict';
   if (!document.getElementById('accountPage')) return;
@@ -14,6 +15,7 @@
   const PHOTO_SIZE = 400; // uploaded photos are centre-cropped to a square this size (JPEG)
   const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
   const MAX_LINKS = 10;
+  const TABS = ['profile', 'green', 'claims', 'account'];
 
   const $ = (id) => document.getElementById(id);
   const t = (key, vars) => I18n.t(key, vars);
@@ -27,10 +29,15 @@
   let token = store.get();
   let account = null;
   let claims = [];
-  let editing = null;     // { claimId, type, slug, name }
+  let tab = 'claims';
+  let selectedId = null;  // claim id of the profile shown in the Profile tab / banner
+  let editing = null;     // { claimId, type, slug, name, role }
   let photo = '';         // current photo (data: URL or https URL), '' = none
   let links = [];         // current social links
   let target = null;      // { type, slug, name } when arriving from a profile's "Claim" link
+
+  const approved = () => claims.filter((c) => c.status === 'approved');
+  const selectedClaim = () => approved().find((c) => c.id === selectedId) || approved()[0] || null;
 
   // ── API ─────────────────────────────────────────
   async function api(method, path, body) {
@@ -61,13 +68,16 @@
     const el = $(id);
     el.textContent = text || '';
     el.hidden = !text;
-    el.className = `account-message${ok ? ' account-message--ok' : ''}`;
+    el.className = `royal-message${ok ? ' royal-message--ok' : ''}`;
   }
   async function busy(btn, fn) {
     btn.disabled = true;
     try { return await fn(); } finally { btn.disabled = false; }
   }
   const publicUrl = (c) => `/${c.type}/${encodeURIComponent(c.slug)}`;
+  const initial = (name) => esc((name || '?').charAt(0).toUpperCase());
+  const avatarHtml = (url, name) => (url ? `<img src="${esc(url)}" alt="" />` : `<span aria-hidden="true">${initial(name)}</span>`);
+  const typeLabel = (type) => t(type === 'artist' ? 'account.type_artist' : 'account.type_composer');
 
   // ── Signed out ──────────────────────────────────
   function showAuth() {
@@ -77,11 +87,11 @@
       const note = $('authClaimNote');
       note.textContent = t('account.claim_prompt', { name: target.name });
       note.hidden = false;
-      selectTab(target ? 'register' : 'signin');
+      selectAuthTab('register');
     }
   }
 
-  function selectTab(which) {
+  function selectAuthTab(which) {
     const reg = which === 'register';
     $('tabSignin').classList.toggle('active', !reg);
     $('tabRegister').classList.toggle('active', reg);
@@ -96,8 +106,8 @@
     await showHome();
   }
 
-  $('tabSignin').addEventListener('click', () => selectTab('signin'));
-  $('tabRegister').addEventListener('click', () => selectTab('register'));
+  $('tabSignin').addEventListener('click', () => selectAuthTab('signin'));
+  $('tabRegister').addEventListener('click', () => selectAuthTab('register'));
 
   $('signinForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -118,7 +128,7 @@
     await busy($('regBtn'), async () => {
       try {
         await enter(await api('POST', '/register', {
-          username: $('regUser').value, password: $('regPass').value, contact_email: $('regEmail').value, turnstile_token: ts,
+          username: $('regUser').value, password: $('regPass').value, contact_email: $('regEmail').value, contact_phone: $('regPhone').value, turnstile_token: ts,
         }));
         $('regPass').value = '';
       } catch (err) { say('regMsg', err.message); turnstileReset('regTurnstile'); }
@@ -131,8 +141,9 @@
     account = null;
     claims = [];
     editing = null;
+    selectedId = null;
+    greenState.offer = null;
     store.set('');
-    $('editorCard').hidden = true;
     showAuth();
   }
 
@@ -147,16 +158,142 @@
     claims = me.claims;
     $('accountAuth').hidden = true;
     $('accountHome').hidden = false;
-    $('accountHello').textContent = t('account.signed_in_as', { name: account.username });
-    if (account.contact_email && !$('claimEmail').value) $('claimEmail').value = account.contact_email;
-    renderClaims();
-    loadGreen();
+    fillContact();
     renderTurnstile('claimTurnstile');
     renderClaimTarget();
+    await refreshAll();
+    const wanted = (location.hash || '').slice(1);
+    // An older account with no phone number yet is sent to the Account tab to add it.
+    const land = !account.contact_complete ? 'account' : approved().length ? 'profile' : 'claims';
+    selectTab(TABS.includes(wanted) ? wanted : land, { updateHash: false });
+  }
+
+  /** Re-draws everything that depends on the account / claims, and (re)loads the selected profile for editing. */
+  async function refreshAll() {
+    if (!selectedClaim()) selectedId = null;
+    else if (!approved().some((c) => c.id === selectedId)) selectedId = approved()[0].id;
+    renderClaims();
+    renderLocks();
+    renderSwitch();
+    await loadGreen();
+    renderBanner();
+    if (selectedClaim() && (!editing || editing.claimId !== selectedClaim().id)) await openEditor(selectedClaim());
+    if (!selectedClaim()) editing = null;
+    renderPreview();
+    renderContactNeeds();
+  }
+
+  async function refreshClaims() {
+    const me = await api('GET', '/me');
+    account = me.account;
+    claims = me.claims;
+    await refreshAll();
   }
 
   $('btnSignout').addEventListener('click', signOut);
-  $('btnShowPassword').addEventListener('click', () => { $('passwordForm').hidden = !$('passwordForm').hidden; say('pwMsg', ''); });
+
+  // ── Banner ──────────────────────────────────────
+  function renderBanner() {
+    if (!account) return;
+    const claim = selectedClaim();
+    const name = claim ? claim.name : account.username;
+    const active = !!(greenState.offer && claim && (greenState.offer.profiles.find((p) => p.claim_id === claim.id) || {}).active);
+    $('bannerName').innerHTML = `${esc(name)}${active ? GreenMark.html() : ''}`;
+    $('bannerAvatar').innerHTML = avatarHtml(claim && editing && editing.claimId === claim.id ? photo : '', name);
+    $('bannerMeta').textContent = claim ? `${typeLabel(claim.type)} · ${t('account.signed_in_as', { name: account.username })}` : t('account.signed_in_as', { name: account.username });
+    const view = $('bannerView');
+    view.hidden = !claim;
+    if (claim) view.href = publicUrl(claim);
+  }
+
+  // ── Tabs ────────────────────────────────────────
+  function selectTab(which, { updateHash = true } = {}) {
+    if (!TABS.includes(which)) which = 'claims';
+    tab = which;
+    for (const b of $('courtTabs').querySelectorAll('[data-tab]')) {
+      const on = b.dataset.tab === which;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    for (const name of TABS) $(`panel${name[0].toUpperCase()}${name.slice(1)}`).hidden = name !== which;
+    if (updateHash) history.replaceState(null, '', `${location.pathname}${location.search}#${which}`);
+  }
+  $('courtTabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tab]');
+    if (b) selectTab(b.dataset.tab);
+  });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-goto]');
+    if (b) selectTab(b.dataset.goto);
+  });
+  window.addEventListener('hashchange', () => {
+    const wanted = (location.hash || '').slice(1);
+    if (account && TABS.includes(wanted) && wanted !== tab) selectTab(wanted, { updateHash: false });
+  });
+
+  /** The Profile and Green Mark tabs are locked until a claim is approved. */
+  function renderLocks() {
+    const has = approved().length > 0;
+    for (const id of ['panelProfile', 'panelGreen']) {
+      $(id).querySelector('[data-locked]').hidden = has;
+      $(id).querySelector('[data-body]').hidden = !has;
+    }
+  }
+
+  /** Profile switcher chips — only when the owner has more than one approved profile. */
+  function renderSwitch() {
+    const list = approved();
+    const box = $('profileSwitch');
+    box.hidden = list.length < 2;
+    box.setAttribute('aria-label', t('account.switch_profile'));
+    box.innerHTML = list.map((c) => `<button type="button" class="royal-chip${c.id === (selectedClaim() || {}).id ? ' active' : ''}" data-claim="${Number(c.id)}">${esc(c.name)}</button>`).join('');
+  }
+  $('profileSwitch').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-claim]');
+    if (!b) return;
+    selectedId = Number(b.dataset.claim);
+    renderSwitch();
+    const claim = selectedClaim();
+    if (claim) await openEditor(claim);
+    renderBanner();
+    renderPreview();
+  });
+
+  // ── Contact details (email + phone are compulsory) ──
+  function fillContact() {
+    if (!account) return;
+    if (account.contact_email && !$('claimEmail').value) $('claimEmail').value = account.contact_email;
+    if (account.contact_phone && !$('claimPhone').value) $('claimPhone').value = account.contact_phone;
+    $('contactEmail').value = account.contact_email || '';
+    $('contactPhone').value = account.contact_phone || '';
+  }
+
+  /** Nudges an account that has no phone yet (older accounts) to add one before claiming or ordering. */
+  function renderContactNeeds() {
+    const missing = !!account && !account.contact_complete;
+    const need = $('greenNeedContact');
+    need.textContent = missing ? t('account.contact_needed') : '';
+    need.hidden = !missing;
+    $('greenForm').hidden = missing || !greenCanOrder();
+    if (missing) say('contactMsg', t('account.contact_needed'));
+  }
+
+  $('contactForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    say('contactMsg', '');
+    await busy($('contactForm').querySelector('button[type="submit"]'), async () => {
+      try {
+        const res = await api('PUT', '/contact', { contact_email: $('contactEmail').value, contact_phone: $('contactPhone').value });
+        account = res.account || { ...account, contact_email: res.contact_email, contact_phone: res.contact_phone, contact_complete: true };
+        fillContact();
+        $('claimEmail').value = account.contact_email || '';
+        $('claimPhone').value = account.contact_phone || '';
+        renderContactNeeds();
+        say('contactMsg', t('account.contact_saved'), true);
+      } catch (err) { say('contactMsg', err.message); }
+    });
+  });
+
   $('passwordForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     say('pwMsg', '');
@@ -170,20 +307,21 @@
 
   // ── Claims list ─────────────────────────────────
   const STATUS_KEY = { pending: 'account.status_pending', approved: 'account.status_approved', rejected: 'account.status_rejected', revoked: 'account.status_revoked' };
+  const pillClass = (s) => (s === 'approved' ? 'approved' : s === 'pending' ? 'pending' : 'rejected');
 
   function renderClaims() {
     $('claimEmpty').hidden = claims.length > 0;
     $('claimList').innerHTML = claims.map((c) => `
-      <article class="account-claim account-claim--${esc(c.status)}" data-id="${Number(c.id)}">
-        <div class="account-claim__main">
-          <a class="account-claim__name" href="${publicUrl(c)}">${esc(c.name)}</a>
-          <span class="account-claim__type">${esc(t(c.type === 'artist' ? 'account.type_artist' : 'account.type_composer'))}</span>
-          <span class="account-chip account-chip--${esc(c.status)}">${esc(t(STATUS_KEY[c.status] || c.status))}</span>
+      <article class="royal-status${c.status === 'approved' ? ' royal-status--active' : ''}" data-id="${Number(c.id)}">
+        <div class="royal-status__main">
+          <a class="royal-status__name" href="${publicUrl(c)}">${esc(c.name)}</a>
+          <span class="royal-status__type">${esc(typeLabel(c.type))}</span>
+          <span class="royal-pill royal-pill--${pillClass(c.status)}">${esc(t(STATUS_KEY[c.status] || c.status))}</span>
         </div>
-        ${c.review_note ? `<p class="account-claim__note">${esc(t('account.note_from_team', { note: c.review_note }))}</p>` : ''}
-        <div class="account-claim__actions">
-          ${c.status === 'approved' ? `<button type="button" class="btn btn--primary btn--sm" data-action="edit">${esc(t('account.edit_profile'))}</button>` : ''}
-          ${c.status === 'pending' ? `<button type="button" class="btn btn--ghost btn--sm" data-action="withdraw">${esc(t('account.withdraw'))}</button>` : ''}
+        ${c.review_note ? `<p class="royal-status__note">${esc(t('account.note_from_team', { note: c.review_note }))}</p>` : ''}
+        <div class="royal-status__actions">
+          ${c.status === 'approved' ? `<button type="button" class="royal-btn royal-btn--sm" data-action="edit">${esc(t('account.edit_profile'))}</button>` : ''}
+          ${c.status === 'pending' ? `<button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" data-action="withdraw">${esc(t('account.withdraw'))}</button>` : ''}
         </div>
       </article>`).join('');
   }
@@ -191,21 +329,21 @@
   $('claimList').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
-    const id = Number(btn.closest('.account-claim').dataset.id);
+    const id = Number(btn.closest('[data-id]').dataset.id);
     const claim = claims.find((c) => c.id === id);
     if (!claim) return;
-    if (btn.dataset.action === 'edit') await openEditor(claim);
+    if (btn.dataset.action === 'edit') {
+      selectedId = claim.id;
+      renderSwitch();
+      await openEditor(claim);
+      renderBanner();
+      renderPreview();
+      selectTab('profile');
+    }
     if (btn.dataset.action === 'withdraw' && window.confirm(t('account.withdraw_confirm'))) {
       try { await api('DELETE', `/claims/${id}`); await refreshClaims(); } catch (err) { Toast.show(err.message, { type: 'error' }); }
     }
   });
-
-  async function refreshClaims() {
-    const me = await api('GET', '/me');
-    claims = me.claims;
-    renderClaims();
-    loadGreen();
-  }
 
   // ── Claim form ──────────────────────────────────
   const names = {}; // type → [{ name, slug }]
@@ -251,12 +389,14 @@
     if (!ts) { say('claimMsg', t('feedback.err_turnstile')); return; }
     await busy($('claimBtn'), async () => {
       try {
-        await api('POST', '/claims', { type: pick.type, slug: pick.slug, evidence: $('claimEvidence').value, contact_email: $('claimEmail').value, turnstile_token: ts });
+        await api('POST', '/claims', {
+          type: pick.type, slug: pick.slug, evidence: $('claimEvidence').value, contact_email: $('claimEmail').value, contact_phone: $('claimPhone').value, turnstile_token: ts,
+        });
         $('claimEvidence').value = '';
         $('claimSearch').value = '';
         target = null;
         renderClaimTarget();
-        history.replaceState(null, '', location.pathname);
+        history.replaceState(null, '', `${location.pathname}#claims`);
         say('claimMsg', t('account.claim_sent'), true);
         await refreshClaims();
       } catch (err) { say('claimMsg', err.message); }
@@ -276,12 +416,11 @@
   // The how-to-pay text is written by the site owner, but is still escaped; only http(s) links are made clickable.
   const linkify = (text) => esc(text).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer nofollow">${u}</a>`);
   const ORDER_STATUS_KEY = { pending: 'green.status_pending', approved: 'green.status_approved', rejected: 'green.status_rejected', cancelled: 'green.status_cancelled' };
+  const greenCanOrder = () => !!greenState.offer && greenState.offer.plans.length > 0 && greenState.offer.profiles.length > 0;
 
   async function loadGreen() {
-    const hasApproved = claims.some((c) => c.status === 'approved');
-    $('greenCard').hidden = !hasApproved;
-    if (!hasApproved) return;
-    try { greenState.offer = await api('GET', '/green'); } catch { $('greenCard').hidden = true; return; } // not available yet (e.g. before the migration)
+    if (!approved().length) { greenState.offer = null; return; }
+    try { greenState.offer = await api('GET', '/green'); } catch { greenState.offer = null; $('panelGreen').querySelector('[data-body]').hidden = true; return; } // not available yet (e.g. before the migration)
     renderGreen();
   }
 
@@ -289,15 +428,15 @@
     const offer = greenState.offer;
     if (!offer) return;
     $('greenProfiles').innerHTML = offer.profiles.map((p) => `
-      <div class="green-status${p.active ? ' green-status--active' : ''}">
-        <span class="green-status__name">${esc(p.name)}${p.active ? GreenMark.html() : ''}</span>
-        <span class="green-status__state">${esc(p.has_pending ? t('green.pending_order') : p.active ? t('green.active_until', { date: fmtDate(p.expires_at) }) : t('green.not_active'))}</span>
+      <div class="royal-status${p.active ? ' royal-status--active' : ''}">
+        <div class="royal-status__main">
+          <span class="royal-status__name">${esc(p.name)}${p.active ? GreenMark.html() : ''}</span>
+          <span class="royal-status__state">${esc(p.has_pending ? t('green.pending_order') : p.active ? t('green.active_until', { date: fmtDate(p.expires_at) }) : t('green.not_active'))}</span>
+        </div>
       </div>`).join('');
 
-    const canOrder = offer.plans.length > 0 && offer.profiles.length > 0;
     $('greenNoPlans').hidden = offer.plans.length > 0;
-    $('greenForm').hidden = !canOrder;
-    if (canOrder) {
+    if (greenCanOrder()) {
       const chosenProfile = $('greenProfile').value;
       $('greenProfile').innerHTML = offer.profiles.map((p) => `<option value="${Number(p.claim_id)}"${p.has_pending ? ' disabled' : ''}>${esc(p.name)}${p.has_pending ? ` — ${esc(t('green.pending_order'))}` : ''}</option>`).join('');
       if (chosenProfile && [...$('greenProfile').options].some((o) => o.value === chosenProfile && !o.disabled)) $('greenProfile').value = chosenProfile;
@@ -305,31 +444,32 @@
       $('greenProfileRow').hidden = offer.profiles.length < 2;
       const chosenPlan = (document.querySelector('input[name="greenPlan"]:checked') || {}).value;
       $('greenPlans').innerHTML = offer.plans.map((p, i) => `
-        <label class="green-plan">
+        <label class="royal-plan">
           <input type="radio" name="greenPlan" value="${Number(p.months)}"${(chosenPlan ? String(p.months) === chosenPlan : i === 0) ? ' checked' : ''} />
-          <span class="green-plan__name">${esc(planName(p.months))}</span>
-          <span class="green-plan__price">${esc(money(p.price_cents, offer.currency))}</span>
+          <span class="royal-plan__name">${esc(planName(p.months))}</span>
+          <span class="royal-plan__price">${esc(money(p.price_cents, offer.currency))}</span>
         </label>`).join('');
       $('greenHowTo').innerHTML = offer.payment_instructions ? linkify(offer.payment_instructions) : esc(t('green.no_instructions'));
     }
+    $('greenForm').hidden = !greenCanOrder() || (!!account && !account.contact_complete);
 
     $('greenNoOrders').hidden = offer.orders.length > 0;
     $('greenOrders').innerHTML = offer.orders.map((o) => `
-      <article class="account-claim account-claim--${esc(o.status === 'approved' ? 'approved' : o.status === 'pending' ? 'pending' : 'rejected')}" data-order="${Number(o.id)}">
-        <div class="account-claim__main">
-          <span class="account-claim__name">${esc(o.name)}</span>
-          <span class="account-claim__type">${esc(t('green.order_line', { plan: planName(o.months), amount: money(o.amount_cents, o.currency) }))}</span>
-          <span class="account-chip account-chip--${esc(o.status === 'approved' ? 'approved' : o.status === 'pending' ? 'pending' : 'rejected')}">${esc(t(ORDER_STATUS_KEY[o.status] || o.status))}</span>
+      <article class="royal-status${o.status === 'approved' ? ' royal-status--active' : ''}" data-order="${Number(o.id)}">
+        <div class="royal-status__main">
+          <span class="royal-status__name">${esc(o.name)}</span>
+          <span class="royal-status__type">${esc(t('green.order_line', { plan: planName(o.months), amount: money(o.amount_cents, o.currency) }))}</span>
+          <span class="royal-pill royal-pill--${pillClass(o.status)}">${esc(t(ORDER_STATUS_KEY[o.status] || o.status))}</span>
         </div>
-        ${o.review_note ? `<p class="account-claim__note">${esc(t('account.note_from_team', { note: o.review_note }))}</p>` : ''}
-        ${o.status === 'pending' ? `<div class="account-claim__actions"><button type="button" class="btn btn--ghost btn--sm" data-cancel-order="${Number(o.id)}">${esc(t('green.cancel_order'))}</button></div>` : ''}
+        ${o.review_note ? `<p class="royal-status__note">${esc(t('account.note_from_team', { note: o.review_note }))}</p>` : ''}
+        ${o.status === 'pending' ? `<div class="royal-status__actions"><button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" data-cancel-order="${Number(o.id)}">${esc(t('green.cancel_order'))}</button></div>` : ''}
       </article>`).join('');
   }
 
   $('greenOrders').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-cancel-order]');
     if (!btn || !window.confirm(t('green.cancel_confirm'))) return;
-    try { await api('DELETE', `/green/orders/${btn.dataset.cancelOrder}`); await loadGreen(); } catch (err) { Toast.show(err.message, { type: 'error' }); }
+    try { await api('DELETE', `/green/orders/${btn.dataset.cancelOrder}`); await loadGreen(); renderBanner(); } catch (err) { Toast.show(err.message, { type: 'error' }); }
   });
 
   // A receipt photo is shrunk (max 1000 px, JPEG) so it stays small enough to send and store.
@@ -384,22 +524,37 @@
 
   // ── Profile editor ──────────────────────────────
   function renderPhoto() {
-    const box = $('editorPhoto');
-    box.innerHTML = photo ? `<img src="${esc(photo)}" alt="" />` : `<span aria-hidden="true">${esc((editing?.name || '?').charAt(0).toUpperCase())}</span>`;
+    $('editorPhoto').innerHTML = avatarHtml(photo, editing && editing.name);
     $('editorPhotoRemove').hidden = !photo;
   }
 
   function renderLinks() {
     $('editorLinks').innerHTML = links.map((url, i) => `
-      <div class="account-link-row">
-        <span class="account-link-icon" title="${esc(SocialIcons.detect(url, { websiteLabel: t('common.website') }).name)}">${SocialIcons.detect(url).icon}</span>
-        <input type="url" class="form-input" value="${esc(url)}" data-i="${i}" placeholder="${esc(t('account.social_ph'))}" maxlength="500" />
-        <button type="button" class="btn btn--ghost btn--sm" data-remove="${i}" aria-label="${esc(t('account.social_remove'))}">✕</button>
+      <div class="royal-link-row">
+        <span class="royal-link-icon" title="${esc(SocialIcons.detect(url, { websiteLabel: t('common.website') }).name)}">${SocialIcons.detect(url).icon}</span>
+        <input type="url" value="${esc(url)}" data-i="${i}" placeholder="${esc(t('account.social_ph'))}" maxlength="500" />
+        <button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" data-remove="${i}" aria-label="${esc(t('account.social_remove'))}">✕</button>
       </div>`).join('');
     $('editorAddLink').hidden = links.length >= MAX_LINKS;
   }
 
   const countBio = () => { $('editorBioCount').textContent = `${$('editorBio').value.length} / 5000`; };
+
+  /** The "this is how your page will look" card, redrawn on every keystroke. */
+  function renderPreview() {
+    const box = $('previewCard');
+    if (!editing) { box.innerHTML = ''; return; }
+    const active = !!(greenState.offer && (greenState.offer.profiles.find((p) => p.claim_id === editing.claimId) || {}).active);
+    const icons = links.map((u) => u.trim()).filter(Boolean).slice(0, MAX_LINKS)
+      .map((u) => `<span title="${esc(SocialIcons.detect(u, { websiteLabel: t('common.website') }).name)}">${SocialIcons.detect(u).icon}</span>`).join('');
+    box.innerHTML = `
+      <span class="royal-avatar royal-avatar--lg">${avatarHtml(photo, editing.name)}</span>
+      <h3 class="royal-preview__name">${esc(editing.name)}${active ? GreenMark.html() : ''}</h3>
+      <p class="royal-preview__role">${esc(typeLabel(editing.type))}</p>
+      <p class="royal-preview__bio">${esc($('editorBio').value)}</p>
+      ${icons ? `<div class="royal-preview__links">${icons}</div>` : ''}`;
+    $('bannerAvatar').innerHTML = avatarHtml(photo, editing.name);
+  }
 
   async function openEditor(claim) {
     say('editorMsg', '');
@@ -409,20 +564,17 @@
       photo = p.image_url || '';
       links = p.social_links.slice();
       $('editorBio').value = p.bio;
-      $('editorTitle').textContent = t('account.editor_title', { name: p.name });
-      $('editorView').href = `/${p.type}/${encodeURIComponent(p.slug)}`;
       renderPhoto();
       renderLinks();
       countBio();
-      $('editorCard').hidden = false;
-      $('editorCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      renderPreview();
     } catch (err) {
       Toast.show(err.message, { type: 'error' });
       if (err.status === 404) await refreshClaims(); // the claim was revoked meanwhile
     }
   }
 
-  $('editorBio').addEventListener('input', countBio);
+  $('editorBio').addEventListener('input', () => { countBio(); renderPreview(); });
   $('editorAddLink').addEventListener('click', () => { links.push(''); renderLinks(); $('editorLinks').lastElementChild?.querySelector('input').focus(); });
   $('editorLinks').addEventListener('input', (e) => {
     if (e.target.dataset.i === undefined) return;
@@ -432,12 +584,13 @@
     const icon = e.target.previousElementSibling;
     icon.innerHTML = found.icon;
     icon.title = found.name;
+    renderPreview();
   });
   $('editorLinks').addEventListener('click', (e) => {
     const b = e.target.closest('[data-remove]');
-    if (b) { links.splice(Number(b.dataset.remove), 1); renderLinks(); }
+    if (b) { links.splice(Number(b.dataset.remove), 1); renderLinks(); renderPreview(); }
   });
-  $('editorPhotoRemove').addEventListener('click', () => { photo = ''; renderPhoto(); });
+  $('editorPhotoRemove').addEventListener('click', () => { photo = ''; renderPhoto(); renderPreview(); });
 
   // Centre-crop to a square and shrink, so a phone photo becomes a ~40 KB JPEG.
   $('editorPhotoFile').addEventListener('change', async (e) => {
@@ -459,6 +612,7 @@
       photo = canvas.toDataURL('image/jpeg', 0.85);
       say('editorMsg', '');
       renderPhoto();
+      renderPreview();
     } catch { say('editorMsg', t('account.err_image')); } finally { URL.revokeObjectURL(url); }
   });
 
@@ -473,10 +627,11 @@
         });
         links = saved.social_links.slice();
         renderLinks();
+        renderPreview();
         say('editorMsg', t('account.saved'), true);
       } catch (err) {
         say('editorMsg', err.message);
-        if (err.status === 404) { $('editorCard').hidden = true; await refreshClaims(); }
+        if (err.status === 404) { editing = null; await refreshClaims(); }
       }
     });
   });
@@ -486,16 +641,19 @@
   // drawing anything that calls t(); and redraw the script-built parts when the visitor switches language.
   const i18nReady = () => new Promise((resolve) => {
     let tries = 0;
-    const tick = () => (I18n.t('account.hero_title') !== 'account.hero_title' || tries++ > 40 ? resolve() : setTimeout(tick, 100));
+    const tick = () => (I18n.t('account.court_title') !== 'account.court_title' || tries++ > 40 ? resolve() : setTimeout(tick, 100));
     tick();
   });
   function redraw() {
     if (account) {
-      $('accountHello').textContent = t('account.signed_in_as', { name: account.username });
+      renderBanner();
       renderClaims();
       renderClaimTarget();
+      renderSwitch();
       renderGreen();
-      if (editing) $('editorTitle').textContent = t('account.editor_title', { name: editing.name });
+      renderLinks();
+      renderPreview();
+      renderContactNeeds();
     } else if (target) {
       $('authClaimNote').textContent = t('account.claim_prompt', { name: target.name });
     }

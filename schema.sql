@@ -279,6 +279,7 @@ CREATE TABLE IF NOT EXISTS person_accounts (
     username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
     password_hash TEXT NOT NULL,
     contact_email TEXT,   -- only the review team sees it (never returned by the public API)
+    contact_phone TEXT,   -- ditto; digits with optional leading + (migration 0017)
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
