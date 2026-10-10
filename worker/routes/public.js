@@ -3,6 +3,7 @@ import { parsePagination } from '../lib/helpers.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
 import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
 import { attachBadges } from '../lib/badges.js';
+import { attachGreen } from '../lib/green.js';
 import idolRoutes from './publicIdol.js';
 
 const SONG_COLUMNS = `
@@ -386,7 +387,8 @@ async function listPeople(c, table) {
     )
     .all();
   // Recognition badges (month / year / lifetime), most prestigious first. No ids or awarder.
-  const people = await attachBadges(c.env.DB, rows.results, table.replace(/s$/, ''));
+  const type = table.replace(/s$/, '');
+  const people = await attachGreen(c.env.DB, await attachBadges(c.env.DB, rows.results, type), type);
   return c.json({ [table]: people, total: people.length });
 }
 
@@ -404,7 +406,7 @@ async function getPerson(c, table, junctionTable, junctionFk) {
     .bind(person.id)
     .all();
 
-  const [withBadges] = await attachBadges(db, [person], table.replace(/s$/, ''));
+  const [withBadges] = await attachGreen(db, await attachBadges(db, [person], table.replace(/s$/, '')), table.replace(/s$/, ''));
   // Whether someone already owns this profile (hides the "Claim this profile" link). Nothing about who.
   // (Tolerates the table not existing yet: Pages/Worker deploy on push, migrations are run by hand.)
   let owner = null;

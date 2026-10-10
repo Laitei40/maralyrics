@@ -26,6 +26,7 @@ import { logAudit } from '../lib/audit.js';
 import { validateBadgeInput, attachBadges } from '../lib/badges.js';
 import { idolSeasonsApp, idolContestantsApp } from './adminIdol.js';
 import claimsApp from './adminClaims.js';
+import greenApp from './adminGreen.js';
 import { AVATARS } from '../lib/avatars.js';
 import { isSafeLinkUrl, isSafeImageUrl, validateSocialLinks } from '../lib/profile.js';
 import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
@@ -655,6 +656,7 @@ app.route('/supporters', supApp);
 
 // ── Mara Idol seasons + contestants (see adminIdol.js) ──
 app.route('/claims', claimsApp);
+app.route('/green', greenApp);
 app.route('/idol-seasons', idolSeasonsApp);
 app.route('/idol-contestants', idolContestantsApp);
 

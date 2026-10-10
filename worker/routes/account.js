@@ -4,6 +4,7 @@ import { signPersonToken, requirePerson } from '../lib/personAuth.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
 import { validateOwnerEdit } from '../lib/profile.js';
 import { logAudit } from '../lib/audit.js';
+import { loadOffer, validateOrderInput } from '../lib/green.js';
 
 // Artist / composer accounts, mounted at /api/v1/account. Anyone can register an account, but an account can
 // change nothing until a Manager / Super Admin approves a claim on a profile (see adminClaims.js).
@@ -13,6 +14,8 @@ import { logAudit } from '../lib/audit.js';
 //   POST   /claims                         → ask to claim an artist / composer profile (pending review)
 //   DELETE /claims/:id                     → withdraw a pending claim
 //   GET    /claims/:id/profile  PUT …      → read / edit an APPROVED claim's profile (bio, photo, social links)
+//   GET    /green                          → Green mark: plans, how to pay, my profiles' marks and my orders
+//   POST   /green/orders  DELETE /green/orders/:id   → order a plan (reviewed by a Super Admin) / cancel a pending order
 const app = new Hono();
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9._-]{2,29}$/;
@@ -84,6 +87,8 @@ app.use('/me', requirePerson);
 app.use('/change-password', requirePerson);
 app.use('/claims', requirePerson);
 app.use('/claims/*', requirePerson);
+app.use('/green', requirePerson);
+app.use('/green/*', requirePerson);
 
 async function loadClaims(db, accountId) {
   const rows = await db
@@ -222,6 +227,88 @@ app.put('/claims/:id/profile', async (c) => {
   }
   const fresh = await c.env.DB.prepare(`SELECT id, name, slug, bio, image_url, social_links FROM ${owned.table} WHERE id = ?`).bind(before.id).first();
   return c.json(profileView({ type: owned.type, profile: fresh }));
+});
+
+// ── Green mark ──────────────────────────────────────────────────────────────────────
+const MAX_ORDERS_PER_DAY = 5;
+
+app.get('/green', async (c) => {
+  const db = c.env.DB;
+  const person = c.get('person');
+  const offer = await loadOffer(db);
+  // Only profiles this account owns (approved claim) can get a mark.
+  const profiles = (await db
+    .prepare(
+      `SELECT c.id AS claim_id,
+              CASE WHEN c.artist_id IS NOT NULL THEN 'artist' ELSE 'composer' END AS type,
+              COALESCE(a.name, p.name) AS name, COALESCE(a.slug, p.slug) AS slug,
+              COALESCE(ma.expires_at, mp.expires_at) AS expires_at,
+              (COALESCE(ma.expires_at, mp.expires_at) > datetime('now')) AS active,
+              EXISTS (SELECT 1 FROM green_orders o WHERE o.account_id = c.account_id AND o.status = 'pending'
+                        AND ((c.artist_id IS NOT NULL AND o.artist_id = c.artist_id) OR (c.composer_id IS NOT NULL AND o.composer_id = c.composer_id))) AS has_pending
+       FROM person_claims c
+       LEFT JOIN artists a ON a.id = c.artist_id LEFT JOIN composers p ON p.id = c.composer_id
+       LEFT JOIN green_marks ma ON ma.artist_id = c.artist_id LEFT JOIN green_marks mp ON mp.composer_id = c.composer_id
+       WHERE c.account_id = ? AND c.status = 'approved' ORDER BY name COLLATE NOCASE`
+    )
+    .bind(person.id)
+    .all()).results.map((r) => ({ ...r, active: !!r.active, has_pending: !!r.has_pending, expires_at: r.expires_at || null }));
+  const orders = (await db
+    .prepare(
+      `SELECT o.id, o.months, o.amount_cents, o.currency, o.method, o.reference, o.status, o.review_note, o.created_at,
+              COALESCE(a.name, p.name) AS name
+       FROM green_orders o LEFT JOIN artists a ON a.id = o.artist_id LEFT JOIN composers p ON p.id = o.composer_id
+       WHERE o.account_id = ? ORDER BY o.created_at DESC, o.id DESC LIMIT 50`
+    )
+    .bind(person.id)
+    .all()).results;
+  return c.json({ ...offer, profiles, orders });
+});
+
+app.post('/green/orders', async (c) => {
+  const db = c.env.DB;
+  const person = c.get('person');
+  const data = await c.req.json().catch(() => ({}));
+  const parsed = validateOrderInput(data);
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+  const { months, reference, note, receipt } = parsed.values;
+
+  // The profile must be one this account owns right now.
+  const claimRef = Number(data.claim_id);
+  const claim = Number.isInteger(claimRef) && claimRef > 0
+    ? await db.prepare(`SELECT artist_id, composer_id FROM person_claims WHERE id = ? AND account_id = ? AND status = 'approved'`).bind(claimRef, person.id).first()
+    : null;
+  if (!claim) return c.json({ error: 'Choose one of your approved profiles' }, 404);
+
+  const offer = await loadOffer(db);
+  const plan = offer.plans.find((p) => p.months === months);
+  if (!plan) return c.json({ error: 'That plan is not available right now' }, 400);
+
+  const recent = await db.prepare(`SELECT COUNT(*) AS n FROM green_orders WHERE account_id = ? AND created_at > datetime('now', '-1 day')`).bind(person.id).first();
+  if (recent.n >= MAX_ORDERS_PER_DAY) return c.json({ error: 'Too many orders today. Try again tomorrow.' }, 429);
+
+  const fk = claim.artist_id ? 'artist_id' : 'composer_id';
+  try {
+    const result = await db
+      .prepare(`INSERT INTO green_orders (account_id, ${fk}, months, amount_cents, currency, method, reference, note, receipt) VALUES (?, ?, ?, ?, ?, 'manual', ?, ?, ?)`)
+      .bind(person.id, claim.artist_id ?? claim.composer_id, months, plan.price_cents, offer.currency, reference, note, receipt)
+      .run();
+    return c.json({ id: result.meta.last_row_id, status: 'pending', months, amount_cents: plan.price_cents, currency: offer.currency }, 201);
+  } catch (err) {
+    if (/UNIQUE/i.test(String(err.message))) return c.json({ error: 'You already have an order waiting for review for this profile' }, 409);
+    throw err;
+  }
+});
+
+app.delete('/green/orders/:id', async (c) => {
+  const id = claimId(c);
+  if (!id) return c.json({ error: 'Not found' }, 404);
+  const result = await c.env.DB
+    .prepare(`UPDATE green_orders SET status = 'cancelled' WHERE id = ? AND account_id = ? AND status = 'pending'`)
+    .bind(id, c.get('person').id)
+    .run();
+  if (result.meta.changes === 0) return c.json({ error: 'Not found' }, 404);
+  return c.json({ success: true });
 });
 
 export default app;

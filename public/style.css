@@ -5654,3 +5654,24 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 [data-theme="light"] .account-form .form-input:focus { background: #fff; border-color: var(--accent); }
 [data-theme="light"] .account-form select.form-input option { background: #fff; }
 .account-link-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 40px; height: 40px; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
+
+/* ─── Green mark ────────────────────────────────── */
+.green-mark { display: inline-block; width: 0.95em; height: 0.95em; margin-left: 0.3em; vertical-align: -0.1em; color: #22c55e; flex: none; }
+.green-mark svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.45)); }
+.person-card__name .green-mark { width: 1em; height: 1em; }
+.green-plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-sm); }
+.green-plan { position: relative; display: flex; flex-direction: column; gap: 2px; padding: var(--space-md); border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.green-plan:hover { border-color: rgba(34, 197, 94, 0.6); }
+.green-plan input { position: absolute; opacity: 0; pointer-events: none; }
+.green-plan:has(input:checked) { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
+.green-plan:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.green-plan__name { font-weight: 700; }
+.green-plan__price { color: var(--text-secondary); font-size: var(--text-sm); }
+.green-howto { margin: 0; padding: var(--space-md); border-radius: var(--radius-md); border: 1px dashed rgba(34, 197, 94, 0.5); background: rgba(34, 197, 94, 0.06); white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); }
+.green-howto a { color: var(--accent-light); text-decoration: underline; }
+.green-status { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; padding: var(--space-md); border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); }
+.green-status__name { font-weight: 700; }
+.green-status__state { color: var(--text-secondary); font-size: var(--text-sm); margin-left: auto; }
+.green-status--active .green-status__state { color: #34d399; font-weight: 600; }
+.account-subtitle--sm { margin-top: var(--space-lg); font-size: var(--text-base); }
+.green-receipt { border-radius: var(--radius-md); }

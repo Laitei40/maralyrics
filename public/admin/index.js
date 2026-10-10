@@ -137,6 +137,7 @@ const CAN_MANAGE_BADGES = ['super_admin']; // awarding/removing artist & compose
 const CAN_MANAGE_ADMIN_USERS = ['manager', 'super_admin'];
 const CAN_MANAGE_IDOL = ['editor', 'manager', 'super_admin']; // Mara Idol seasons & idols — create/edit
 const CAN_DELETE_IDOL = ['manager', 'super_admin'];
+const CAN_MANAGE_GREEN = ['super_admin']; // Green mark: prices, payment review, granting/removing marks (money)
 const CAN_REVIEW_CLAIMS = ['manager', 'super_admin']; // approving a claim hands someone edit rights over a public profile
 // Kept in sync with worker/lib/permissions.js (this file can't import it — plain <script>, not a module).
 const CAN_CREATE_ARTICLE  = ['editor', 'manager', 'super_admin'];
@@ -192,6 +193,7 @@ const ROLE_TABS = {
   articles: ROLES_ALL,
   'mara-idol': ROLES_ALL,
   claims: CAN_REVIEW_CLAIMS,
+  green: CAN_MANAGE_GREEN,
   supporters: CAN_MANAGE_REFERENCE_DATA,
   reports: ['translator', 'reviewer', 'editor', 'manager', 'super_admin'],
   revisions: ['reviewer', 'manager', 'super_admin'],
@@ -651,6 +653,7 @@ function switchTab(tab) {
   if (tab === 'supporters') loadSupporters();
   if (tab === 'mara-idol') loadIdol();
   if (tab === 'claims') loadClaims();
+  if (tab === 'green') loadGreenAdmin();
   if (tab === 'admins') loadAdminUsers();
   if (tab === 'revisions') loadRevisions();
   if (tab === 'auditlog') loadAuditLog();
@@ -2469,6 +2472,214 @@ async function submitClaimReview(e) {
 window.openClaimReview = openClaimReview;
 
 // ═══════════════════════════════════════════════════
+// ═══ GREEN MARK (super admin only — money) ════════
+// ═══════════════════════════════════════════════════
+
+let greenSettings = null;
+let greenOrders = [];
+let greenMarks = [];
+const GREEN_PLAN_LABEL = { 1: '1 month', 3: '3 months', 6: '6 months', 12: '1 year', 36: '3 years' };
+const GREEN_STATUS_LABEL = { pending: 'Waiting for review', approved: 'Approved', rejected: 'Not approved', cancelled: 'Cancelled' };
+const GREEN_STATUS_CLASS = { pending: 'pending', approved: 'published', rejected: 'archived', cancelled: 'archived' };
+
+function greenMoney(cents, currency) {
+  try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(cents / 100); } catch { return `${(cents / 100).toFixed(2)} ${currency}`; }
+}
+
+async function loadGreenAdmin() {
+  const status = document.getElementById('greenOrderFilter').value;
+  document.getElementById('greenOrdersBody').innerHTML = AdminUI.loadingRows(6);
+  document.getElementById('greenMarksBody').innerHTML = AdminUI.loadingRows(4);
+  try {
+    const [settings, orders, marks] = await Promise.all([
+      apiGet(`${ADMIN_API}/green/settings`),
+      apiGet(`${ADMIN_API}/green/orders${status ? `?status=${status}` : ''}`),
+      apiGet(`${ADMIN_API}/green/marks`),
+    ]);
+    greenSettings = settings;
+    greenOrders = orders.orders || [];
+    greenMarks = marks.marks || [];
+    renderGreenSettings();
+    renderGreenOrders();
+    renderGreenMarks();
+    renderGreenGrantProfiles();
+    if (!status || status === 'pending') setGreenTabCount(greenOrders.filter((o) => o.status === 'pending').length);
+  } catch (err) {
+    const msg = `<tr><td colspan="6" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
+    document.getElementById('greenOrdersBody').innerHTML = msg;
+    document.getElementById('greenMarksBody').innerHTML = msg;
+  }
+}
+
+function setGreenTabCount(n) {
+  const tab = document.querySelector('.admin__tab[data-tab="green"]');
+  if (tab) tab.textContent = n > 0 ? `Green Mark (${n})` : 'Green Mark';
+}
+async function refreshGreenTabCount() {
+  if (!hasRole(...CAN_MANAGE_GREEN)) return;
+  try { setGreenTabCount(((await apiGet(`${ADMIN_API}/green/orders?status=pending`)).orders || []).length); } catch { /* the badge is optional */ }
+}
+
+function renderGreenSettings() {
+  document.getElementById('greenCurrency').value = greenSettings.currency;
+  document.getElementById('greenInstructions').value = greenSettings.payment_instructions;
+  document.getElementById('greenPlansBody').innerHTML = greenSettings.plans.map((p) => `
+    <tr data-months="${p.months}">
+      <td>${GREEN_PLAN_LABEL[p.months]}</td>
+      <td><input type="text" inputmode="decimal" class="form-input form-input--sm green-plan-price" value="${escapeHtml(p.price)}" placeholder="not set" style="width:120px;" aria-label="Price for ${GREEN_PLAN_LABEL[p.months]}" /></td>
+      <td><label><input type="checkbox" class="green-plan-enabled"${p.enabled ? ' checked' : ''} /> Offered to artists</label></td>
+    </tr>`).join('');
+}
+
+async function saveGreenSettings(e) {
+  e.preventDefault();
+  const msg = document.getElementById('greenSettingsMessage');
+  msg.style.display = 'none';
+  const body = {
+    currency: document.getElementById('greenCurrency').value,
+    payment_instructions: document.getElementById('greenInstructions').value,
+    plans: [...document.querySelectorAll('#greenPlansBody tr')].map((tr) => ({
+      months: Number(tr.dataset.months),
+      price: tr.querySelector('.green-plan-price').value.trim(),
+      enabled: tr.querySelector('.green-plan-enabled').checked,
+    })),
+  };
+  const btn = document.getElementById('greenSettingsSave');
+  btn.disabled = true;
+  try {
+    greenSettings = await apiPut(`${ADMIN_API}/green/settings`, body, { success: 'Plans saved.' });
+    renderGreenSettings();
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.className = 'form-message form-message--error';
+    msg.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderGreenOrders() {
+  const tbody = document.getElementById('greenOrdersBody');
+  if (!greenOrders.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="admin-table__empty">No orders here.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = greenOrders.map((o) => `
+    <tr data-id="${o.id}">
+      <td><div class="admin-table__title">${escapeHtml(o.name)}</div><div class="admin-table__slug">${escapeHtml(o.type)}</div></td>
+      <td><div class="admin-table__title">${escapeHtml(o.buyer)}</div><div class="admin-table__slug">${o.buyer_email ? escapeHtml(o.buyer_email) : 'no email'}</div><div class="admin-table__slug">${escapeHtml(formatDate(o.created_at))}</div></td>
+      <td><div class="admin-table__title">${GREEN_PLAN_LABEL[o.months] || o.months + ' months'}</div><div class="admin-table__slug">${escapeHtml(greenMoney(o.amount_cents, o.currency))}</div></td>
+      <td><div class="claim-evidence">${escapeHtml(o.reference)}</div>${o.note ? `<div class="admin-table__slug">${escapeHtml(o.note)}</div>` : ''}${o.has_receipt ? '<div class="admin-table__slug">📎 receipt attached</div>' : ''}</td>
+      <td><span class="status-badge status-badge--${GREEN_STATUS_CLASS[o.status] || 'archived'}">${escapeHtml(GREEN_STATUS_LABEL[o.status] || o.status)}</span>${o.reviewed_by_username ? `<div class="admin-table__slug">by ${escapeHtml(o.reviewed_by_username)}</div>` : ''}${o.review_note ? `<div class="admin-table__slug">Note: ${escapeHtml(o.review_note)}</div>` : ''}</td>
+      <td><div class="admin-table__actions"><button class="btn btn--sm ${o.status === 'pending' ? 'btn--primary' : 'btn--ghost'}" onclick="openGreenOrder(${o.id})">${o.status === 'pending' ? 'Review' : 'View'}</button></div></td>
+    </tr>`).join('');
+}
+
+async function openGreenOrder(id) {
+  const o = greenOrders.find((x) => x.id === id);
+  if (!o) return;
+  document.getElementById('greenOrderId').value = id;
+  document.getElementById('greenOrderModalTitle').textContent = `Order #${id} — ${o.name}`;
+  document.getElementById('greenOrderDetails').innerHTML = `
+    <dt>Buyer</dt><dd>${escapeHtml(o.buyer)}${o.buyer_email ? ` · ${escapeHtml(o.buyer_email)}` : ''}</dd>
+    <dt>Plan</dt><dd>${GREEN_PLAN_LABEL[o.months] || o.months + ' months'} · <strong>${escapeHtml(greenMoney(o.amount_cents, o.currency))}</strong></dd>
+    <dt>Reference</dt><dd>${escapeHtml(o.reference)}</dd>
+    ${o.note ? `<dt>Note</dt><dd>${escapeHtml(o.note)}</dd>` : ''}
+    <dt>Current mark</dt><dd>${o.mark_expires_at ? `until ${escapeHtml(formatDate(o.mark_expires_at))}` : 'none'}</dd>
+    <dt>Status</dt><dd>${escapeHtml(GREEN_STATUS_LABEL[o.status] || o.status)}</dd>`;
+  const pending = o.status === 'pending';
+  document.getElementById('greenOrderApprove').style.display = pending ? '' : 'none';
+  document.getElementById('greenOrderReject').style.display = pending ? '' : 'none';
+  document.getElementById('greenOrderNote').parentElement.style.display = pending ? '' : 'none';
+  document.getElementById('greenOrderNote').value = '';
+  document.getElementById('greenOrderMessage').style.display = 'none';
+  document.getElementById('greenOrderReceiptBox').style.display = 'none';
+  document.getElementById('greenOrderModal').style.display = 'flex';
+  if (o.has_receipt) {
+    try {
+      const full = await apiGet(`${ADMIN_API}/green/orders/${id}`);
+      if (full.receipt && /^data:image\//i.test(full.receipt)) {
+        document.getElementById('greenOrderReceipt').src = full.receipt;
+        document.getElementById('greenOrderReceiptBox').style.display = '';
+      }
+    } catch { /* the receipt is optional context */ }
+  }
+}
+function closeGreenOrderModal() {
+  const m = document.getElementById('greenOrderModal');
+  if (m) m.style.display = 'none';
+  const img = document.getElementById('greenOrderReceipt');
+  if (img) img.removeAttribute('src');
+}
+
+async function reviewGreenOrder(action) {
+  const id = document.getElementById('greenOrderId').value;
+  const note = document.getElementById('greenOrderNote').value.trim();
+  const msg = document.getElementById('greenOrderMessage');
+  if (action === 'reject' && !note) {
+    msg.textContent = 'A note is required to reject — the buyer will see it.';
+    msg.className = 'form-message form-message--error';
+    msg.style.display = 'block';
+    return;
+  }
+  const buttons = ['greenOrderApprove', 'greenOrderReject'].map((b) => document.getElementById(b));
+  buttons.forEach((b) => { b.disabled = true; });
+  try {
+    await apiPut(`${ADMIN_API}/green/orders/${id}/${action}`, { note }, { success: action === 'approve' ? 'Order approved — Green mark is on.' : 'Order rejected.' });
+    closeGreenOrderModal();
+    loadGreenAdmin();
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.className = 'form-message form-message--error';
+    msg.style.display = 'block';
+  } finally {
+    buttons.forEach((b) => { b.disabled = false; });
+  }
+}
+
+function renderGreenMarks() {
+  const tbody = document.getElementById('greenMarksBody');
+  if (!greenMarks.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="admin-table__empty">No Green marks yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = greenMarks.map((m) => `
+    <tr data-id="${m.id}">
+      <td><div class="admin-table__title">${escapeHtml(m.name)}</div><div class="admin-table__slug">${escapeHtml(m.type)}</div></td>
+      <td><span class="status-badge status-badge--${m.active ? 'published' : 'archived'}">${m.active ? 'Active' : 'Expired'}</span></td>
+      <td>${escapeHtml(formatDate(m.expires_at))}</td>
+      <td><div class="admin-table__actions"><button class="btn btn--sm btn--ghost btn--danger-text" onclick="removeGreenMark(${m.id})">Remove</button></div></td>
+    </tr>`).join('');
+}
+
+function renderGreenGrantProfiles() {
+  const type = document.getElementById('greenGrantType').value;
+  const list = type === 'artist' ? allArtists : allComposers;
+  document.getElementById('greenGrantProfile').innerHTML = list.map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+}
+
+async function grantGreenMark(e) {
+  e.preventDefault();
+  const id = Number(document.getElementById('greenGrantProfile').value);
+  if (!id) { AdminUI.alertToast('Choose a profile.'); return; }
+  try {
+    await apiPost(`${ADMIN_API}/green/marks`, { type: document.getElementById('greenGrantType').value, id, months: Number(document.getElementById('greenGrantMonths').value) }, { success: 'Green mark granted.' });
+    loadGreenAdmin();
+  } catch (err) { AdminUI.alertToast(err.message); }
+}
+
+async function removeGreenMark(id) {
+  const m = greenMarks.find((x) => x.id === id);
+  if (!m || !window.confirm(`Remove the Green mark from ${m.name}?`)) return;
+  try {
+    await apiDelete(`${ADMIN_API}/green/marks/${id}`, { success: 'Green mark removed.' });
+    loadGreenAdmin();
+  } catch (err) { AdminUI.alertToast(err.message); }
+}
+window.openGreenOrder = openGreenOrder;
+window.removeGreenMark = removeGreenMark;
+
+// ═══════════════════════════════════════════════════
 // ═══ ADMIN USERS (super_admin only) ═══════════════
 // ═══════════════════════════════════════════════════
 
@@ -2765,6 +2976,14 @@ function initDashboard() {
   document.getElementById('btnNewSupporter').addEventListener('click', openNewSupporter);
   document.getElementById('supporterForm').addEventListener('submit', saveSupporter);
   ['supModalClose', 'supBackdrop', 'supBtnCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeSupporterModal));
+  document.getElementById('greenSettingsForm').addEventListener('submit', saveGreenSettings);
+  document.getElementById('greenOrderFilter').addEventListener('change', loadGreenAdmin);
+  document.getElementById('greenGrantForm').addEventListener('submit', grantGreenMark);
+  document.getElementById('greenGrantType').addEventListener('change', renderGreenGrantProfiles);
+  document.getElementById('greenOrderApprove').addEventListener('click', () => reviewGreenOrder('approve'));
+  document.getElementById('greenOrderReject').addEventListener('click', () => reviewGreenOrder('reject'));
+  ['greenOrderClose', 'greenOrderBackdrop', 'greenOrderCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeGreenOrderModal));
+  refreshGreenTabCount();
   document.getElementById('claimFilterStatus').addEventListener('change', loadClaims);
   document.getElementById('claimReviewForm').addEventListener('submit', submitClaimReview);
   ['claimModalClose', 'claimBackdrop', 'claimReviewCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeClaimModal));
@@ -2924,6 +3143,7 @@ function initDashboard() {
       closeIdolSeasonModal();
       closeIdolModal();
       closeClaimModal();
+      closeGreenOrderModal();
       closeDeleteModal();
       closeFeedbackModal();
       closeRevisionModal();

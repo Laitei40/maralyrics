@@ -150,6 +150,7 @@
     $('accountHello').textContent = t('account.signed_in_as', { name: account.username });
     if (account.contact_email && !$('claimEmail').value) $('claimEmail').value = account.contact_email;
     renderClaims();
+    loadGreen();
     renderTurnstile('claimTurnstile');
     renderClaimTarget();
   }
@@ -203,6 +204,7 @@
     const me = await api('GET', '/me');
     claims = me.claims;
     renderClaims();
+    loadGreen();
   }
 
   // ── Claim form ──────────────────────────────────
@@ -259,6 +261,124 @@
         await refreshClaims();
       } catch (err) { say('claimMsg', err.message); }
       turnstileReset('claimTurnstile');
+    });
+  });
+
+  // ── Green mark ──────────────────────────────────
+  // Plans and prices are set by the Super Admin; an order is paid outside the site and checked by hand.
+  const greenState = { offer: null, receipt: '' };
+  const PLAN_KEY = { 1: 'green.plan_1', 3: 'green.plan_3', 6: 'green.plan_6', 12: 'green.plan_12', 36: 'green.plan_36' };
+  const planName = (months) => t(PLAN_KEY[months] || 'green.plan_1');
+  const money = (cents, currency) => {
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(cents / 100); } catch { return `${(cents / 100).toFixed(2)} ${currency}`; }
+  };
+  const fmtDate = (sqlDate) => new Date(`${String(sqlDate).replace(' ', 'T')}Z`).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  // The how-to-pay text is written by the site owner, but is still escaped; only http(s) links are made clickable.
+  const linkify = (text) => esc(text).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer nofollow">${u}</a>`);
+  const ORDER_STATUS_KEY = { pending: 'green.status_pending', approved: 'green.status_approved', rejected: 'green.status_rejected', cancelled: 'green.status_cancelled' };
+
+  async function loadGreen() {
+    const hasApproved = claims.some((c) => c.status === 'approved');
+    $('greenCard').hidden = !hasApproved;
+    if (!hasApproved) return;
+    try { greenState.offer = await api('GET', '/green'); } catch { $('greenCard').hidden = true; return; } // not available yet (e.g. before the migration)
+    renderGreen();
+  }
+
+  function renderGreen() {
+    const offer = greenState.offer;
+    if (!offer) return;
+    $('greenProfiles').innerHTML = offer.profiles.map((p) => `
+      <div class="green-status${p.active ? ' green-status--active' : ''}">
+        <span class="green-status__name">${esc(p.name)}${p.active ? GreenMark.html() : ''}</span>
+        <span class="green-status__state">${esc(p.has_pending ? t('green.pending_order') : p.active ? t('green.active_until', { date: fmtDate(p.expires_at) }) : t('green.not_active'))}</span>
+      </div>`).join('');
+
+    const canOrder = offer.plans.length > 0 && offer.profiles.length > 0;
+    $('greenNoPlans').hidden = offer.plans.length > 0;
+    $('greenForm').hidden = !canOrder;
+    if (canOrder) {
+      const chosenProfile = $('greenProfile').value;
+      $('greenProfile').innerHTML = offer.profiles.map((p) => `<option value="${Number(p.claim_id)}"${p.has_pending ? ' disabled' : ''}>${esc(p.name)}${p.has_pending ? ` — ${esc(t('green.pending_order'))}` : ''}</option>`).join('');
+      if (chosenProfile && [...$('greenProfile').options].some((o) => o.value === chosenProfile && !o.disabled)) $('greenProfile').value = chosenProfile;
+      else $('greenProfile').value = (offer.profiles.find((p) => !p.has_pending) || {}).claim_id ?? '';
+      $('greenProfileRow').hidden = offer.profiles.length < 2;
+      const chosenPlan = (document.querySelector('input[name="greenPlan"]:checked') || {}).value;
+      $('greenPlans').innerHTML = offer.plans.map((p, i) => `
+        <label class="green-plan">
+          <input type="radio" name="greenPlan" value="${Number(p.months)}"${(chosenPlan ? String(p.months) === chosenPlan : i === 0) ? ' checked' : ''} />
+          <span class="green-plan__name">${esc(planName(p.months))}</span>
+          <span class="green-plan__price">${esc(money(p.price_cents, offer.currency))}</span>
+        </label>`).join('');
+      $('greenHowTo').innerHTML = offer.payment_instructions ? linkify(offer.payment_instructions) : esc(t('green.no_instructions'));
+    }
+
+    $('greenNoOrders').hidden = offer.orders.length > 0;
+    $('greenOrders').innerHTML = offer.orders.map((o) => `
+      <article class="account-claim account-claim--${esc(o.status === 'approved' ? 'approved' : o.status === 'pending' ? 'pending' : 'rejected')}" data-order="${Number(o.id)}">
+        <div class="account-claim__main">
+          <span class="account-claim__name">${esc(o.name)}</span>
+          <span class="account-claim__type">${esc(t('green.order_line', { plan: planName(o.months), amount: money(o.amount_cents, o.currency) }))}</span>
+          <span class="account-chip account-chip--${esc(o.status === 'approved' ? 'approved' : o.status === 'pending' ? 'pending' : 'rejected')}">${esc(t(ORDER_STATUS_KEY[o.status] || o.status))}</span>
+        </div>
+        ${o.review_note ? `<p class="account-claim__note">${esc(t('account.note_from_team', { note: o.review_note }))}</p>` : ''}
+        ${o.status === 'pending' ? `<div class="account-claim__actions"><button type="button" class="btn btn--ghost btn--sm" data-cancel-order="${Number(o.id)}">${esc(t('green.cancel_order'))}</button></div>` : ''}
+      </article>`).join('');
+  }
+
+  $('greenOrders').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-cancel-order]');
+    if (!btn || !window.confirm(t('green.cancel_confirm'))) return;
+    try { await api('DELETE', `/green/orders/${btn.dataset.cancelOrder}`); await loadGreen(); } catch (err) { Toast.show(err.message, { type: 'error' }); }
+  });
+
+  // A receipt photo is shrunk (max 1000 px, JPEG) so it stays small enough to send and store.
+  function setReceipt(dataUrl) {
+    greenState.receipt = dataUrl || '';
+    const box = $('greenReceiptPreview');
+    box.innerHTML = dataUrl ? `<img src="${esc(dataUrl)}" alt="" />` : '';
+    box.hidden = !dataUrl;
+    $('greenReceiptRemove').hidden = !dataUrl;
+  }
+  $('greenReceiptRemove').addEventListener('click', () => setReceipt(''));
+  $('greenReceiptFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!/^image\//.test(file.type) || file.size > MAX_PHOTO_FILE_BYTES) { say('greenMsg', t('green.err_receipt')); return; }
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = url; });
+      const scale = Math.min(1, 1000 / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      let out = '';
+      for (const q of [0.8, 0.65, 0.5, 0.35]) { out = canvas.toDataURL('image/jpeg', q); if (out.length < 250000) break; }
+      say('greenMsg', '');
+      setReceipt(out);
+    } catch { say('greenMsg', t('green.err_receipt')); } finally { URL.revokeObjectURL(url); }
+  });
+
+  $('greenForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    say('greenMsg', '');
+    const months = Number((document.querySelector('input[name="greenPlan"]:checked') || {}).value);
+    await busy($('greenSubmit'), async () => {
+      try {
+        await api('POST', '/green/orders', {
+          claim_id: Number($('greenProfile').value), months, reference: $('greenReference').value, note: $('greenNote').value, receipt: greenState.receipt,
+        });
+        $('greenReference').value = '';
+        $('greenNote').value = '';
+        setReceipt('');
+        say('greenMsg', t('green.sent'), true);
+        await loadGreen();
+      } catch (err) { say('greenMsg', err.message); }
     });
   });
 
@@ -374,6 +494,7 @@
       $('accountHello').textContent = t('account.signed_in_as', { name: account.username });
       renderClaims();
       renderClaimTarget();
+      renderGreen();
       if (editing) $('editorTitle').textContent = t('account.editor_title', { name: editing.name });
     } else if (target) {
       $('authClaimNote').textContent = t('account.claim_prompt', { name: target.name });
