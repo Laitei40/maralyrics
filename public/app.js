@@ -2953,8 +2953,40 @@ const Idol = {
       frame.allowFullscreen = true;
       frame.referrerPolicy = 'strict-origin-when-cross-origin';
       frame.className = 'idol-video__frame';
-      btn.replaceWith(frame);
+      // The title goes away while the video is being watched and comes back as a caption over the player's
+      // top edge once the visitor moves on (clicks elsewhere or starts another video). The video keeps playing.
+      const stage = document.createElement('div');
+      stage.className = 'idol-video__stage';
+      const caption = document.createElement('span');
+      caption.className = 'idol-video__caption';
+      caption.setAttribute('aria-hidden', 'true');
+      caption.textContent = btn.dataset.title || '';
+      stage.append(frame, caption);
+      btn.replaceWith(stage);
+      this.activateStage(stage);
     });
+    this.bindVideoFocus();
+  },
+
+  /** Marks one player as the active one (caption hidden); every other player shows its caption again. */
+  activateStage(stage) {
+    document.querySelectorAll('.idol-video__stage').forEach((s) => s.classList.toggle('is-active', s === stage));
+  },
+
+  /** Page-wide: a click outside any player, or focus moving into another player's iframe, decides which one is active. */
+  bindVideoFocus() {
+    if (this._videoFocusBound) return;
+    this._videoFocusBound = true;
+    // Clicking somewhere else on the page → no player is active → captions come back.
+    document.addEventListener('pointerdown', (e) => {
+      if (!e.target.closest('.idol-video__stage, button.idol-video__play')) this.activateStage(null);
+    }, true);
+    // A click inside the YouTube iframe never reaches this page, but it moves focus into the iframe, which fires
+    // `blur` on the window (deferred one tick so document.activeElement is up to date).
+    window.addEventListener('blur', () => setTimeout(() => {
+      const frame = document.activeElement;
+      if (frame && frame.classList && frame.classList.contains('idol-video__frame')) this.activateStage(frame.parentNode);
+    }, 0));
   },
 
   /** Card for one idol (index "All Idols" tab and season pages). */
