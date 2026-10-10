@@ -245,3 +245,24 @@
   .royal-tab { padding: 11px 16px; font-size: 1.15rem; }
   .royal-status__state { margin-left: 0; width: 100%; }
 }
+
+/* ── Rich-text bio editor (rich-text.js) ── */
+.royal .rte-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px; border: 1px solid var(--r-field-edge); border-bottom: 0; border-radius: 12px 12px 0 0; background: rgba(217, 180, 74, 0.08); }
+.royal .rte-toolbar__btn { display: inline-grid; place-items: center; min-width: 36px; height: 36px; padding: 0 8px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--r-ink); font: inherit; font-size: 1rem; cursor: pointer; transition: background .15s, border-color .15s; }
+.royal .rte-toolbar__btn:hover { background: rgba(217, 180, 74, 0.16); }
+.royal .rte-toolbar__btn.active { color: #2b1a05; background: linear-gradient(180deg, var(--r-gold-hi), var(--r-gold)); }
+.royal .rte-toolbar__btn:focus-visible { outline: 2px solid var(--r-gold); outline-offset: 1px; }
+.royal .rte-toolbar__btn:disabled { opacity: .45; cursor: not-allowed; }
+.royal .rte-toolbar__sep { align-self: stretch; width: 1px; margin: 4px 3px; background: var(--r-field-edge); }
+.royal .rte-editor { min-height: 170px; max-height: 420px; overflow-y: auto; padding: 12px 14px; border: 1px solid var(--r-field-edge); border-radius: 0 0 12px 12px; background: var(--r-field); color: var(--r-ink); line-height: 1.6; cursor: text; overflow-wrap: anywhere; }
+.royal .rte-editor:focus { outline: none; border-color: var(--r-gold); box-shadow: 0 0 0 3px rgba(217, 180, 74, 0.22); }
+.royal .rte-editor.is-empty { position: relative; }
+.royal .rte-editor.is-empty::before { content: attr(data-placeholder); position: absolute; color: var(--r-muted); opacity: .7; pointer-events: none; }
+.royal .rte-hint { color: var(--r-muted); font-size: .82rem; }
+/* The shared look of a bio's content, in the editor, the preview and the public page */
+.royal .rte-editor p, .royal .royal-preview__bio p { margin: 0 0 .8em; }
+.royal .rte-editor p:last-child, .royal .royal-preview__bio p:last-child { margin-bottom: 0; }
+.royal .rte-editor ul, .royal .rte-editor ol, .royal .royal-preview__bio ul, .royal .royal-preview__bio ol { margin: 0 0 .8em; padding-left: 1.4em; text-align: left; }
+.royal .rte-editor blockquote, .royal .royal-preview__bio blockquote { margin: 0 0 .8em; padding: 2px 0 2px 14px; border-left: 3px solid var(--r-gold); color: var(--r-muted); font-style: italic; text-align: left; }
+.royal .rte-editor a, .royal .royal-preview__bio a { color: var(--r-gold); text-decoration: underline; }
+.royal .royal-preview__bio { white-space: normal; }

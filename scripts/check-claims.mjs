@@ -67,7 +67,7 @@ const register = async (username, extra = {}) => {
 
 // ─── Validation (pure) ───────────────────────────────────────────────────────
 console.log('Validation');
-check(validateOwnerEdit({ bio: ' Hello ', social_links: ['https://a.example', 'mailto:me@x.com'] }).values.bio === 'Hello', 'bio trimmed');
+check(validateOwnerEdit({ bio: ' Hello ', social_links: ['https://a.example', 'mailto:me@x.com'] }).values.bio === '<p>Hello</p>', 'bio trimmed and stored as paragraphs');
 check(!validateOwnerEdit({ bio: 'x'.repeat(5001) }).ok, 'bio too long rejected');
 check(!validateOwnerEdit({ image_url: 'javascript:alert(1)' }).ok && !validateOwnerEdit({ image_url: 'data:text/html;base64,AAAA' }).ok, 'unsafe photo rejected');
 check(validateOwnerEdit({ image_url: 'data:image/jpeg;base64,AAAA' }).ok && validateOwnerEdit({ image_url: 'https://img.example.com/a.jpg' }).ok, 'data:image and https photo accepted');
@@ -189,22 +189,22 @@ try { run(`INSERT INTO person_claims (account_id, artist_id, status, evidence) V
 // ─── Editing your profile ────────────────────────────────────────────────────
 console.log('Owner edits');
 const prof = await acct('GET', `/claims/${c1.json.id}/profile`, ann.token);
-check(prof.status === 200 && prof.json.name === 'Ann Artist' && prof.json.bio === 'Original bio' && Array.isArray(prof.json.social_links), 'owner reads the editable profile');
+check(prof.status === 200 && prof.json.name === 'Ann Artist' && prof.json.bio === 'Original bio' && prof.json.bio_html === '<p>Original bio</p>' && Array.isArray(prof.json.social_links), 'owner reads the editable profile');
 check((await acct('GET', `/claims/${c1.json.id}/profile`, bob.token)).status === 404 && (await acct('PUT', `/claims/${c1.json.id}/profile`, bob.token, { bio: 'hijack' })).status === 404, "someone else's account cannot read or edit it");
 check((await acct('PUT', `/claims/${c1.json.id}/profile`, undefined, { bio: 'x' })).status === 401, 'editing needs a login');
 const before = get('SELECT name, slug, updated_at FROM artists WHERE id = 1');
 const edit = await acct('PUT', `/claims/${c1.json.id}/profile`, ann.token, {
   bio: '  New bio from Ann  ', image_url: 'data:image/jpeg;base64,/9j/AAAA', social_links: ['https://youtube.com/@ann', 'mailto:ann@example.com'],
   name: 'Hacked Name', slug: 'hacked-slug' });
-check(edit.status === 200 && edit.json.bio === 'New bio from Ann' && edit.json.social_links.length === 2, 'owner edits bio, photo and social links');
+check(edit.status === 200 && edit.json.bio === '<p>New bio from Ann</p>' && edit.json.social_links.length === 2, 'owner edits bio, photo and social links');
 const after = get('SELECT name, slug, bio, image_url, social_links, updated_at FROM artists WHERE id = 1');
 check(after.name === 'Ann Artist' && after.slug === 'ann-artist', 'name and slug can NOT be changed by an owner (extra fields ignored)');
-check(after.bio === 'New bio from Ann' && after.image_url === 'data:image/jpeg;base64,/9j/AAAA' && JSON.parse(after.social_links)[1] === 'mailto:ann@example.com', 'changes are stored');
+check(after.bio === '<p>New bio from Ann</p>' && after.image_url === 'data:image/jpeg;base64,/9j/AAAA' && JSON.parse(after.social_links)[1] === 'mailto:ann@example.com', 'changes are stored');
 check((await call('GET', '/api/v1/artists/ann-artist')).json.bio === 'New bio from Ann', 'the public profile shows the new bio immediately');
 for (const [label, body] of [['javascript: link', { social_links: ['javascript:alert(1)'] }], ['unsafe photo', { image_url: 'javascript:alert(1)' }], ['long bio', { bio: 'x'.repeat(5001) }]]) {
   check((await acct('PUT', `/claims/${c1.json.id}/profile`, ann.token, body)).status === 400, `owner edit: ${label} → 400`);
 }
-check(get('SELECT bio FROM artists WHERE id = 1').bio === 'New bio from Ann', '…and rejected edits change nothing');
+check(get('SELECT bio FROM artists WHERE id = 1').bio === '<p>New bio from Ann</p>', '…and rejected edits change nothing');
 const log = get(`SELECT admin_id, admin_username, action, target_type, target_id, detail FROM audit_log WHERE action = 'profile.owner_edit'`);
 check(log && log.admin_id === null && log.admin_username === 'artist:ann_singer' && log.target_type === 'artist' && log.target_id === 1 && /bio/.test(log.detail) && /photo/.test(log.detail) && /social links/.test(log.detail), 'the edit is in the audit log as artist:<username> with what changed');
 check(!/data:image/.test(log.detail), 'the audit log names the photo, it does not copy it');
@@ -219,7 +219,7 @@ check((await call('GET', '/api/v1/artists/ben-singer')).json.claimed === false &
 console.log('Revoke');
 check((await adm('PUT', `/claims/${c1.json.id}/revoke`, 'manager', {})).status === 400, 'revoke needs a note');
 check((await adm('PUT', `/claims/${c1.json.id}/revoke`, 'manager', { note: 'Disputed by the artist.' })).status === 200, 'manager revokes ownership');
-check((await acct('PUT', `/claims/${c1.json.id}/profile`, ann.token, { bio: 'still me' })).status === 404 && get('SELECT bio FROM artists WHERE id = 1').bio === 'New bio from Ann', 'after revoking, the old owner can no longer edit (checked on every request)');
+check((await acct('PUT', `/claims/${c1.json.id}/profile`, ann.token, { bio: 'still me' })).status === 404 && get('SELECT bio FROM artists WHERE id = 1').bio === '<p>New bio from Ann</p>', 'after revoking, the old owner can no longer edit (checked on every request)');
 check((await call('GET', '/api/v1/artists/ann-artist')).json.claimed === false, 'the profile is claimable again');
 check((await claim(bob.token, { type: 'artist', slug: 'ann-artist', evidence: 'Verified by phone call' })).status === 201, 'someone else can now claim it');
 check((await adm('PUT', `/claims/${c1.json.id}/revoke`, 'manager', { note: 'again' })).status === 409, 'a revoked claim cannot be revoked again');

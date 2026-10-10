@@ -538,7 +538,27 @@
     $('editorAddLink').hidden = links.length >= MAX_LINKS;
   }
 
-  const countBio = () => { $('editorBioCount').textContent = `${$('editorBio').value.length} / 5000`; };
+  // The bio is rich text (bold, italic, links, lists, new lines) — see /rich-text.js.
+  const BIO_MAX = 5000;
+  const rteLabels = () => ({
+    bold: t('account.rte_bold'), italic: t('account.rte_italic'), underline: t('account.rte_underline'), link: t('account.rte_link'),
+    unlink: t('account.rte_unlink'), ul: t('account.rte_ul'), ol: t('account.rte_ol'), quote: t('account.rte_quote'), clear: t('account.rte_clear'),
+    toolbar: t('account.rte_toolbar'), link_prompt: t('account.rte_link_prompt'), link_invalid: t('account.rte_link_invalid'), hint: t('account.rte_hint'),
+  });
+  let bioRte = null;
+  function mountBio() {
+    if (bioRte) return;
+    bioRte = RichText.mount($('editorBio'), {
+      labels: rteLabels(),
+      placeholder: t('account.bio_ph'),
+      onChange: ({ length }) => { countBio(length); renderPreview(); },
+    });
+  }
+  const countBio = (length = bioRte ? bioRte.getText().length : 0) => {
+    const el = $('editorBioCount');
+    el.textContent = `${length} / ${BIO_MAX}`;
+    el.style.color = length > BIO_MAX ? 'var(--r-danger)' : '';
+  };
 
   /** The "this is how your page will look" card, redrawn on every keystroke. */
   function renderPreview() {
@@ -551,7 +571,7 @@
       <span class="royal-avatar royal-avatar--lg">${avatarHtml(photo, editing.name)}</span>
       <h3 class="royal-preview__name">${esc(editing.name)}${active ? GreenMark.html() : ''}</h3>
       <p class="royal-preview__role">${esc(typeLabel(editing.type))}</p>
-      <p class="royal-preview__bio">${esc($('editorBio').value)}</p>
+      ${bioRte && !bioRte.isEmpty() ? `<div class="royal-preview__bio">${RichText.clean(bioRte.getHtml())}</div>` : ''}
       ${icons ? `<div class="royal-preview__links">${icons}</div>` : ''}`;
     $('bannerAvatar').innerHTML = avatarHtml(photo, editing.name);
   }
@@ -563,7 +583,8 @@
       editing = { claimId: claim.id, type: p.type, slug: p.slug, name: p.name };
       photo = p.image_url || '';
       links = p.social_links.slice();
-      $('editorBio').value = p.bio;
+      mountBio();
+      bioRte.setHtml(p.bio_html || p.bio);
       renderPhoto();
       renderLinks();
       countBio();
@@ -574,7 +595,6 @@
     }
   }
 
-  $('editorBio').addEventListener('input', () => { countBio(); renderPreview(); });
   $('editorAddLink').addEventListener('click', () => { links.push(''); renderLinks(); $('editorLinks').lastElementChild?.querySelector('input').focus(); });
   $('editorLinks').addEventListener('input', (e) => {
     if (e.target.dataset.i === undefined) return;
@@ -623,7 +643,7 @@
     await busy($('editorSave'), async () => {
       try {
         const saved = await api('PUT', `/claims/${editing.claimId}/profile`, {
-          bio: $('editorBio').value, image_url: photo, social_links: links.map((u) => u.trim()).filter(Boolean),
+          bio: bioRte ? bioRte.getHtml() : '', image_url: photo, social_links: links.map((u) => u.trim()).filter(Boolean),
         });
         links = saved.social_links.slice();
         renderLinks();
@@ -645,6 +665,7 @@
     tick();
   });
   function redraw() {
+    if (bioRte) { const html = bioRte.getHtml(); bioRte = null; mountBio(); bioRte.setHtml(html); } // new toolbar tooltips in the chosen language
     if (account) {
       renderBanner();
       renderClaims();

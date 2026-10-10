@@ -4,6 +4,7 @@ import { signPersonToken, requirePerson } from '../lib/personAuth.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
 import { validateOwnerEdit, validateContact } from '../lib/profile.js';
 import { logAudit } from '../lib/audit.js';
+import { bioToHtml, bioPlain } from '../lib/richText.js';
 import { loadOffer, validateOrderInput } from '../lib/green.js';
 
 // Artist / composer accounts, mounted at /api/v1/account. Anyone can register an account, but an account can
@@ -210,7 +211,7 @@ async function ownedProfile(c) {
 }
 
 const profileView = ({ type, profile }) => ({
-  type, name: profile.name, slug: profile.slug, bio: profile.bio || '', image_url: profile.image_url || '',
+  type, name: profile.name, slug: profile.slug, bio: profile.bio || '', bio_html: bioToHtml(profile.bio), image_url: profile.image_url || '',
   social_links: (() => { try { return JSON.parse(profile.social_links || '[]'); } catch { return []; } })(),
 });
 
@@ -235,7 +236,7 @@ app.put('/claims/:id/profile', async (c) => {
 
   // Visible in the admin Audit Log (as "artist:<username>"), with what changed. Photos are named, not copied.
   const changed = [];
-  if ((before.bio || null) !== bio) changed.push(`bio (was: ${String(before.bio || '').slice(0, 120) || '—'})`);
+  if (bioToHtml(before.bio) !== (bio || '')) changed.push(`bio (was: ${bioPlain(before.bio).replace(/\s+/g, ' ').slice(0, 120) || '—'})`);
   if ((before.image_url || null) !== image_url) changed.push('photo');
   if ((before.social_links || null) !== social_links) changed.push(`social links (was: ${before.social_links || '—'})`);
   if (changed.length) {
