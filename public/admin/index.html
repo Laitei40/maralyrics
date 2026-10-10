@@ -103,6 +103,7 @@
       <button class="admin__tab" data-tab="articles">Articles</button>
       <button class="admin__tab" data-tab="mara-idol">Mara Idol</button>
       <button class="admin__tab" data-tab="supporters">Sponsors &amp; Partners</button>
+      <button class="admin__tab" data-tab="claims">Claims</button>
       <button class="admin__tab" data-tab="reports">Reports</button>
       <button class="admin__tab" data-tab="revisions">Revisions</button>
       <button class="admin__tab" data-tab="auditlog">Audit Log</button>
@@ -320,6 +321,42 @@
           </thead>
           <tbody id="idolsTableBody">
             <tr><td colspan="6" class="admin-table__empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══ Claims Tab (profile ownership requests) ═══ -->
+    <div class="admin__panel" id="panelClaims" style="display:none;">
+
+      <div class="admin__topbar">
+        <h1 class="admin__title">Profile Claims</h1>
+      </div>
+      <p class="form-hint" style="margin:0 0 var(--space-md);">Artists and composers ask to manage their own profile. Approving gives them edit rights over the bio, photo and social links (never the name or page address). Check the evidence first &mdash; someone could be claiming a profile that is not theirs.</p>
+
+      <div class="admin__toolbar">
+        <select id="claimFilterStatus" class="form-input form-input--sm" style="width:auto;" aria-label="Filter by status">
+          <option value="pending">Waiting for review</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Not approved</option>
+          <option value="revoked">Access removed</option>
+          <option value="">All</option>
+        </select>
+      </div>
+
+      <div class="admin__table-wrap">
+        <table class="admin-table" id="claimsTable">
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>Claimant</th>
+              <th>Evidence</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="claimsTableBody">
+            <tr><td colspan="5" class="admin-table__empty">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -1156,6 +1193,31 @@
     </div>
   </div>
 
+  <!-- ─── Claim review modal (approve / reject / revoke) ── -->
+  <div id="claimModal" class="modal" style="display:none;">
+    <div class="modal__backdrop" id="claimBackdrop"></div>
+    <div class="modal__content modal__content--sm" role="dialog" aria-modal="true" aria-labelledby="claimModalTitle">
+      <div class="modal__header">
+        <h2 class="modal__title" id="claimModalTitle">Review claim</h2>
+        <button class="modal__close" id="claimModalClose" type="button">&times;</button>
+      </div>
+      <form id="claimReviewForm" class="modal__form">
+        <input type="hidden" id="claimReviewId" value="" />
+        <input type="hidden" id="claimReviewAction" value="" />
+        <p class="modal__text" id="claimReviewSummary"></p>
+        <div class="form-group">
+          <label class="form-label" for="claimReviewNote">Note for the claimant <span class="required" id="claimReviewRequired">*</span></label>
+          <textarea id="claimReviewNote" class="form-input" rows="3" maxlength="500" placeholder="Shown to them on their My Profile page"></textarea>
+        </div>
+        <div id="claimReviewMessage" class="form-message" style="display:none;"></div>
+        <div class="modal__actions">
+          <button type="button" id="claimReviewCancel" class="btn btn--ghost">Cancel</button>
+          <button type="submit" id="claimReviewSubmit" class="btn btn--primary">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ─── Sponsor / Partner Modal ────────────── -->
   <div id="supporterModal" class="modal" style="display:none;">
     <div class="modal__backdrop" id="supBackdrop"></div>
@@ -1629,6 +1691,7 @@
   <script src="loader.js"></script>
   <script src="offline-db.js"></script>
   <script src="offline-sync.js"></script>
+  <script src="/social-icons.js"></script>
   <script src="index.js"></script>
 </body>
 </html>

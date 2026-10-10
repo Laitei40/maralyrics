@@ -1536,3 +1536,6 @@ button.is-busy::after {
   .video-row__preview { width: 100%; }
   .video-row__fields { flex-basis: 100%; }
 }
+
+/* ─── Profile claims ────────────────────────────── */
+.claim-evidence { max-width: 420px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-sm); }

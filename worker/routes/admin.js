@@ -25,8 +25,10 @@ import {
 import { logAudit } from '../lib/audit.js';
 import { validateBadgeInput, attachBadges } from '../lib/badges.js';
 import { idolSeasonsApp, idolContestantsApp } from './adminIdol.js';
+import claimsApp from './adminClaims.js';
 import { AVATARS } from '../lib/avatars.js';
-import { sanitizeArticleHtml, isHtmlEmpty, SAFE_HREF } from '../lib/sanitizeHtml.js';
+import { isSafeLinkUrl, isSafeImageUrl, validateSocialLinks } from '../lib/profile.js';
+import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
 
 const app = new Hono();
 
@@ -360,40 +362,6 @@ profileApp.post('/delete', async (c) => {
 
 app.route('/profile', profileApp);
 
-// A data: URI is legitimate here (the dashboard's image-upload crop tool produces one),
-// unlike an <a href> link, which only ever needs to be a real web/mail address — so image
-// URLs get their own, slightly wider allowlist instead of reusing SAFE_HREF.
-const SAFE_IMAGE_SRC = /^(https?:|data:image\/)/i;
-
-// Rejects (rather than silently stripping) an unsafe scheme like javascript: in a
-// URL field an admin submits — these end up rendered as a public-facing <a href> or
-// <img src>, so a bad value here isn't just malformed data, it's stored XSS waiting
-// for a visitor (or another admin, since the JWT lives in the same origin) to click it.
-function isSafeLinkUrl(url) {
-  return typeof url === 'string' && SAFE_HREF.test(url.trim());
-}
-function isSafeImageUrl(url) {
-  return typeof url === 'string' && SAFE_IMAGE_SRC.test(url.trim());
-}
-
-// social_links is stored as a JSON-encoded array of URL strings (built client-side by
-// the dashboard's "Add Social Link" rows). Returns { ok: true, value } with the array
-// re-serialized (trimmed, empties dropped), or { ok: false } if anything in it isn't a
-// safe http(s)/mailto URL.
-function validateSocialLinks(raw) {
-  if (!raw) return { ok: true, value: null };
-  let links;
-  try {
-    links = JSON.parse(raw);
-  } catch {
-    return { ok: false };
-  }
-  if (!Array.isArray(links)) return { ok: false };
-  const cleaned = links.map((u) => String(u || '').trim()).filter(Boolean);
-  if (!cleaned.every(isSafeLinkUrl)) return { ok: false };
-  return { ok: true, value: cleaned.length ? JSON.stringify(cleaned) : null };
-}
-
 // ── Generic CRUD for simple "person" resources: artists, composers ──
 // Read is open to any authenticated admin (all 6 roles); write (create/edit/delete)
 // is restricted to Manager + Admin — the "shared reference data" owners.
@@ -686,6 +654,7 @@ supApp.delete('/:id', async (c) => {
 app.route('/supporters', supApp);
 
 // ── Mara Idol seasons + contestants (see adminIdol.js) ──
+app.route('/claims', claimsApp);
 app.route('/idol-seasons', idolSeasonsApp);
 app.route('/idol-contestants', idolContestantsApp);
 
