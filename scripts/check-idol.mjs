@@ -13,7 +13,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
 const { default: app } = await load('worker/worker.js');
 const { signJWT } = await load('worker/lib/auth.js');
-const { validateSeason, validateContestant, normalizeVideos } = await load('worker/lib/idol.js');
+const { validateSeason, validateContestant, normalizeVideos, parseVideos } = await load('worker/lib/idol.js');
 
 let passes = 0;
 let failures = 0;
@@ -83,6 +83,13 @@ check(normalizeVideos([{ url: '  https://youtu.be/abc ' }, { title: '', url: '' 
 check(!normalizeVideos([{ url: 'ftp://x' }]).ok && !normalizeVideos([{ url: 'javascript:alert(1)' }]).ok, 'videos: only http(s)');
 check(!normalizeVideos(Array.from({ length: 11 }, (_, i) => ({ url: `https://e.com/${i}` }))).ok, 'videos: max 10');
 check(!normalizeVideos('not json').ok && !normalizeVideos({}).ok, 'videos: must be a list');
+{
+  const t = normalizeVideos([{ url: 'https://youtu.be/abc', thumb: ' data:image/jpeg;base64,AAAA ' }, { title: 'B', url: 'https://example.com/v', thumb: 'https://img.example.com/t.jpg' }, { url: 'https://youtu.be/c' }]);
+  check(t.ok && t.value === '[{"url":"https://youtu.be/abc","thumb":"data:image/jpeg;base64,AAAA"},{"title":"B","url":"https://example.com/v","thumb":"https://img.example.com/t.jpg"},{"url":"https://youtu.be/c"}]', 'videos: optional uploaded thumbnail kept, none invented');
+  check(!normalizeVideos([{ url: 'https://youtu.be/abc', thumb: 'javascript:alert(1)' }]).ok && !normalizeVideos([{ url: 'https://youtu.be/abc', thumb: 'data:text/html;base64,AAAA' }]).ok, 'videos: unsafe thumbnail rejected');
+  check(!normalizeVideos([{ url: 'https://youtu.be/abc', thumb: `data:image/jpeg;base64,${'A'.repeat(120001)}` }]).ok, 'videos: oversized thumbnail rejected');
+  check(JSON.stringify(parseVideos('[{"url":"https://youtu.be/a","thumb":"javascript:alert(1)"}]')) === '[{"url":"https://youtu.be/a"}]', 'videos: a stored unsafe thumbnail is dropped on read');
+}
 
 // ─── Permissions ─────────────────────────────────────────────────────────────
 console.log('Permissions');
@@ -97,6 +104,13 @@ const s1 = await adm('POST', '/idol-seasons', { title: 'Mara Idol Season 1', yea
   description: 'The first edition.', videos: [{ title: 'Final night', url: 'https://youtu.be/final' }] }, 'editor');
 check(s1.status === 201 && s1.json.slug === 'mara-idol-season-1' && s1.json.videos.length === 1, 'editor can create a season (slug + videos returned as array)');
 const s2 = await adm('POST', '/idol-seasons', { title: 'Mara Idol Season 2', year: 2025, status: 'published', cover_url: 'https://img.example.com/c2.jpg', photo_url: 'https://img.example.com/p2.jpg' }, 'manager');
+const withThumbs = await adm('PUT', `/idol-seasons/${s2.json.id}`, { title: 'Mara Idol Season 2', year: 2025, status: 'published', cover_url: 'https://img.example.com/c2.jpg', photo_url: 'https://img.example.com/p2.jpg',
+  videos: [{ title: 'Final', url: 'https://youtu.be/aaaaaaaaaaa', thumb: 'data:image/jpeg;base64,AAAA' }, { url: 'https://youtu.be/bbbbbbbbbbb' }] }, 'manager');
+check(withThumbs.status === 200 && withThumbs.json.videos[0].thumb === 'data:image/jpeg;base64,AAAA' && !('thumb' in withThumbs.json.videos[1]), 'season: uploaded video thumbnail saved; videos without one have none (→ platform thumbnail)');
+check((await pub('/mara-idol-season-2')).json.videos[0].thumb === 'data:image/jpeg;base64,AAAA', 'public season: video thumbnail returned');
+check((await adm('PUT', `/idol-seasons/${s2.json.id}`, { title: 'Mara Idol Season 2', year: 2025, status: 'published', videos: [{ url: 'https://youtu.be/aaaaaaaaaaa', thumb: 'javascript:alert(1)' }] }, 'manager')).status === 400, 'season: unsafe video thumbnail → 400');
+// Back to the plain season for the checks below (PUT replaces everything).
+await adm('PUT', `/idol-seasons/${s2.json.id}`, { title: 'Mara Idol Season 2', year: 2025, status: 'published', cover_url: 'https://img.example.com/c2.jpg', photo_url: 'https://img.example.com/p2.jpg' }, 'manager');
 const s3 = await adm('POST', '/idol-seasons', { title: 'Mara Idol Season 3', year: 2026 }, 'super_admin'); // draft
 check([s2, s3].every((r) => r.status === 201), 'manager and super_admin can create seasons');
 check((await adm('PUT', `/idol-seasons/${s3.json.id}`, { ...okSeason, title: 'Season 3 renamed', year: 2026 }, 'viewer')).status === 403, 'viewer must not edit');

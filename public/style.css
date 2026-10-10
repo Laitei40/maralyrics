@@ -5562,6 +5562,14 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.45), rgba(236, 72, 153, 0.35)), var(--bg-card);
   transition: transform .2s, box-shadow .2s;
 }
+.idol-video__play--link { text-decoration: none; }
+/* With a thumbnail: the picture fills the card, a centred play button on top, the title on a bottom scrim. */
+.idol-video__play--thumb { padding: 0; align-items: stretch; background: #000; overflow: hidden; }
+.idol-video__thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.idol-video__play--thumb::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0) 55%); pointer-events: none; }
+.idol-video__play--thumb .idol-video__icon { position: absolute; top: 50%; left: 50%; z-index: 1; width: 56px; height: 56px; flex: none; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.6); border: 2px solid rgba(255, 255, 255, 0.9); transition: background .2s, transform .2s; }
+.idol-video__play--thumb:hover .idol-video__icon, .idol-video__play--thumb:focus-visible .idol-video__icon { background: var(--accent); transform: translate(-50%, -50%) scale(1.08); }
+.idol-video__play--thumb .idol-video__title { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: var(--space-md); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8); }
 .idol-video__play:hover, .idol-video__play:focus-visible { transform: translateY(-2px); box-shadow: 0 0 22px var(--accent-glow); }
 .idol-video__icon { display: grid; place-items: center; flex: 0 0 48px; height: 48px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); font-size: 1.1rem; }
 .idol-video__title { font-weight: 600; line-height: 1.3; }

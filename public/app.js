@@ -2908,16 +2908,33 @@ const Idol = {
     } catch { return 0; }
   },
 
-  /** Videos: YouTube links become click-to-play (nothing is requested from YouTube until the
-   *  visitor clicks); any other link is a plain external link. Always keeps the original link. */
+  /** Thumbnail for a video: the one an admin uploaded, else the video platform's own (YouTube). Other
+   *  platforms have no automatic thumbnail. `hqdefault` is 4:3 with black bars; `object-fit: cover` in the
+   *  16:9 box crops the bars away. */
+  videoThumb(v, id) {
+    return v.thumb || (id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '');
+  },
+
+  /** Videos: YouTube links become click-to-play (the player itself is only requested when the visitor
+   *  clicks); any other link is a plain external link. Always keeps the original link. */
   videosHtml(videos) {
     return (videos || []).map((v) => {
       const id = this.youtubeId(v.url);
       const start = id ? this.youtubeStart(v.url) : 0;
       const title = v.title || I18n.t('idol.watch_video');
+      const thumb = this.videoThumb(v, id);
+      const img = thumb
+        ? `<img class="idol-video__thumb" src="${this.esc(thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.closest('.idol-video__play').classList.remove('idol-video__play--thumb');this.remove()" />`
+        : '';
+      const face = `${img}<span class="idol-video__icon" aria-hidden="true">▶</span><span class="idol-video__title">${this.esc(title)}</span>`;
+      const cls = `idol-video__play${thumb ? ' idol-video__play--thumb' : ''}`;
       const link = `<a class="idol-video__link" href="${this.esc(v.url)}" target="_blank" rel="noopener noreferrer">${this.esc(I18n.t('idol.open_link'))} ↗</a>`;
-      if (!id) return `<div class="idol-video idol-video--external"><span class="idol-video__title">${this.esc(title)}</span>${link}</div>`;
-      return `<div class="idol-video"><button type="button" class="idol-video__play" data-yt="${id}"${start ? ` data-start="${start}"` : ''} data-title="${this.esc(title)}" aria-label="${this.esc(I18n.t('idol.play'))}: ${this.esc(title)}"><span class="idol-video__icon" aria-hidden="true">▶</span><span class="idol-video__title">${this.esc(title)}</span></button>${link}</div>`;
+      if (!id) {
+        // Non-YouTube: a card that opens the link (with the uploaded thumbnail, if any).
+        if (!thumb) return `<div class="idol-video idol-video--external"><span class="idol-video__title">${this.esc(title)}</span>${link}</div>`;
+        return `<div class="idol-video"><a class="${cls} idol-video__play--link" href="${this.esc(v.url)}" target="_blank" rel="noopener noreferrer" aria-label="${this.esc(I18n.t('idol.open_link'))}: ${this.esc(title)}">${face}</a></div>`;
+      }
+      return `<div class="idol-video"><button type="button" class="${cls}" data-yt="${id}"${start ? ` data-start="${start}"` : ''} data-title="${this.esc(title)}" aria-label="${this.esc(I18n.t('idol.play'))}: ${this.esc(title)}">${face}</button>${link}</div>`;
     }).join('');
   },
 
@@ -2926,7 +2943,7 @@ const Idol = {
     if (!container || container.dataset.bound) return;
     container.dataset.bound = '1';
     container.addEventListener('click', (e) => {
-      const btn = e.target.closest('.idol-video__play');
+      const btn = e.target.closest('button.idol-video__play');
       if (!btn) return;
       const frame = document.createElement('iframe');
       const start = Number(btn.dataset.start) > 0 ? `&start=${Number(btn.dataset.start)}` : '';
