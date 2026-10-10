@@ -42,13 +42,23 @@ async function indexPage(context) {
 }
 
 // ── Season ───────────────────────────────────────────────────────────────────────
+// Pages deploys on push but D1 migrations are run by hand, so this can briefly run against a database
+// without `idol_seasons.photo_url` (migration 0014). Retry without it rather than throwing (Error 1101).
+async function findSeason(db, slug) {
+  const query = (photo) => db.prepare(
+    `SELECT id, title, slug, year, description, venue, start_date, end_date, cover_url, ${photo}, videos
+     FROM idol_seasons WHERE slug = ? AND status = 'published'`
+  ).bind(slug).first();
+  try { return await query('photo_url'); } catch (err) {
+    if (!/no such column/i.test(String(err && err.message))) throw err;
+    return query('NULL AS photo_url');
+  }
+}
+
 async function seasonPage(context, slug) {
   const res = await shell(context, 'idolseasonview.html');
   const db = context.env.DB;
-  const season = await db.prepare(
-    `SELECT id, title, slug, year, description, venue, start_date, end_date, cover_url, photo_url, videos
-     FROM idol_seasons WHERE slug = ? AND status = 'published'`
-  ).bind(slug).first();
+  const season = await findSeason(db, slug);
   if (!season) return notFoundResponse(res);
   const contestants = (await db.prepare(
     `SELECT c.name, c.slug, c.result, c.placement FROM idol_contestants c WHERE c.season_id = ?
@@ -153,8 +163,16 @@ async function idolPage(context, seasonSlug, idolSlug) {
 export async function onRequest(context) {
   const parts = segments(new URL(context.request.url).pathname);
   if (!parts) return notFoundResponse(await shell(context, 'mara-idol.html'));
-  if (parts.length === 0) return indexPage(context);
-  if (parts.length === 1) return seasonPage(context, parts[0]);
-  if (parts.length === 2) return idolPage(context, parts[0], parts[1]);
+  try {
+    if (parts.length === 0) return await indexPage(context);
+    if (parts.length === 1) return await seasonPage(context, parts[0]);
+    if (parts.length === 2) return await idolPage(context, parts[0], parts[1]);
+  } catch (err) {
+    // Never show Cloudflare's Error 1101: serve the plain page shell (the browser script can still fill it in)
+    // as a temporary 503 so crawlers don't index an unrendered page.
+    console.error('mara-idol render failed:', err && err.message);
+    const fallback = await shell(context, parts.length === 0 ? 'mara-idol.html' : parts.length === 1 ? 'idolseasonview.html' : 'idolview.html');
+    return new Response(fallback.body, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Retry-After': '300' } });
+  }
   return notFoundResponse(await shell(context, 'mara-idol.html'));
 }

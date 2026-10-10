@@ -242,6 +242,24 @@ for (const c of cases) {
     const nf = await get(mod, bad);
     check(nf.status === 404 && /name="robots" content="noindex, nofollow"/.test(nf.html) && nf.headers.get('X-Robots-Tag') === 'noindex' && !/<link rel="canonical"/.test(nf.html), `mara-idol: ${bad} must be a noindex 404`);
   }
+
+  // Pages deploys on push but D1 migrations run by hand: the new code must survive a database that does not
+  // have idol_seasons.photo_url yet (migration 0014) instead of throwing Cloudflare's Error 1101.
+  const oldDb = new DatabaseSync(':memory:');
+  oldDb.exec(fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8'));
+  oldDb.exec('ALTER TABLE idol_seasons DROP COLUMN photo_url');
+  oldDb.exec(`INSERT INTO idol_seasons (id, title, slug, year, cover_url, status) VALUES (1, 'Old Schema Season', 'old-season', 2024, 'https://img.example.com/cover.jpg', 'published')`);
+  const oldD1 = { prepare(sql) { const stmt = oldDb.prepare(sql); const bound = (args) => ({ first: async () => stmt.get(...args) ?? null, all: async () => ({ results: stmt.all(...args) }) }); return { ...bound([]), bind: (...args) => bound(args) }; } };
+  const oldRes = await mod.onRequest({ request: new Request(`${ORIGIN}/mara-idol/old-season`), env: { DB: oldD1, ASSETS } });
+  const oldHtml = await oldRes.text();
+  check(oldRes.status === 200 && oldHtml.includes('Old Schema Season (2024) — Mara Idol | MaraLyrics') && oldHtml.includes('content="https://img.example.com/cover.jpg"'), 'mara-idol: season page still renders before migration 0014 is applied');
+
+  // Any other failure becomes a temporary 503 shell, never an uncaught exception.
+  const brokenD1 = { prepare() { throw new Error('D1 is down'); } };
+  const origError = console.error; console.error = () => {};
+  const downRes = await mod.onRequest({ request: new Request(`${ORIGIN}/mara-idol/season-1`), env: { DB: brokenD1, ASSETS } });
+  console.error = origError;
+  check(downRes.status === 503 && downRes.headers.get('Cache-Control') === 'no-store' && (await downRes.text()).includes('id="idolSeasonDetail"'), 'mara-idol: a database failure returns a 503 page shell, not an uncaught exception (Error 1101)');
 }
 
 // Badges: server-rendered for crawlers, and surfaced as schema.org `award` (only what was awarded).

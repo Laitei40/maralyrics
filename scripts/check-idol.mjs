@@ -182,5 +182,21 @@ const before = count('SELECT COUNT(*) AS n FROM idol_contestants WHERE season_id
 check((await adm('DELETE', `/idol-seasons/${s1.json.id}`, undefined, 'manager')).status === 200 && before === 4 && count('SELECT COUNT(*) AS n FROM idol_contestants WHERE season_id = ?', s1.json.id) === 0, 'deleting a season deletes its contestants (cascade)');
 check((await pub('/mara-idol-season-1')).status === 404, '…and the season page is gone');
 
+// ─── Deploy order: new code against a database that has not run migration 0014 yet ───────────
+console.log('\nBefore migration 0014 (no idol_seasons.photo_url)');
+{
+  const old = new DatabaseSync(':memory:');
+  old.exec('PRAGMA foreign_keys = ON');
+  old.exec(fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8'));
+  old.exec('ALTER TABLE idol_seasons DROP COLUMN photo_url');
+  old.exec(`INSERT INTO idol_seasons (id, title, slug, year, status) VALUES (1, 'Old Season', 'old-season', 2024, 'published')`);
+  const OLD_DB = { prepare(sql) { const st = old.prepare(sql); const bound = (a) => ({ first: async () => st.get(...a) ?? null, all: async () => ({ results: st.all(...a) }), run: async () => { const r = st.run(...a); return { meta: { last_row_id: Number(r.lastInsertRowid), changes: r.changes } }; } }); return { ...bound([]), bind: (...a) => bound(a) }; } };
+  const oldPub = async (url) => { const res = await app.fetch(new Request(`https://api.test/api/v1/mara-idol${url}`), { DB: OLD_DB, JWT_SECRET: SECRET }); return { status: res.status, json: await res.json().catch(() => null) }; };
+  const oi = await oldPub('');
+  check(oi.status === 200 && oi.json.seasons.length === 1 && oi.json.seasons[0].photo_url === null, 'public index still works (photo_url → null)');
+  const od = await oldPub('/old-season');
+  check(od.status === 200 && od.json.title === 'Old Season' && od.json.photo_url === null, 'public season page still works (photo_url → null)');
+}
+
 console.log(`\n${failures ? '✗' : '✓'} ${passes} checks passed, ${failures} failed`);
 process.exit(failures ? 1 : 0);

@@ -10,6 +10,17 @@ import { parseVideos, CONTESTANT_ORDER } from '../lib/idol.js';
 const app = new Hono();
 const CACHE = { 'Cache-Control': 'public, max-age=60' };
 
+// Pages and the Worker deploy the moment they are pushed, but D1 migrations are run by hand, so for a while
+// the new code can run against a database that does not have `idol_seasons.photo_url` yet (migration 0014).
+// Retry without that column instead of failing the whole page.
+const isMissingColumn = (err) => /no such column/i.test(String(err && err.message));
+async function withSeasonPhoto(run) {
+  try { return await run('s.photo_url'); } catch (err) {
+    if (!isMissingColumn(err)) throw err;
+    return run('NULL AS photo_url');
+  }
+}
+
 const summary = (text, max = 300) => {
   const t = String(text || '').trim();
   return t.length > max ? `${t.slice(0, max).trimEnd()}…` : t || null;
@@ -18,12 +29,12 @@ const summary = (text, max = 300) => {
 app.get('/', async (c) => {
   const db = c.env.DB;
   const [seasonRows, idolRows] = await Promise.all([
-    db.prepare(
-      `SELECT s.id, s.title, s.slug, s.year, s.description, s.venue, s.start_date, s.end_date, s.cover_url, s.photo_url,
+    withSeasonPhoto((photo) => db.prepare(
+      `SELECT s.id, s.title, s.slug, s.year, s.description, s.venue, s.start_date, s.end_date, s.cover_url, ${photo},
               (SELECT COUNT(*) FROM idol_contestants c WHERE c.season_id = s.id) AS contestant_count
        FROM idol_seasons s WHERE s.status = 'published'
        ORDER BY s.year DESC, s.start_date DESC, s.title COLLATE NOCASE`
-    ).all(),
+    ).all()),
     db.prepare(
       `SELECT c.name, c.slug, c.photo_url, c.result, c.placement,
               s.slug AS season_slug, s.title AS season_title, s.year AS season_year, a.slug AS artist_slug
@@ -44,10 +55,10 @@ app.get('/', async (c) => {
 });
 
 async function loadSeason(db, slug) {
-  return db.prepare(
-    `SELECT id, title, slug, year, description, venue, start_date, end_date, cover_url, photo_url, videos
-     FROM idol_seasons WHERE slug = ? AND status = 'published'`
-  ).bind(slug).first();
+  return withSeasonPhoto((photo) => db.prepare(
+    `SELECT s.id, s.title, s.slug, s.year, s.description, s.venue, s.start_date, s.end_date, s.cover_url, ${photo}, s.videos
+     FROM idol_seasons s WHERE s.slug = ? AND s.status = 'published'`
+  ).bind(slug).first());
 }
 
 app.get('/:season', async (c) => {
