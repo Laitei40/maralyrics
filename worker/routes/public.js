@@ -405,7 +405,13 @@ async function getPerson(c, table, junctionTable, junctionFk) {
     .all();
 
   const [withBadges] = await attachBadges(db, [person], table.replace(/s$/, ''));
-  return c.json({ ...withBadges, songs: songs.results.map(parseSongPeople) });
+  // Whether someone already owns this profile (hides the "Claim this profile" link). Nothing about who.
+  // (Tolerates the table not existing yet: Pages/Worker deploy on push, migrations are run by hand.)
+  let owner = null;
+  try {
+    owner = await db.prepare(`SELECT 1 FROM person_claims WHERE ${junctionFk} = ? AND status = 'approved'`).bind(person.id).first();
+  } catch { /* migration 0015 not applied yet */ }
+  return c.json({ ...withBadges, claimed: !!owner, songs: songs.results.map(parseSongPeople) });
 }
 
 app.get('/artists', (c) => listPeople(c, 'artists'));

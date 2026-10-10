@@ -30,6 +30,10 @@ export const CAN_MANAGE_BADGES = ['super_admin'];
 export const CAN_MANAGE_IDOL = ['editor', 'manager', 'super_admin'];
 export const CAN_DELETE_IDOL = ['manager', 'super_admin'];
 
+// Reviewing "claim your profile" requests (artists / composers who ask to edit their own profile). Approving one
+// hands that person edit rights over a public profile, so it is Manager + Super Admin, like the profiles themselves.
+export const CAN_REVIEW_CLAIMS = ['manager', 'super_admin'];
+
 // Articles (Developer Dashboard). Publishing IS the "send notification" action — a
 // published article appears on the public site and is picked up by the client-side
 // notification poller, so there's no separate send permission to gate.

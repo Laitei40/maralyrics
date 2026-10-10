@@ -137,6 +137,7 @@ const CAN_MANAGE_BADGES = ['super_admin']; // awarding/removing artist & compose
 const CAN_MANAGE_ADMIN_USERS = ['manager', 'super_admin'];
 const CAN_MANAGE_IDOL = ['editor', 'manager', 'super_admin']; // Mara Idol seasons & idols — create/edit
 const CAN_DELETE_IDOL = ['manager', 'super_admin'];
+const CAN_REVIEW_CLAIMS = ['manager', 'super_admin']; // approving a claim hands someone edit rights over a public profile
 // Kept in sync with worker/lib/permissions.js (this file can't import it — plain <script>, not a module).
 const CAN_CREATE_ARTICLE  = ['editor', 'manager', 'super_admin'];
 const CAN_EDIT_ARTICLE    = ['editor', 'manager', 'super_admin'];
@@ -190,6 +191,7 @@ const ROLE_TABS = {
   'copyright-owners': ROLES_ALL,
   articles: ROLES_ALL,
   'mara-idol': ROLES_ALL,
+  claims: CAN_REVIEW_CLAIMS,
   supporters: CAN_MANAGE_REFERENCE_DATA,
   reports: ['translator', 'reviewer', 'editor', 'manager', 'super_admin'],
   revisions: ['reviewer', 'manager', 'super_admin'],
@@ -648,6 +650,7 @@ function switchTab(tab) {
   if (tab === 'articles') loadArticles();
   if (tab === 'supporters') loadSupporters();
   if (tab === 'mara-idol') loadIdol();
+  if (tab === 'claims') loadClaims();
   if (tab === 'admins') loadAdminUsers();
   if (tab === 'revisions') loadRevisions();
   if (tab === 'auditlog') loadAuditLog();
@@ -2350,6 +2353,134 @@ async function saveIdol(e) {
 }
 
 // ═══════════════════════════════════════════════════
+// ═══ PROFILE CLAIMS (manager + super admin) ═══════
+// ═══════════════════════════════════════════════════
+
+let allClaims = [];
+const CLAIM_STATUS_LABEL = { pending: 'Waiting for review', approved: 'Approved', rejected: 'Not approved', revoked: 'Access removed' };
+const CLAIM_STATUS_CLASS = { pending: 'pending', approved: 'published', rejected: 'archived', revoked: 'archived' };
+
+/** Escapes, then turns http(s) links in free text into safe anchors (the evidence is written by a stranger). */
+function linkifyEvidence(text) {
+  return escapeHtml(text).replace(/https?:\/\/[^\s<]+/g, (url) =>
+    `<a href="${url}" target="_blank" rel="noopener noreferrer nofollow" style="color:var(--accent);">${url}</a>`);
+}
+
+async function loadClaims() {
+  const tbody = document.getElementById('claimsTableBody');
+  tbody.innerHTML = AdminUI.loadingRows(5);
+  try {
+    const status = document.getElementById('claimFilterStatus').value;
+    const data = await apiGet(`${ADMIN_API}/claims${status ? `?status=${status}` : ''}`);
+    allClaims = data.claims || [];
+    renderClaimsTable();
+    if (status === 'pending') setClaimsTabCount(allClaims.length);
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="admin-table__empty" style="color:var(--danger);">Failed: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+/** "Claims (3)" on the tab so the review team sees there is something waiting. */
+function setClaimsTabCount(n) {
+  const tab = document.querySelector('.admin__tab[data-tab="claims"]');
+  if (tab) tab.textContent = n > 0 ? `Claims (${n})` : 'Claims';
+}
+async function refreshClaimsTabCount() {
+  if (!hasRole(...CAN_REVIEW_CLAIMS)) return;
+  try { setClaimsTabCount(((await apiGet(`${ADMIN_API}/claims?status=pending`)).claims || []).length); } catch { /* the badge is optional */ }
+}
+
+function renderClaimsTable() {
+  const tbody = document.getElementById('claimsTableBody');
+  if (!allClaims.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="admin-table__empty">No claims here.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allClaims.map((c) => `
+    <tr data-id="${c.id}">
+      <td>
+        <div class="admin-table__title">${escapeHtml(c.name)}</div>
+        <div class="admin-table__slug"><a href="${SITE_ORIGIN}/${c.type}/${encodeURIComponent(c.slug)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">/${c.type}/${escapeHtml(c.slug)}</a></div>
+      </td>
+      <td>
+        <div class="admin-table__title">${escapeHtml(c.claimant)}</div>
+        <div class="admin-table__slug">${c.claimant_email ? escapeHtml(c.claimant_email) : 'no email'}</div>
+        <div class="admin-table__slug">${escapeHtml(formatDate(c.created_at))}</div>
+      </td>
+      <td><div class="claim-evidence">${linkifyEvidence(c.evidence)}</div>${c.review_note ? `<div class="admin-table__slug">Note: ${escapeHtml(c.review_note)}</div>` : ''}</td>
+      <td>
+        <span class="status-badge status-badge--${CLAIM_STATUS_CLASS[c.status] || 'archived'}">${escapeHtml(CLAIM_STATUS_LABEL[c.status] || c.status)}</span>
+        ${c.status === 'pending' && c.has_owner ? '<div class="admin-table__slug" style="color:var(--danger);">Already has an owner</div>' : ''}
+        ${c.reviewed_by_username ? `<div class="admin-table__slug">by ${escapeHtml(c.reviewed_by_username)}</div>` : ''}
+      </td>
+      <td>
+        <div class="admin-table__actions">
+          ${c.status === 'pending' && !c.has_owner ? `<button class="btn btn--sm btn--primary" onclick="openClaimReview(${c.id}, 'approve')">Approve</button>` : ''}
+          ${c.status === 'pending' ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="openClaimReview(${c.id}, 'reject')">Reject</button>` : ''}
+          ${c.status === 'approved' ? `<button class="btn btn--sm btn--ghost btn--danger-text" onclick="openClaimReview(${c.id}, 'revoke')">Revoke</button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+const CLAIM_ACTION = {
+  approve: { title: 'Approve claim', button: 'Approve', noteRequired: false, text: (c) => `${c.claimant} will be able to edit the bio, photo and social links of ${c.name}.` },
+  reject:  { title: 'Reject claim',  button: 'Reject',  noteRequired: true,  text: (c) => `${c.claimant} will see your note. They can claim again later.` },
+  revoke:  { title: 'Revoke access', button: 'Revoke',  noteRequired: true,  text: (c) => `${c.claimant} will no longer be able to edit ${c.name}. The profile keeps its current content.` },
+};
+
+function openClaimReview(id, action) {
+  const claim = allClaims.find((c) => c.id === id);
+  const cfg = CLAIM_ACTION[action];
+  if (!claim || !cfg || !hasRole(...CAN_REVIEW_CLAIMS)) return;
+  document.getElementById('claimReviewId').value = id;
+  document.getElementById('claimReviewAction').value = action;
+  document.getElementById('claimModalTitle').textContent = cfg.title;
+  document.getElementById('claimReviewSummary').textContent = cfg.text(claim);
+  document.getElementById('claimReviewSubmit').textContent = cfg.button;
+  document.getElementById('claimReviewRequired').style.display = cfg.noteRequired ? '' : 'none';
+  document.getElementById('claimReviewNote').value = '';
+  document.getElementById('claimReviewMessage').style.display = 'none';
+  document.getElementById('claimModal').style.display = 'flex';
+  document.getElementById('claimReviewNote').focus();
+}
+function closeClaimModal() {
+  const modal = document.getElementById('claimModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitClaimReview(e) {
+  e.preventDefault();
+  const id = document.getElementById('claimReviewId').value;
+  const action = document.getElementById('claimReviewAction').value;
+  const cfg = CLAIM_ACTION[action];
+  const note = document.getElementById('claimReviewNote').value.trim();
+  const msg = document.getElementById('claimReviewMessage');
+  if (cfg.noteRequired && !note) {
+    msg.textContent = 'A note is required — the claimant will see it.';
+    msg.className = 'form-message form-message--error';
+    msg.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('claimReviewSubmit');
+  btn.disabled = true;
+  try {
+    await apiPut(`${ADMIN_API}/claims/${id}/${action}`, { note }, { success: { approve: 'Claim approved.', reject: 'Claim rejected.', revoke: 'Access revoked.' }[action] });
+    closeClaimModal();
+    loadClaims();
+    refreshClaimsTabCount();
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.className = 'form-message form-message--error';
+    msg.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+window.openClaimReview = openClaimReview;
+
+// ═══════════════════════════════════════════════════
 // ═══ ADMIN USERS (super_admin only) ═══════════════
 // ═══════════════════════════════════════════════════
 
@@ -2646,6 +2777,10 @@ function initDashboard() {
   document.getElementById('btnNewSupporter').addEventListener('click', openNewSupporter);
   document.getElementById('supporterForm').addEventListener('submit', saveSupporter);
   ['supModalClose', 'supBackdrop', 'supBtnCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeSupporterModal));
+  document.getElementById('claimFilterStatus').addEventListener('change', loadClaims);
+  document.getElementById('claimReviewForm').addEventListener('submit', submitClaimReview);
+  ['claimModalClose', 'claimBackdrop', 'claimReviewCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeClaimModal));
+  refreshClaimsTabCount();
   document.getElementById('btnNewIdolSeason').addEventListener('click', openNewIdolSeason);
   document.getElementById('idolSeasonForm').addEventListener('submit', saveIdolSeason);
   ['isModalClose', 'isBackdrop', 'isBtnCancel'].forEach(id => document.getElementById(id).addEventListener('click', closeIdolSeasonModal));
@@ -2800,6 +2935,7 @@ function initDashboard() {
       closeSupporterModal();
       closeIdolSeasonModal();
       closeIdolModal();
+      closeClaimModal();
       closeDeleteModal();
       closeFeedbackModal();
       closeRevisionModal();

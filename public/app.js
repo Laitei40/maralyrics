@@ -1905,6 +1905,13 @@ const ProfilePage = {
       badgesEl.hidden = !(data.badges && data.badges.length);
     }
 
+    // "Is this you? Claim this profile" — only while nobody owns the profile yet
+    const claimEl = document.getElementById('profileClaim');
+    if (claimEl) {
+      claimEl.href = `/my-profile?claim=${this.type}:${encodeURIComponent(data.slug || '')}`;
+      claimEl.hidden = data.claimed !== false;
+    }
+
     // Bio
     const bioEl = document.getElementById('profileBio');
     if (bioEl) {

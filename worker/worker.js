@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import publicRoutes from './routes/public.js';
 import adminRoutes from './routes/admin.js';
+import accountRoutes from './routes/account.js';
 import { requireAuth } from './lib/auth.js';
 
 const BLOCKED_COUNTRIES = new Set(['CN', 'RU', 'KP', 'IR']);
@@ -30,6 +31,7 @@ app.use('/api/v1/admin/*', async (c, next) => {
   return requireAuth(c, next);
 });
 
+app.route('/api/v1/account', accountRoutes);
 app.route('/api/v1', publicRoutes);
 app.route('/api/v1/admin', adminRoutes);
 

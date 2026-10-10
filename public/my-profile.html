@@ -3,68 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MaraLyrics — Mara Song Lyrics Collection</title>
+  <title>For Artists &amp; Composers — Claim Your Profile | MaraLyrics</title>
 
-  <!-- SEO Meta -->
-  <meta name="description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
-  <meta name="author" content="MaraLyrics" />
+  <!-- SEO Meta (dynamically updated by JS) -->
+  <meta name="description" content="Claim your artist or composer profile on MaraLyrics to keep your bio, photo and links up to date. Sign in to manage your profile." />
   <meta name="theme-color" content="#0a0e1a" />
   <meta name="google-adsense-account" content="ca-pub-8698846427938035">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8698846427938035"
      crossorigin="anonymous"></script>
 
-
-  <!-- Structured Data (JSON-LD) -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "@id": "https://maralyrics.com/#website",
-        "name": "MaraLyrics",
-        "url": "https://maralyrics.com/",
-        "description": "A collection of Mara song lyrics — traditional, love, gospel, and patriotic.",
-        "inLanguage": ["mrh", "en", "my"],
-        "publisher": { "@id": "https://maralyrics.com/#organization" },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": { "@type": "EntryPoint", "urlTemplate": "https://maralyrics.com/?q={search_term_string}" },
-          "query-input": "required name=search_term_string"
-        }
-      },
-      {
-        "@type": "Organization",
-        "@id": "https://maralyrics.com/#organization",
-        "name": "MaraLyrics",
-        "url": "https://maralyrics.com/",
-        "logo": "https://maralyrics.com/icon.svg",
-        "sameAs": [
-          "https://www.youtube.com/@haoleimrh",
-          "https://www.reddit.com/r/maralyrics/"
-        ]
-      }
-    ]
-  }
-  </script>
+  <!-- Account page: not for search results -->
+  <meta name="robots" content="noindex, follow" />
 
   <!-- Favicon -->
-  <link rel="canonical" href="https://maralyrics.com/" />
-  <!-- Open Graph / social sharing -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="MaraLyrics" />
-  <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="MaraLyrics — Mara Song Lyrics Collection" />
-  <meta property="og:description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
-  <meta property="og:url" content="https://maralyrics.com/" />
-  <meta property="og:image" content="https://maralyrics.com/og-image.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="MaraLyrics — Mara song lyrics" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="MaraLyrics — Mara Song Lyrics Collection" />
-  <meta name="twitter:description" content="MaraLyrics — Explore and discover beautiful Mara song lyrics. Traditional, love, gospel, and patriotic songs from the Mara community." />
-  <meta name="twitter:image" content="https://maralyrics.com/og-image.png" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
 
   <!-- Fonts -->
@@ -75,6 +26,9 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="/style.css" />
+
+  <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
 
@@ -91,13 +45,13 @@
         <span></span>
       </button>
       <nav class="header__nav">
-        <a href="/" class="header__nav-link active" data-i18n="common.home">Home</a>
+        <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
         <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
         <a href="/articles" class="header__nav-link" data-i18n="nav.articles">Articles</a>
         <a href="/mara-idol" class="header__nav-link" data-i18n="nav.mara_idol">Mara Idol</a>
 
         <!-- Community Calendar -->
-        <button type="button" class="calendar-toggle__btn" id="calendarToggleBtn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
+        <button type="button" class="calendar-toggle__btn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </button>
         <!-- My Downloads -->
@@ -181,9 +135,7 @@
         </div>
       </nav>
     </div>
-
   </header>
-
   <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
        header does not create a containing block that clips position:fixed. -->
   <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
@@ -226,127 +178,154 @@
     </aside>
   </div>
 
-  <!-- ═══ Hero ═══ -->
-  <section class="hero">
-    <div class="container">
-      <h1 class="hero__title" data-i18n="home.hero_title">Mara Song Lyrics</h1>
-      <p class="hero__subtitle" data-i18n="home.hero_subtitle">Discover and explore beautiful lyrics from the Mara community</p>
 
-      <!-- Search -->
-      <div class="search" role="search">
-        <span class="search__icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </span>
-        <input
-          type="text"
-          id="searchInput"
-          class="search__input"
-          placeholder="Search by title, artist, or lyrics..."
-          data-i18n-placeholder="home.search_placeholder"
-          autocomplete="off"
-          aria-label="Search songs"
-          data-i18n-aria="home.search_aria"
-        />
-        <button id="searchClear" class="search__clear" aria-label="Clear search" data-i18n-aria="home.search_clear_aria">&times;</button>
+  <!-- ═══ Artist & composer accounts ═══ -->
+  <main class="container account-page" id="accountPage">
+
+    <!-- ── Signed out: sign in / create account ── -->
+    <section id="accountAuth" class="account-card fade-in">
+      <h1 class="account-title" data-i18n="account.hero_title">For artists &amp; composers</h1>
+      <p class="account-lead" data-i18n="account.hero_text">Claim your profile on MaraLyrics to keep your bio, photo and links up to date yourself. Every claim is checked by our team before you get access.</p>
+      <p class="account-claiming" id="authClaimNote" hidden></p>
+
+      <div class="account-tabs" role="tablist">
+        <button type="button" class="account-tab active" id="tabSignin" role="tab" data-i18n="account.tab_signin">Sign in</button>
+        <button type="button" class="account-tab" id="tabRegister" role="tab" data-i18n="account.tab_register">Create account</button>
       </div>
 
-      <!-- Categories -->
-      <div id="categories" class="categories" role="tablist" data-i18n-aria="home.categories_aria" aria-label="Filter by category">
-        <!-- Populated by JS -->
-      </div>
-    </div>
-  </section>
+      <form id="signinForm" class="account-form" autocomplete="on">
+        <div class="form-group">
+          <label class="form-label" for="signinUser" data-i18n="account.username">Username</label>
+          <input type="text" id="signinUser" class="form-input" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signinPass" data-i18n="account.password">Password</label>
+          <input type="password" id="signinPass" class="form-input" autocomplete="current-password" required />
+        </div>
+        <p class="account-message" id="signinMsg" role="alert" hidden></p>
+        <button type="submit" class="btn btn--primary" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
+      </form>
 
-  <!-- ═══ Main Content ═══ -->
-  <main class="container">
-
-    <!-- Search Results (hidden by default) -->
-    <section id="searchResults" style="display:none;" class="fade-in">
-      <h2 class="section-title">
-        <span class="section-title__icon">🔎</span>
-        <span data-i18n="home.search_results">Search Results</span>
-        <span id="searchCount" style="font-weight:400;color:var(--text-muted);font-size:var(--text-sm);"></span>
-      </h2>
-      <div id="searchGrid" class="song-grid"></div>
-      <div id="searchSuggestions" class="search-suggestions" style="display:none;"></div>
+      <form id="registerForm" class="account-form" autocomplete="on" hidden>
+        <div class="form-group">
+          <label class="form-label" for="regUser" data-i18n="account.username">Username</label>
+          <input type="text" id="regUser" class="form-input" autocomplete="username" maxlength="30" required />
+          <span class="form-hint" data-i18n="account.username_hint">3–30 characters: letters, numbers, dot, dash or underscore.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regPass" data-i18n="account.password">Password</label>
+          <input type="password" id="regPass" class="form-input" autocomplete="new-password" minlength="8" required />
+          <span class="form-hint" data-i18n="account.password_hint">At least 8 characters.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regEmail" data-i18n="account.email_optional">Contact email (optional)</label>
+          <input type="email" id="regEmail" class="form-input" autocomplete="email" />
+          <span class="form-hint" data-i18n="account.email_hint">Only our review team sees this. We use it to reach you about your claim.</span>
+        </div>
+        <div id="regTurnstile"></div>
+        <p class="account-message" id="regMsg" role="alert" hidden></p>
+        <button type="submit" class="btn btn--primary" id="regBtn" data-i18n="account.register_btn">Create account</button>
+      </form>
     </section>
 
-    <!-- Song of the Day (hidden until loaded — a new site with zero songs stays hidden) -->
-    <section id="songOfTheDaySection" class="fade-in" style="display:none;">
-      <h2 class="section-title">
-        <span class="section-title__icon" id="songOfTheDaySectionIcon">🌟</span>
-        <span id="songOfTheDaySectionLabel" data-i18n="home.song_of_the_day">Song of the Day</span>
-      </h2>
-      <div id="songOfTheDayCard"></div>
-    </section>
-
-    <!-- Featured Artists & Composers (7 random, re-rolled every 5 minutes) -->
-    <section id="featuredPeopleSection" class="fade-in" style="display:none;">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="section-title__icon">🎤</span>
-          <span data-i18n="people.section_title">Featured Artists &amp; Composers</span>
-        </h2>
-        <a href="/artists-composers" class="see-all-btn" aria-label="See all artists and composers" title="See all artists and composers" data-i18n-aria="people.see_all" data-i18n-title="people.see_all">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-      <div id="featuredPeopleRow" class="featured-people"></div>
-    </section>
-
-    <!-- Popular Songs -->
-    <section id="popularSection" class="fade-in">
-      <h2 class="section-title" id="popular">
-        <span class="section-title__icon">🔥</span>
-        <span data-i18n="home.popular_songs">Popular Songs</span>
-      </h2>
-      <div id="popularGrid" class="song-grid"></div>
-    </section>
-
-    <!-- All Songs -->
-    <section id="allSongsSection" class="fade-in">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="section-title__icon">🎵</span>
-          <span data-i18n="home.all_songs">All Songs</span>
-        </h2>
-        <div class="list-controls">
-          <button type="button" id="favoritesFilterBtn" class="list-controls__favorites" aria-pressed="false" data-i18n-aria="common.show_favorites" data-i18n-title="common.show_favorites" aria-label="Show favorites" title="Show favorites">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            <span data-i18n="common.favorites">Favorites</span>
-          </button>
-          <select id="sortSelect" class="sort-select" data-i18n-aria="common.sort_by" aria-label="Sort songs">
-            <option value="name_asc" data-i18n="common.sort_name_asc">Name (A–Z)</option>
-            <option value="name_desc" data-i18n="common.sort_name_desc">Name (Z–A)</option>
-            <option value="views_desc" data-i18n="common.sort_views_desc">Number (9–1)</option>
-            <option value="views_asc" data-i18n="common.sort_views_asc">Number (1–9)</option>
-            <option value="created_desc" data-i18n="common.sort_added_desc">Added (New–Old)</option>
-            <option value="created_asc" data-i18n="common.sort_added_asc">Added (Old–New)</option>
-          </select>
-          <div class="view-toggle" role="group" data-i18n-aria="common.display_style" aria-label="Display style">
-            <button type="button" class="view-toggle__btn active" data-view="card" aria-pressed="true" data-i18n-aria="common.view_card" data-i18n-title="common.view_card" aria-label="Card view" title="Card view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            </button>
-            <button type="button" class="view-toggle__btn" data-view="list" aria-pressed="false" data-i18n-aria="common.view_list" data-i18n-title="common.view_list" aria-label="List view" title="List view">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </button>
+    <!-- ── Signed in ── -->
+    <div id="accountHome" hidden>
+      <section class="account-card">
+        <div class="account-bar">
+          <h2 class="account-title account-title--sm" id="accountHello"></h2>
+          <div class="account-bar__actions">
+            <button type="button" class="btn btn--ghost btn--sm" id="btnShowPassword" data-i18n="account.change_password">Change password</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="btnSignout" data-i18n="account.signout">Sign out</button>
           </div>
         </div>
-      </div>
-      <div id="songGrid" class="song-grid"></div>
+        <form id="passwordForm" class="account-form" hidden>
+          <div class="form-group">
+            <label class="form-label" for="pwCurrent" data-i18n="account.current_password">Current password</label>
+            <input type="password" id="pwCurrent" class="form-input" autocomplete="current-password" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pwNew" data-i18n="account.new_password">New password</label>
+            <input type="password" id="pwNew" class="form-input" autocomplete="new-password" minlength="8" required />
+          </div>
+          <p class="account-message" id="pwMsg" role="alert" hidden></p>
+          <button type="submit" class="btn btn--primary btn--sm" data-i18n="account.save_password">Update password</button>
+        </form>
+      </section>
 
-      <!-- Pagination -->
-      <div id="pagination" class="pagination"></div>
-    </section>
+      <section class="account-card">
+        <h2 class="account-subtitle" data-i18n="account.your_profiles">Your profiles</h2>
+        <div id="claimList" class="account-claims"></div>
+        <p class="account-empty" id="claimEmpty" data-i18n="account.no_claims" hidden>You haven't claimed a profile yet.</p>
+      </section>
 
-    <!-- Empty State -->
-    <div id="emptyState" class="empty-state" style="display:none;">
-      <div class="empty-state__icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
-      <h2 class="empty-state__title" data-i18n="home.no_songs_title">No songs found</h2>
-      <p class="empty-state__text" data-i18n="home.no_songs_text">Try a different search term or browse categories above.</p>
+      <section class="account-card" id="editorCard" hidden>
+        <h2 class="account-subtitle" id="editorTitle"></h2>
+        <p class="account-note" data-i18n="account.editor_note">Your name and page address are managed by our team. Changes you save here go live straight away.</p>
+        <form id="editorForm" class="account-form">
+          <div class="form-group">
+            <span class="form-label" data-i18n="account.photo">Photo</span>
+            <div class="account-photo">
+              <span class="account-photo__preview" id="editorPhoto"></span>
+              <div class="account-photo__actions">
+                <label class="btn btn--ghost btn--sm"><span data-i18n="account.photo_choose">Choose photo</span><input type="file" id="editorPhotoFile" accept="image/*" hidden /></label>
+                <button type="button" class="btn btn--ghost btn--sm" id="editorPhotoRemove" data-i18n="account.photo_remove">Remove photo</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="editorBio" data-i18n="account.bio">Bio</label>
+            <textarea id="editorBio" class="form-input form-textarea" rows="7" maxlength="5000"></textarea>
+            <span class="form-hint" id="editorBioCount"></span>
+          </div>
+          <div class="form-group">
+            <span class="form-label" data-i18n="account.social">Social links</span>
+            <div id="editorLinks" class="account-links"></div>
+            <button type="button" class="btn btn--ghost btn--sm" id="editorAddLink" data-i18n="account.social_add">Add link</button>
+          </div>
+          <p class="account-message" id="editorMsg" role="alert" hidden></p>
+          <div class="account-actions">
+            <button type="submit" class="btn btn--primary" id="editorSave" data-i18n="account.save">Save changes</button>
+            <a class="btn btn--ghost" id="editorView" href="#" data-i18n="account.view_public">View public page</a>
+          </div>
+        </form>
+      </section>
+
+      <section class="account-card" id="claimCard">
+        <h2 class="account-subtitle" data-i18n="account.claim_title">Claim a profile</h2>
+        <p class="account-claiming" id="claimTarget" hidden></p>
+        <form id="claimForm" class="account-form">
+          <div id="claimPicker">
+            <div class="form-group">
+              <label class="form-label" for="claimType" data-i18n="account.claim_type">I am a…</label>
+              <select id="claimType" class="form-input">
+                <option value="artist" data-i18n="account.type_artist">Artist</option>
+                <option value="composer" data-i18n="account.type_composer">Composer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="claimSearch" data-i18n="account.claim_search">Find your profile</label>
+              <input type="text" id="claimSearch" class="form-input" list="claimNames" autocomplete="off" placeholder="Start typing your name…" data-i18n-placeholder="account.claim_search_ph" />
+              <datalist id="claimNames"></datalist>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="claimEvidence" data-i18n="account.claim_evidence">How can we verify it's you?</label>
+            <textarea id="claimEvidence" class="form-input form-textarea" rows="4" maxlength="1000"></textarea>
+            <span class="form-hint" data-i18n="account.claim_evidence_hint">For example a link to your official YouTube, Facebook or website where you mention your MaraLyrics username.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="claimEmail" data-i18n="account.email_optional">Contact email (optional)</label>
+            <input type="email" id="claimEmail" class="form-input" autocomplete="email" />
+          </div>
+          <div id="claimTurnstile"></div>
+          <p class="account-message" id="claimMsg" role="alert" hidden></p>
+          <button type="submit" class="btn btn--primary" id="claimBtn" data-i18n="account.claim_submit">Submit claim</button>
+        </form>
+      </section>
     </div>
 
   </main>
+
 
   <!-- ═══ Footer ═══ -->
   <footer class="footer">
@@ -390,5 +369,6 @@
   <script src="/theme.js"></script>
   <!-- App Script -->
   <script src="/app.js"></script>
+  <script src="/my-profile.js"></script>
 </body>
 </html>

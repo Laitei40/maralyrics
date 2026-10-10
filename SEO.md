@@ -17,7 +17,7 @@ The site is static HTML + `public/app.js` on **Cloudflare Pages**, with **Pages 
 | Sitemap | `functions/sitemap.xml.js` → `/sitemap.xml`. Published songs/articles, published Mara Idol seasons and their idols (draft seasons never), plus artists, composers and copyright owners **that have at least one published song**. `<lastmod>` only where a real date exists |
 | Crawl rules | `public/robots.txt`; `public/_headers` adds `X-Robots-Tag` for `/admin/*` and `/downloads` |
 | Mara Idol | `/mara-idol`, `/mara-idol/:season`, `/mara-idol/:season/:idol` are all served by `functions/mara-idol/[[catchall]].js`; draft seasons and unknown slugs return a real 404 with `noindex` |
-| Not indexed | `/admin/*` (login-protected), `/downloads` (per-device), `/report` (form), bare view shells, 404 page |
+| Not indexed | `/admin/*` (login-protected), `/downloads` (per-device), `/report` (form), `/my-profile` (artist/composer sign-in and claim page), bare view shells, 404 page |
 | Share image | `public/og-image.png` (1200×630). An artist/composer's own `https` image is used when they have one |
 
 Deliberate choices:

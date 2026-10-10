@@ -5592,3 +5592,64 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   .idol-hero__cover:not([hidden]) + .idol-hero__body .idol-hero__photo { margin-top: calc(-1 * var(--space-lg) - 36px); }
   .idol-avatar { width: 88px; height: 88px; }
 }
+
+/* ─── Claim your profile / artist accounts ──────── */
+.profile-claim { display: inline-block; margin-top: var(--space-sm); font-size: var(--text-sm); color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
+.profile-claim:hover { color: var(--accent-light); }
+.profile-claim[hidden] { display: none; }
+
+.account-page [hidden] { display: none !important; }
+.account-page { max-width: 760px; padding-top: var(--space-xl); padding-bottom: var(--space-2xl, 64px); display: flex; flex-direction: column; gap: var(--space-lg); }
+#accountHome { display: flex; flex-direction: column; gap: var(--space-lg); }
+.account-card { padding: var(--space-xl); border: 1px solid var(--border-glass); border-radius: var(--radius-lg, 16px); background: var(--bg-card); }
+.account-title { margin: 0 0 var(--space-sm); font-size: var(--text-3xl, 2rem); }
+.account-title--sm { margin: 0; font-size: var(--text-xl, 1.25rem); }
+.account-subtitle { margin: 0 0 var(--space-md); font-size: var(--text-lg); }
+.account-lead, .account-note { margin: 0 0 var(--space-md); color: var(--text-secondary); }
+.account-claiming { margin: 0 0 var(--space-md); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.35); font-weight: 600; }
+.account-tabs { display: flex; gap: var(--space-xs); margin-bottom: var(--space-lg); border-bottom: 1px solid var(--border-glass); }
+.account-tab { padding: var(--space-sm) var(--space-md); border: 0; border-bottom: 2px solid transparent; background: none; color: var(--text-muted); font: inherit; font-weight: 600; cursor: pointer; }
+.account-tab.active { color: var(--text-primary); border-bottom-color: var(--accent); }
+.account-form { display: flex; flex-direction: column; gap: var(--space-md); }
+.account-message { margin: 0; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; font-size: var(--text-sm); }
+.account-message--ok { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6ee7b7; }
+.account-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
+.account-bar__actions, .account-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.account-bar + .account-form { margin-top: var(--space-md); }
+.account-empty { margin: 0; color: var(--text-muted); }
+.account-claims { display: flex; flex-direction: column; gap: var(--space-sm); margin-bottom: var(--space-sm); }
+.account-claim { padding: var(--space-md); border: 1px solid var(--border-glass); border-radius: var(--radius-md); background: var(--bg-glass); }
+.account-claim__main { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.account-claim__name { font-weight: 700; color: var(--text-primary); }
+.account-claim__type { color: var(--text-muted); font-size: var(--text-sm); }
+.account-claim__note { margin: var(--space-xs) 0 0; color: var(--text-secondary); font-size: var(--text-sm); }
+.account-claim__actions { display: flex; gap: var(--space-xs); margin-top: var(--space-sm); }
+.account-claim__actions:empty { display: none; }
+.account-chip { margin-left: auto; padding: 2px 10px; border-radius: var(--radius-full); border: 1px solid; font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
+.account-chip--pending { color: #fbbf24; background: rgba(245, 158, 11, 0.13); border-color: rgba(245, 158, 11, 0.35); }
+.account-chip--approved { color: #34d399; background: rgba(16, 185, 129, 0.13); border-color: rgba(16, 185, 129, 0.35); }
+.account-chip--rejected, .account-chip--revoked { color: #fca5a5; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35); }
+.account-photo { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+.account-photo__preview { display: grid; place-items: center; width: 96px; height: 96px; overflow: hidden; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--neon-pink)); font-size: 2rem; font-weight: 800; color: #fff; }
+.account-photo__preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.account-photo__actions { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
+.account-links { display: flex; flex-direction: column; gap: var(--space-xs); margin-bottom: var(--space-xs); }
+.account-link-row { display: flex; gap: var(--space-xs); }
+.account-link-row .form-input { flex: 1; min-width: 0; }
+@media (max-width: 600px) { .account-card { padding: var(--space-lg); } }
+
+/* Form fields on the account page (the feedback form's rules are scoped to .report-page__form). */
+.account-form .form-group { display: flex; flex-direction: column; gap: var(--space-xs); margin: 0; }
+.account-form .form-label { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary); }
+.account-form .form-hint { font-size: var(--text-xs); color: var(--text-muted); }
+.account-form .form-input {
+  width: 100%; box-sizing: border-box; padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius-md);
+  color: var(--text-primary); font-size: var(--text-base); font-family: inherit; transition: border-color 0.2s;
+}
+.account-form .form-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+.account-form .form-textarea { resize: vertical; min-height: 110px; }
+.account-form select.form-input option { background: #14141f; color: var(--text-primary); }
+[data-theme="light"] .account-form .form-input { background: rgba(0, 0, 0, 0.03); border-color: rgba(0, 0, 0, 0.12); }
+[data-theme="light"] .account-form .form-input:focus { background: #fff; border-color: var(--accent); }
+[data-theme="light"] .account-form select.form-input option { background: #fff; }
