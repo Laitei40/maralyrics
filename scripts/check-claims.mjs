@@ -113,7 +113,10 @@ check(get('SELECT id FROM person_accounts WHERE username = ?', 'ann_singer').id 
 const me = await acct('GET', '/me', ann.token);
 check(me.status === 200 && me.json.account.username === 'ann_singer' && me.json.claims.length === 0, 'GET /me');
 check((await acct('POST', '/change-password', ann.token, { current_password: 'nope', new_password: 'new password 1' })).status === 401 && (await acct('POST', '/change-password', ann.token, { current_password: 'correct horse', new_password: 'short' })).status === 400, 'change password: wrong current / too short rejected');
-check((await acct('POST', '/change-password', ann.token, { current_password: 'correct horse', new_password: 'new password 1' })).status === 200 && (await acct('POST', '/login', undefined, { username: 'ann_singer', password: 'new password 1' })).status === 200, 'change password works');
+const pw = await acct('POST', '/change-password', ann.token, { current_password: 'correct horse', new_password: 'new password 1' });
+check(pw.status === 200 && (await acct('POST', '/login', undefined, { username: 'ann_singer', password: 'new password 1' })).status === 200, 'change password works');
+check((await acct('GET', '/me', ann.token)).status === 401 && pw.json.token && (await acct('GET', '/me', pw.json.token)).status === 200, 'changing the password ends the old session; the response carries a fresh one');
+ann.token = pw.json.token;
 
 // ─── Claiming ────────────────────────────────────────────────────────────────
 console.log('Claiming');
@@ -126,7 +129,7 @@ check((await claim(ann.token, { type: 'artist', slug: 'nobody', evidence: 'long 
 check((await claim(ann.token, { type: 'composer', slug: 'ann-artist', evidence: 'long enough evidence' })).status === 404, 'type and slug must match (artist slug is not a composer)');
 const c1 = await claim(ann.token, { type: 'artist', slug: 'ann-artist', evidence: 'This is my channel https://youtube.com/@ann', contact_email: 'ann@new.example' });
 check(c1.status === 201 && c1.json.status === 'pending' && c1.json.name === 'Ann Artist', 'create a pending claim');
-check(get('SELECT contact_email, contact_phone FROM person_accounts WHERE id = 1').contact_email === 'ann@new.example' && get('SELECT contact_phone FROM person_accounts WHERE id = 1').contact_phone === '+919876543210', 'contact email updated from the claim; the phone on the account is kept');
+check(get('SELECT contact_email, contact_phone FROM person_accounts WHERE id = 1').contact_email === 'ann@example.com' && get('SELECT contact_phone FROM person_accounts WHERE id = 1').contact_phone === '+919876543210', "the claim form cannot swap the account's email (that is done in the Account tab and confirmed again); the phone is kept");
 check(ann.json.account.contact_phone === '+919876543210' && ann.json.account.contact_complete === true && (await acct('GET', '/me', ann.token)).json.account.contact_complete === true, 'registration stores the phone; /me says the contact details are complete');
 {
   // An account from before phone numbers existed has no phone: it cannot claim until it adds one.
@@ -170,7 +173,7 @@ for (const role of ['viewer', 'translator', 'reviewer', 'editor']) {
 }
 check((await call('GET', '/api/v1/admin/claims')).status === 401, 'anonymous → 401');
 const list = await adm('GET', '/claims', 'manager');
-check(list.status === 200 && list.json.total === 3 && list.json.claims[0].status === 'pending' && list.json.claims[0].claimant && list.json.claims.some((c) => c.claimant_email === 'ann@new.example' && c.claimant_phone === '+919876543210'), 'manager sees claims with claimant, evidence, contact email and phone');
+check(list.status === 200 && list.json.total === 3 && list.json.claims[0].status === 'pending' && list.json.claims[0].claimant && list.json.claims.some((c) => c.claimant_email === 'ann@example.com' && c.claimant_phone === '+919876543210'), 'manager sees claims with claimant, evidence, contact email and phone');
 check((await adm('GET', '/claims?status=approved', 'manager')).json.total === 0, 'status filter');
 check((await adm('PUT', `/claims/${c1.json.id}/reject`, 'manager', {})).status === 400, 'reject needs a note');
 check((await adm('PUT', '/claims/999/approve', 'manager')).status === 404, 'unknown claim → 404');

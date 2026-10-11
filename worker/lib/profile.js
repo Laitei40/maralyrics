@@ -72,5 +72,5 @@ export function validateContact(data = {}) {
   const raw = typeof data.contact_phone === 'string' ? data.contact_phone.trim() : '';
   const phone = raw.replace(/[\s().-]/g, '').replace(/^00/, '+');
   if (!/^\+?\d{8,15}$/.test(phone)) return { ok: false, error: 'Enter a valid phone number with your country code, for example +91 98765 43210' };
-  return { ok: true, email, phone };
+  return { ok: true, email: email.toLowerCase(), phone };
 }
